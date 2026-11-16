@@ -10,27 +10,41 @@ Du arbeitest beim **Wolkenamt** der Gemeinde Wolkenwil. Als kleines, wackeliges 
 
 Ein Browserspiel ohne Installation und ohne Server, gebaut mit HTML, CSS, JavaScript und Three.js. Deutsch und Englisch.
 
-**Status:** Testversion v0.4 (3D-Welt, Online zu dritt)
+**Status:** Testversion v0.5 (Umbau zu HOCHDRUCK, Kapitel 1 und Abendpartie spielbar)
+
+Seit v0.5 geht es nicht mehr nur um schöne Wolken. Du arbeitest für eine **Partei**, und jede Wolke ist Politik: Wer Regen bekommt, wer Sonne, wer leer ausgeht. Ziel ist die Gemeindewahl.
 
 ---
 
-## So läuft eine Runde
+## So läuft ein Tag (Kapitel 1 «Der Posten»)
 
-1. **Amtsbüro (3D):** Zum Pult laufen und **E** drücken. Die Kamera fährt auf die Tischplatte.
-2. **Stempeln (2D):** Anträge bewilligen oder ablehnen. Es gibt nur begrenzt Wolken pro Tag.
-3. **Wolkenplattform (3D):** Die Treppe hoch aufs Dach, an der Kurbel **E** drücken.
-4. **Schneiden (2D):** Die Wolke mit der Schere in Form bringen und freigeben.
-5. **Dorfplatz (3D):** Die Wolke fliegt heran, das Dorf schaut hoch, die Zeitung erscheint.
-6. Am Abend kommt der **Tagesbericht** mit deinem Ansehen.
+1. **Morgenpost:** Zeitung, Briefe und Anrufe. Manche verlangen eine Entscheidung mit Folgen, die erst Tage später kommen.
+2. **Pult:** Anträge bewilligen, ablehnen oder **fälschen** (Unterschrift und Stempel nachmachen). Mit «Prüfen» siehst du, ob ein Antrag echt ist.
+3. **Telefon, Archiv, Aktenvernichter:** Dossiers über Huber, Gerber, Moser und Wyss sammeln, Druckmittel aufbauen, Beweise verschwinden lassen.
+4. **Wetterpult auf dem Dach:** Regen, Nebel, Föhn oder Sturm für einen Dorfteil bestellen. Alles hat Nebenwirkungen.
+5. **Wolke schneiden** und freigeben, danach der Dorfplatz.
+6. **Gemeindehaus und Bäckerei:** Abstimmungen (z. B. Seilbahn) beeinflussen, Gerüchte streuen.
+7. **Abendbericht:** Umfrage nach Wählergruppen, Einfluss, Kasse und **Verdacht**. Zu viel Verdacht führt zur Untersuchung.
+
+Die **Akte** oben rechts zeigt jederzeit Partei, Umfrage und Verdacht.
 
 ## Spielmodi
 
 | Modus | Beschreibung |
 |---|---|
-| **Arbeitswoche** | 6 Arbeitstage mit 12 Anträgen und 5 Sonderanträgen. Tagesbericht mit Ansehen und Rang. |
+| **Kampagne (Story)** | Kapitel 1 «Der Posten»: Partei wählen, 6 Amtstage mit Ereignissen, Anrufen, Unwettern, Abstimmung und Kapitelende. Kapitel 2–4 folgen. |
 | **Freie Wolke** | Forme irgendetwas. Das Dorf rätselt, was es sein soll. Als Postkarte speicherbar. |
-| **Online spielen** | Bis 3 Personen, jede bei sich zuhause. Alle laufen als Beamtli durchs Amt (Signalrot, Gletscherblau, Aktenocker). Amtssitzung am Pult, dann alle aufs Dach, gleiche Startwolke, am Schluss Beamter/in des Monats. Mit Text-Funk; der Sprachkanal ist vorerst nur als Vorschau sichtbar. |
+| **Abendpartie (online)** | 2–3 Personen, jede mit eigener Partei (WVB, FWW, PKH), Huber spielt als vierte Partei mit. Nach jeder Runde eine Aktion im «Hinterzimmer»: Gerücht streuen, beim Kanton verpfeifen, Plakate kleben, Bestechung annehmen. Wer vorne liegt, gerät unter Verdacht. Am Schluss entscheidet die Gemeindewahl. Etwa 30–45 Minuten. |
 | **Zu dritt an einem Gerät** | Nacheinander am selben Gerät (Pass & Play), nur in der 2D-Schneideansicht. |
+
+## Parteien
+
+| Partei | Kurz | Steht für |
+|---|---|---|
+| Wolkenwiler Volksbund | WVB | Bauern, Tradition, Sonne fürs Heu |
+| Freie Wähler Wolkenwil | FWW | Gewerbe, Tourismus, Seilbahn |
+| Partei für Klima und Heimat | PKH | Junge, Natur, ehrlicher Regen |
+| Gemeindepräsident Huber | – | Huber. Immer Huber. |
 
 ## Steuerung
 
@@ -123,7 +137,9 @@ wolkenamt/
 ├── index.html          # Aufbau: 3D- und 2D-Canvas, Menü, Formulare, Overlays
 ├── css/style.css       # Gestaltung (Papier und Tinte, HUD, Handy-Steuerung)
 ├── js/
-│   ├── main.js         # Ablauf: Menü, Pult, Plattform, Dorfplatz, Mehrspieler
+│   ├── main.js         # Ablauf: Menü, Kampagne, Pult, Plattform, Dorfplatz, Mehrspieler
+│   ├── power.js        # Macht-Modell: Parteien, Wählergruppen, Umfragen, Ereignisse, Verdacht
+│   ├── forgery.js      # Unterschriften und Stempel (echt und gefälscht)
 │   ├── world3d.js      # 3D-Welt: Amtshaus, Dorf, Physik, Kamera, Dorfleute
 │   ├── beamtli.js      # Spielfigur mit Feder-Animation
 │   ├── office.js       # Einrichtung des Büros, Wolkenplattform, Plakat-Plätze
@@ -157,10 +173,15 @@ Fortschritt, Ansehen, Sichtungen, Sprache und Ton werden im `localStorage` des B
 - [x] Online-Mehrspieler (bis 3 Personen)
 - [x] 3D-Welt mit eigenen Figuren
 - [x] Deutsch und Englisch
+- [x] Parteien, Umfragen, Korruption, Fälschungen, Unwetter, Abstimmungen
+- [x] Abendpartie mit Sabotage und Gemeindewahl
+- [ ] Kapitel 2–4 (Untersuchung, Wahlkampf, Enden)
+- [ ] Sandbox über mehrere Jahre
+- [ ] Gemeindehaus von innen begehbar
 - [ ] Sprachkanal (Optik ist schon drin, Funktion folgt)
-- [ ] «Wolke des Tages» für alle gleich, mit Teilen-Link
-- [ ] Mehr Anträge und eine zweite Arbeitswoche
-- [ ] Musik
+- [ ] Steam-Version
+
+Den genauen Stand der Etappen zeigt `STAND.md`.
 
 ---
 

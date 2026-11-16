@@ -237,7 +237,7 @@ add({
   'rep.again': ['Tag wiederholen', 'Repeat the day'],
   'rep.rep': ['Ansehen: {b} →', 'Reputation: {b} →'],
   'rep.bonus': ['Sonder-Sichtungen: +{b}', 'Special sightings: +{b}'],
-  'rep.week': ['Die Woche ist geschafft. Rang: {r}. Das Amt dankt. Wolkenwil auch (meistens).', 'The week is done. Rank: {r}. The office thanks you. So does Wolkenwil (mostly).'],
+  'rep.week': ['Kapitel 1 ist vorbei. Rang im Amt: {r}. Was Wolkenwil davon hält, entscheidet die Urne.', 'Chapter 1 is over. Rank in the office: {r}. What Wolkenwil thinks of it is up to the ballot box.'],
   'rep.next': ['Weiter zum {day}', 'On to {day}'],
 
   'local.head': ['Amtsstube zu dritt', 'Office for three'],

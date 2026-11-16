@@ -56,6 +56,7 @@ export function furnish(w) {
   w.box(0.22, 0.09, 0.24, PAL.tinte, 0, 0, 0, { parent: ph });
   const dial = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.015, 14), toon(PAL.papier)); dial.position.set(0, 0.1, 0.05); dial.rotation.x = 0.35; ph.add(dial);
   const hs = new THREE.Mesh(new THREE.CapsuleGeometry(0.03, 0.2, 4, 8), toon(PAL.tinte)); hs.rotation.z = Math.PI / 2; hs.position.set(0, 0.14, -0.05); ph.add(hs);
+  o.handset = hs;
   for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), toon(PAL.tinte)); e.position.set(s * 0.12, 0.14, -0.05); e.scale.y = 0.7; ph.add(e); }
   // Stapel Anträge
   for (let i = 0; i < 9; i++) w.box(0.3, 0.012, 0.4, i % 4 === 3 ? PAL.lino : PAL.papier, 0.0 + J(0.03), Y + i * 0.013, 0.2 + J(0.02), { parent: desk, rot: J(0.12), cast: i === 8 });
@@ -236,7 +237,19 @@ export function furnish(w) {
   const vSpots = [...villageSpots, { group: bw, p: [-0.5, 1.35, 0.06], ry: 0 }, { group: bw, p: [0.5, 1.35, 0.06], ry: 0, tilt: 0.04 }];
   shuffle(vSpots, r).slice(0, nV).forEach((s, i) => o.posters.push(placePoster(w, ids[nO + i], s, 10 + i)));
 
+  // ---------- Aktenvernichter neben dem Pult ----------
+  const sh = new THREE.Group(); sh.position.set(D.x - 1.75, 0, D.z + 0.35); w.scene.add(sh);
+  w.box(0.42, 0.55, 0.32, PAL.chalet, 0, 0, 0, { parent: sh, line: 0.01 });
+  w.box(0.46, 0.14, 0.36, PAL.tinte, 0, 0.55, 0, { parent: sh });
+  w.box(0.3, 0.012, 0.03, PAL.papier, 0, 0.69, 0, { parent: sh, cast: false });
+  for (let i = 0; i < 6; i++) w.box(0.012, 0.18, 0.008, PAL.papier, -0.1 + i * 0.04, 0.42 + (i % 2) * 0.05, 0.165, { parent: sh, cast: false });
+  w.addCollider(sh.position.x - 0.25, 0, sh.position.z - 0.2, sh.position.x + 0.25, 0.7, sh.position.z + 0.2);
+
   // ---------- Benutzbare Stellen ----------
+  w.addInteractable('archive', new THREE.Vector3(R.x0 + 1.35, 0, -1.75), 1.0, t('use.archive'));
+  w.addInteractable('shredder', new THREE.Vector3(sh.position.x, 0, sh.position.z + 0.7), 0.75, t('use.shredder'));
+  o.phoneIt = w.addInteractable('phone', new THREE.Vector3(D.x + 0.95, 0, D.z + 0.95), 0.9, t('use.phone'));
+  o.phoneIt.enabled = false;
   w.addInteractable('desk', new THREE.Vector3(D.x, 0, D.z + 1.0), 1.35, t('use.desk'));
   w.addInteractable('platform', new THREE.Vector3(o.platform.x, 0, o.platform.z), 1.6, t('use.platform'), R.roof + 0.12);
 
@@ -254,6 +267,7 @@ export function furnish(w) {
   o.relabel = () => {
     o.posters.forEach(p => p.redraw());
     const it = w.interactables; it.find(i => i.id === 'desk').label = t('use.desk'); it.find(i => i.id === 'platform').label = t('use.platform');
+    it.find(i => i.id === 'archive').label = t('use.archive'); it.find(i => i.id === 'shredder').label = t('use.shredder'); it.find(i => i.id === 'phone').label = t('use.phone');
     o.sign.redraw(t('sign.amt'));
   };
   return o;

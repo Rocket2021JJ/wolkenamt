@@ -31,7 +31,7 @@ export const PLAYABLE = ['wvb', 'fww', 'pkh'];
 // ---------------- Zustand ----------------
 export function freshPower(party) {
   const trust = {}; for (const g in GROUPS) trust[g] = 50;
-  return { party, trust, mod: { wvb: 0, fww: 0, pkh: 0, huber: 0.35 }, influence: 0, cash: 0, suspicion: 0, queue: [], flags: {}, history: [] };
+  return { party, trust, mod: { wvb: 0, fww: 0, pkh: 0, huber: 0.35 }, influence: 0, cash: 0, suspicion: 0, queue: [], flags: {}, history: [], lev: {}, read: {} };
 }
 
 // Umfragewerte: jede Gruppe verteilt ihre Stimmen nach Nähe zur Partei,
@@ -58,11 +58,13 @@ export function apply(P, fx, scale = 1) {
   if (!fx) return [];
   const ch = [];
   if (fx.trust) for (const g in fx.trust) { const d = Math.round(fx.trust[g] * (fx.trust[g] > 0 ? scale : 1)); if (!d) continue; P.trust[g] = clamp(P.trust[g] + d, 0, 100); ch.push({ k: 'trust', g, d }); }
-  if (fx.mod) for (const p in fx.mod) { P.mod[p] = (P.mod[p] || 0) + fx.mod[p]; ch.push({ k: 'mod', p, d: fx.mod[p] }); }
+  if (fx.mod) for (const k in fx.mod) { const p = k === '_own' ? P.party : k; P.mod[p] = (P.mod[p] || 0) + fx.mod[k]; ch.push({ k: 'mod', p, d: fx.mod[k] }); }
   if (fx.influence) { P.influence = Math.max(0, P.influence + fx.influence); ch.push({ k: 'influence', d: fx.influence }); }
   if (fx.cash) { P.cash = Math.max(0, P.cash + fx.cash); ch.push({ k: 'cash', d: fx.cash }); }
   if (fx.suspicion) { P.suspicion = clamp(P.suspicion + fx.suspicion, 0, 100); ch.push({ k: 'suspicion', d: fx.suspicion }); }
   if (fx.flag) P.flags[fx.flag] = true;
+  if (fx.lev) { P.lev = P.lev || {}; P.lev[fx.lev] = true; ch.push({ k: 'lev', p: fx.lev, d: 1 }); }
+  if (fx.unlev && P.lev) { delete P.lev[fx.unlev]; ch.push({ k: 'lev', p: fx.unlev, d: -1 }); }
   return ch;
 }
 export function schedule(P, day, id) { P.queue.push({ day, id }); }
@@ -138,6 +140,7 @@ export const EVENTS = {
     choices: [
       [['Nachgeben', 'Give in'], { mod: { huber: 0.15 }, influence: 1 }, ['Du versprichst Huber «etwas Schönes» für die nächste Woche. Er legt zufrieden auf.', 'You promise Huber “something nice” for next week. He hangs up, satisfied.']],
       [['Standhaft bleiben', 'Stand firm'], { influence: -1, trust: { junge: 3, kirche: 2 } }, ['Huber legt wortlos auf. Im Dorf erzählt man sich, das Amt habe Rückgrat.', 'Huber hangs up without a word. The village says the office has a backbone.']],
+      [['Die Seilbahn-Studie erwähnen', 'Mention the cable car study'], { mod: { huber: -0.15 }, influence: 2, suspicion: 4 }, ['Langes Schweigen. Dann: «Vergessen wir das mit der Burg.» Huber weiss jetzt, dass du etwas weisst.', 'A long silence. Then: “Let’s forget about the castle.” Huber now knows that you know something.'], P => P.lev && P.lev.huber],
     ] },
   gerber_garten: { from: 'Wolkenwiler Anzeiger',
     text: ['Der Garten von Herrn Gerber stand unter Wasser. Redaktorin Imboden fragt, wer den lokalen Regen bewilligt hat.', 'Mr Gerber’s garden was flooded. Editor Imboden asks who approved the local rain.'],
@@ -155,3 +158,87 @@ export const EVENTS = {
       [['Geld spenden (CHF 2’000)', 'Donate the money (CHF 2,000)'], { cash: -2000, suspicion: -8, trust: { kirche: 4 } }, ['Die Pfarrei bekommt eine anonyme Spende. Imboden findet keine Story. Noch nicht.', 'The parish gets an anonymous donation. Imboden finds no story. Not yet.']],
     ] },
 };
+
+// ---------------- Etappe 2: Fälschungen, Telefon, Archiv, Aktenvernichter ----------------
+Object.assign(EVENTS, {
+  forgery_exposed: { from: 'Gemeinderat Wolkenwil',
+    text: ['Der Antrag, den du gestern bewilligt hast, war gefälscht. Der Gemeinderat fragt, wer im Amt eigentlich nicht hinschaut.', 'The request you approved yesterday was forged. The council asks who at the office is not paying attention.'],
+    fx: { suspicion: 8, influence: -1 } },
+  shredder_witness: { from: 'Frau Rüegg, Reinigung',
+    text: ['Die Putzfrau hat gesehen, wie du gestern Akten vernichtet hast. Sie lächelt. «Mein Lohn ist seit 2009 gleich.»', 'The cleaner saw you shredding files yesterday. She smiles. “My wage hasn’t changed since 2009.”'],
+    choices: [
+      [['CHF 600 zahlen', 'Pay CHF 600'], { cash: -600 }, ['Sie zählt nach und nickt. Sie hat nichts gesehen. Diesmal.', 'She counts it and nods. She saw nothing. This time.'], P => P.cash >= 600],
+      [['Abstreiten', 'Deny it'], { suspicion: 10 }, ['Am Nachmittag erzählt sie es in der Bäckerei. Die Bäckerei erzählt es allen.', 'In the afternoon she tells the bakery. The bakery tells everyone.']],
+    ] },
+  kanton_besuch: { from: 'Kantonsinspektor Wyss',
+    text: ['Inspektor Wyss steht unangemeldet im Amt und blättert in deinen Akten. Er sagt nichts. Er notiert viel.', 'Inspector Wyss turns up unannounced and leafs through your files. He says nothing. He writes a lot.'],
+    fx: { suspicion: 10 } },
+});
+
+// Anrufe am Pult: req = Bedingung, damit der Anruf kommen kann
+export const CALLS = {
+  call_gewerbe: { from: 'Gewerbeverband',
+    text: ['«Am Samstag ist Markt. Ein bisschen Sonne über dem Platz wäre uns CHF 1’200 wert. Bar, versteht sich.»', '“It’s market day on Saturday. A bit of sun over the square would be worth CHF 1,200 to us. Cash, of course.”'],
+    choices: [
+      [['Abgemacht', 'Deal'], { cash: 1200, suspicion: 6, trust: { gewerbe: 3 } }, ['Der Präsident des Gewerbeverbands lacht ins Telefon. Du hörst Gläser klirren.', 'The association president laughs into the phone. You hear glasses clinking.']],
+      [['Das Amt ist nicht käuflich', 'The office is not for sale'], { trust: { gewerbe: -2, kirche: 1 } }, ['«Schade. Huber war da immer zugänglicher.»', '“Pity. Huber was always more approachable.”']],
+    ] },
+  call_tipp: { from: 'Anonymer Anrufer',
+    text: ['Eine verstellte Stimme: «Ich weiss, wer die Seilbahn-Studie geschrieben hat. Für CHF 500 erzähle ich es Ihnen.»', 'A disguised voice: “I know who wrote the cable car study. For CHF 500 I’ll tell you.”'],
+    req: P => !(P.lev && P.lev.huber),
+    choices: [
+      [['Zahlen', 'Pay'], { cash: -500, lev: 'huber' }, ['«Hubers Schwager. Ohne Ausschreibung.» Klick. Das ist ein Druckmittel.', '“Huber’s brother-in-law. No tender.” Click. That is leverage.'], P => P.cash >= 500],
+      [['Auflegen', 'Hang up'], {}, ['Das Telefon klingelt nicht noch einmal.', 'The phone does not ring again.']],
+    ] },
+  call_imboden: { from: 'Redaktorin Imboden',
+    text: ['«Ich schreibe über Huber und die Seilbahn. Haben Sie etwas für mich? Ich schütze meine Quellen.»', '“I’m writing about Huber and the cable car. Do you have anything for me? I protect my sources.”'],
+    req: P => P.lev && P.lev.huber,
+    choices: [
+      [['Auspacken', 'Spill it'], { mod: { huber: -0.35 }, suspicion: 3, unlev: 'huber', flag: 'imboden' }, ['Am nächsten Morgen titelt der Anzeiger: «Seilbahn für den Schwager». Huber stürzt in den Umfragen.', 'Next morning the Gazette runs: “A cable car for the brother-in-law”. Huber plunges in the polls.']],
+      [['Später vielleicht', 'Maybe later'], {}, ['«Warten Sie nicht zu lange. Andere reden auch.»', '“Don’t wait too long. Others talk too.”']],
+    ] },
+  call_huber: { from: 'Gemeindepräsident Huber',
+    text: ['Huber lädt dich zum Abendessen ins «Rössli» ein. «Ganz privat. Unter Freunden.»', 'Huber invites you to dinner at the “Rössli”. “Completely private. Among friends.”'],
+    choices: [
+      [['Hingehen', 'Go'], { influence: 2, mod: { huber: 0.1 }, trust: { junge: -2 } }, ['Huber bestellt für dich. Am Nebentisch sitzt ein Fotograf. Zufall, sagt Huber.', 'Huber orders for you. A photographer sits at the next table. Coincidence, says Huber.']],
+      [['Absagen', 'Decline'], {}, ['«Wie Sie meinen.» Huber klingt nicht, als würde er es vergessen.', '“As you wish.” Huber does not sound like he will forget it.']],
+    ] },
+  call_kanton: { from: 'Kantonsinspektor Wyss',
+    text: ['«Wyss, Kantonale Aufsicht. Mir sind Unregelmässigkeiten gemeldet worden. Ich komme in den nächsten Tagen vorbei.»', '“Wyss, cantonal oversight. Irregularities have been reported to me. I will be stopping by in the next few days.”'],
+    req: P => P.suspicion >= 35,
+    choices: [
+      [['Akten in Ordnung bringen', 'Put the files in order'], { suspicion: -4, influence: -1 }, ['Du verbringst den Abend im Archiv. Am Ende sieht alles fast sauber aus.', 'You spend the evening in the archive. In the end, everything looks almost clean.']],
+      [['Ignorieren', 'Ignore it'], { flag: 'kanton_ignored' }, ['Wyss legt auf. Er hat deinen Namen zweimal wiederholt.', 'Wyss hangs up. He repeated your name twice.']],
+      [['An seinen Führerschein erinnern', 'Remind him of his licence'], { suspicion: -12, unlev: 'wyss', flag: 'wyss_bought' }, ['Stille. «Ich sehe, hier ist alles in Ordnung.» Wyss wird das nicht vergessen.', 'Silence. “I see everything is in order here.” Wyss will not forget this.'], P => P.lev && P.lev.wyss],
+    ] },
+  call_partei: { from: 'Parteisekretariat',
+    text: ['Dein Parteisekretär: «Die Plakate sind teuer. Kannst du aus deiner… Kasse etwas beisteuern? CHF 1’000 würden reichen.»', 'Your party secretary: “Posters are expensive. Could you chip in from your… fund? CHF 1,000 would do.”'],
+    choices: [
+      [['CHF 1’000 geben', 'Give CHF 1,000'], { cash: -1000, suspicion: 3, mod: { _own: 0.15 } }, ['Am nächsten Morgen hängen neue Plakate am Dorfplatz. Niemand fragt, woher das Geld kommt. Noch nicht.', 'Next morning new posters hang on the square. Nobody asks where the money came from. Not yet.'], P => P.cash >= 1000],
+      [['Leider nein', 'Sorry, no'], { mod: { _own: -0.05 } }, ['«Dann eben mit Filzstift», seufzt der Sekretär.', '“Felt-tip pens it is, then,” sighs the secretary.']],
+    ] },
+};
+export function pickCall(P, day) {
+  const done = new Set((P.history || []).map(h => h.ev));
+  const ids = Object.keys(CALLS).filter(id => !done.has(id) && (!CALLS[id].req || CALLS[id].req(P)));
+  if (!ids.length) return null;
+  // Wyss kommt zuerst, wenn der Verdacht hoch ist
+  if (ids.includes('call_kanton')) return 'call_kanton';
+  return ids[(day * 7 + ids.length) % ids.length];
+}
+
+// Archiv: Dossiers kosten Einfluss zum Lesen und werden dann Druckmittel oder Zeitungsstoff
+export const DOSSIERS = [
+  { id: 'huber', who: ['Gemeindepräsident Huber', 'Mayor Huber'], cost: 2,
+    secret: ['2019 ging die Seilbahn-Studie ohne Ausschreibung an Hubers Schwager. Rechnung: CHF 84’000. Seiten mit Inhalt: 3.', 'In 2019 the cable car study went to Huber’s brother-in-law without a tender. Invoice: CHF 84,000. Pages with content: 3.'],
+    leak: { mod: { huber: -0.35 }, suspicion: 3, flag: 'imboden' }, keep: { lev: 'huber' } },
+  { id: 'gerber', who: ['Herr Gerber', 'Mr Gerber'], cost: 1,
+    secret: ['Gerber war 1998 Kassier des FC. Die Vereinskasse fehlt bis heute. Gerber hat seither nie mehr ein Fussballspiel besucht.', 'Gerber was FC treasurer in 1998. The club funds are still missing. Gerber has not attended a match since.'],
+    leak: { trust: { vereine: 3, senioren: -2 } }, keep: { lev: 'gerber' } },
+  { id: 'moser', who: ['Bäckerei Moser', 'Bäckerei Moser'], cost: 1,
+    secret: ['Die «Butter-Gipfeli» der Bäckerei Moser werden seit 2011 mit Margarine gebacken. Lieferscheine liegen bei.', 'Bäckerei Moser’s “butter croissants” have been baked with margarine since 2011. Delivery notes attached.'],
+    leak: { trust: { gewerbe: -3, junge: 2 } }, keep: { lev: 'moser' } },
+  { id: 'wyss', who: ['Kantonsinspektor Wyss', 'Inspector Wyss'], cost: 3,
+    secret: ['Inspektor Wyss hat seinen Führerschein dreimal verloren. Der Kanton weiss von einmal.', 'Inspector Wyss has lost his driving licence three times. The canton knows about once.'],
+    leak: { suspicion: -6 }, keep: { lev: 'wyss' } },
+];

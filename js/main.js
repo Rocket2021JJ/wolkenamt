@@ -9,6 +9,7 @@ import { ORDERS, NO, NOREP, SPECIALS, DAYS, FREE, AUTHORS, HANDLES, GENERIC, FRE
 import * as cutM from './cut2d.js';
 import * as A from './audio.js';
 import * as POW from './power.js';
+import { drawSignature, drawStamp, forgeryKind } from './forgery.js';
 import { NAMES } from './data.js';
 import { net, netCreate, netJoin, netReset, netAvailable, hostStart, hostNext, setRounds, toHost, pname, LOCALTEST, MP_POINTS } from './net.js';
 
@@ -32,7 +33,7 @@ const totalStars = () => save.stars.reduce((a, b) => a + (b || 0), 0);
 // ---------------- Welt ----------------
 const world = new World($('c3d'));
 const office = world.office = furnish(world);
-world.bake([world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank]);
+world.bake([office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank]);
 world.spawnVillagers(11);
 world.sfx = A.sfx;
 window.__world = world;
@@ -51,7 +52,7 @@ let flow = 'single';   // single | local | online
 let run = null;        // Arbeitstag oder freie Wolke
 let mp = null;         // lokal zu dritt
 let taskKey = null, taskVars = null;
-const OVER = ['party', 'morning', 'menu', 'brief', 'result', 'desk', 'report', 'mpSetup', 'handoff', 'mpRes', 'onEntry', 'onLobby', 'onVote', 'card'];
+const OVER = ['archive', 'party', 'morning', 'menu', 'brief', 'result', 'desk', 'report', 'mpSetup', 'handoff', 'mpRes', 'onEntry', 'onLobby', 'onVote', 'card'];
 const only = (...ids) => OVER.forEach(x => $(x).classList.toggle('hidden', !ids.includes(x)));
 const touchMode = matchMedia('(pointer: coarse)').matches || /[?&]touch/.test(location.search);
 if (touchMode) document.body.classList.add('touch');
@@ -102,6 +103,7 @@ function arrival(canvases, after) {
 // ---------------- Menü ----------------
 function showMenu() {
   if (net.on || net.T) leaveOnline();
+  clearTimeout(ringT); if (office.phoneIt) stopRing();
   cutM.stop(); world.setFov(42);
   flow = 'single'; run = null; mp = null; mode = 'menu';
   world.clearSkyClouds(); world.watch(false); world.setTod(null);
@@ -141,7 +143,8 @@ function startDay(d) {
   if (!save.power) return openParty(() => startDay(d));
   flow = 'single';
   const P = save.power;
-  run = { kind: 'day', d, dec: {}, queue: [], qi: -1, res: {}, stamped: false, before: { polls: POW.polls(P), suspicion: P.suspicion, cash: P.cash, influence: P.influence } };
+  const ords = DAYS[d].cards.filter(c => !isSpecial(c));
+  run = { kind: 'day', d, forged: d >= 1 ? ords[(d * 5) % ords.length] : -1, fkind: forgeryKind(d * 13 + 7), dec: {}, queue: [], qi: -1, res: {}, stamped: false, shred: false, before: { polls: POW.polls(P), suspicion: P.suspicion, cash: P.cash, influence: P.influence } };
   const go = () => { enterWorld('door', 'task.desk'); setDay(t('hud.day', { day: L(DAYS[d].name), n: d + 1 })); updateAkte(); };
   const ev = POW.due(P, d); persist();
   if (ev.length) showMorning(ev, d, go); else go();
@@ -171,25 +174,28 @@ function fxChips(ch) {
     else if (c.k === 'influence') txt = `${t('akte.inf')} ${c.d > 0 ? '+' : ''}${c.d}`;
     else if (c.k === 'cash') txt = `${t('akte.cash')} ${c.d > 0 ? '+' : '−'}${fmtCash(c.d)}`;
     else if (c.k === 'suspicion') { txt = `${t('akte.susp')} ${c.d > 0 ? '+' : ''}${c.d}`; good = c.d < 0; }
+    else if (c.k === 'lev') txt = `${c.d > 0 ? t('fx.lev') : t('fx.levUsed')}: ${c.p.charAt(0).toUpperCase() + c.p.slice(1)}`;
     e.className = 'fx ' + (good ? 'pos' : 'neg'); e.textContent = txt; box.appendChild(e);
   });
   return box;
 }
-function showMorning(list, d, done) {
-  mode = 'morning'; world.orbit(true); hud(false);
+function showMorning(list, d, done, call) {
+  const wasWorld = mode === 'world';
+  mode = 'morning'; if (!call) world.orbit(true); else world.enabled = false; hud(false);
+  document.querySelector('#morning .lhead span').textContent = call ? t('call.title') : t('mail.title');
   const P = save.power; let i = 0;
   const next = () => {
     if (i >= list.length) { persist(); return done(); }
-    const ev = POW.EVENTS[list[i++]];
+    const ev = POW.EVENTS[list[i]] || POW.CALLS[list[i]]; i++;
     only('morning');
-    $('mlDay').textContent = t('mail.day', { day: L(DAYS[d].name) });
+    $('mlDay').textContent = call ? t('call.time') : t('mail.day', { day: L(DAYS[d].name) });
     $('mlFrom').textContent = nameOf(ev.from); $('mlText').textContent = L(ev.text);
     $('mlRes').classList.add('hidden'); $('mlFx').replaceWith(Object.assign(document.createElement('div'), { id: 'mlFx', className: 'lfx' }));
     const btns = $('mlBtns'); btns.innerHTML = '';
     const cont = () => { btns.innerHTML = ''; const b = document.createElement('button'); b.className = 'prim'; b.textContent = t('btn.next'); b.onclick = next; btns.appendChild(b); updateAkte(); };
-    if (ev.choices) ev.choices.forEach(([label, fx, res]) => {
+    if (ev.choices) ev.choices.forEach(([label, fx, res, req]) => {
       const b = document.createElement('button'); b.textContent = L(label);
-      if (fx.cash < 0 && P.cash < -fx.cash) { b.disabled = true; b.title = t('mail.nocash'); }
+      if (req && !req(P)) { if (fx.cash < 0) { b.disabled = true; b.title = t('mail.nocash'); } else return; }
       b.onclick = () => {
         const ch = POW.apply(P, fx); P.history.push({ day: d, ev: list[i - 1], pick: L(label) });
         $('mlRes').textContent = L(res); $('mlRes').classList.remove('hidden'); $('mlFx').replaceWith(Object.assign(fxChips(ch), { id: 'mlFx' }));
@@ -197,7 +203,7 @@ function showMorning(list, d, done) {
       };
       btns.appendChild(b);
     });
-    else { const ch = POW.apply(P, ev.fx); $('mlFx').replaceWith(Object.assign(fxChips(ch), { id: 'mlFx' })); cont(); }
+    else { P.history.push({ day: d, ev: list[i - 1] }); const ch = POW.apply(P, ev.fx); $('mlFx').replaceWith(Object.assign(fxChips(ch), { id: 'mlFx' })); cont(); }
   };
   next();
 }
@@ -226,6 +232,9 @@ function startFree() {
 
 world.onUse = (id) => {
   if (mode !== 'world') return;
+  if (id === 'phone') return answerPhone();
+  if (id === 'archive') return openArchive();
+  if (id === 'shredder') return useShredder();
   if (id === 'desk') {
     if (flow === 'single' && run && run.kind === 'day' && !run.stamped) { A.sfx('land'); goDesk(openDesk); }
     else toast(t('toast.nodesk'));
@@ -259,10 +268,26 @@ function openDesk() {
     if (S) mk('tagS', t('card.slot'));
     else { const cv = document.createElement('canvas'); cv.width = 200; cv.height = 150; cutM.drawOrder(cv, c); el.appendChild(cv); }
     mk('ct', L(o.text));
+    if (!S) {
+      // Prüfen: Unterschrift und Stempel mit der Kartei vergleichen
+      const forged = c === run.forged, who = o.from, ins = document.createElement('div'); ins.className = 'insp';
+      const row = document.createElement('div'); row.className = 'sigrow';
+      const lab = txt => { const e = document.createElement('span'); e.className = 'lab'; e.textContent = txt; return e; };
+      const cvs = (w, h) => { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; return cv; };
+      const s1 = cvs(120, 44), s2 = cvs(120, 44), t1 = cvs(70, 52), t2 = cvs(70, 52);
+      drawSignature(s1, who, forged, run.fkind); drawSignature(s2, who, false); drawStamp(t1, forged, run.fkind); drawStamp(t2, false);
+      const rl = x => { const e = lab(x); e.classList.add('rowlab'); return e; };
+      row.append(lab(''), lab(t('chk.request')), lab(t('chk.file')), rl(t('chk.sign')), s1, s2, rl(t('chk.stamp')), t1, t2);
+      ins.appendChild(row);
+      const fb = document.createElement('button'); fb.className = 'fake'; fb.textContent = t('chk.fake');
+      fb.onclick = () => decide(String(c), 'fake', el); ins.appendChild(fb);
+      el.appendChild(ins);
+    }
     const cb = document.createElement('div'); cb.className = 'cb';
     const y = document.createElement('button'); y.className = 'yes'; y.textContent = t('card.yes');
     const n = document.createElement('button'); n.className = 'no'; n.textContent = t('card.no2');
     y.onclick = () => decide(String(c), 'yes', el); n.onclick = () => decide(String(c), 'no', el);
+    if (!S) { const k = document.createElement('button'); k.className = 'chk'; k.textContent = t('chk.btn'); k.title = t('chk.tip'); k.onclick = () => el.classList.toggle('open'); cb.appendChild(k); }
     const prev = run.dec[String(c)]; if (prev) setTimeout(() => decide(String(c), prev, el, true));
     cb.append(y, n); el.appendChild(cb); wrap.appendChild(el);
   });
@@ -276,8 +301,9 @@ function decide(key, v, el, quiet) {
   run.dec[key] = v;
   el.querySelector('.yes').classList.toggle('sel', v === 'yes');
   el.querySelector('.no').classList.toggle('sel', v === 'no');
+  el.querySelector('.fake')?.classList.toggle('sel', v === 'fake');
   el.querySelector('.imp')?.remove();
-  const imp = document.createElement('div'); imp.className = 'imp ' + v; imp.textContent = v === 'yes' ? t('stamp.yes') : t('stamp.no'); el.appendChild(imp);
+  const imp = document.createElement('div'); imp.className = 'imp ' + v; imp.textContent = v === 'yes' ? t('stamp.yes') : v === 'fake' ? t('stamp.fake') : t('stamp.no'); el.appendChild(imp);
   if (!quiet) A.stampSound();
   updateDesk('');
 }
@@ -293,6 +319,7 @@ $('dGo').onclick = () => {
   if (!run || $('dGo').disabled) return;
   const Dy = DAYS[run.d];
   run.queue = Dy.cards.filter(c => !isSpecial(c) && run.dec[String(c)] === 'yes'); run.qi = -1; run.stamped = true;
+  scheduleCall();
   if (!run.queue.length) return showReport();
   enterWorld(null, 'task.platform', { n: run.queue.length });
 };
@@ -424,8 +451,13 @@ function showReport() {
       delta += res.rep; bonus += res.sight || 0;
       line(v === 'yes', `${nameOf(o.from)} – ${L(o.title)}${v === 'yes' ? '' : ' ' + t('rep.rejected')}`, L(res.text) + (res.sight ? `  (+${num(res.sight)} ${t('akte.sight')})` : ''), res.rep);
     } else {
-      const o = ORDERS[c];
-      if (v === 'yes') {
+      const o = ORDERS[c], forged = c === run.forged;
+      if (v === 'fake') {
+        const rep = forged ? 3 : -5; delta += rep;
+        line(forged, `${nameOf(o.from)} – ${forged ? t('rep.fakeOk') : t('rep.fakeBad')}`, forged ? t('rep.fakeOkSub') : t('rep.fakeBadSub'), rep);
+      } else if (v === 'no' && forged) {
+        line(true, `${nameOf(o.from)} – ${t('rep.rejected2')}`, t('rep.wasFake'), 0);
+      } else if (v === 'yes') {
         const st = run.res[c] ?? 0, rep = [-8, 2, 5, 8][st];
         delta += rep; line(true, `${nameOf(o.from)} – ${L(o.nom)}`, `${stars(st)}  ${L(o.head[st === 0 ? 0 : st === 1 ? 1 : 2])}`, rep);
       } else {
@@ -460,13 +492,72 @@ function showReport() {
   A.chime(delta >= 0 ? [523, 659, 784] : [392, 330], 0.1);
 }
 
+// ---------------- Etappe 2: Telefon, Archiv, Aktenvernichter ----------------
+let ringT = null, ringIv = null;
+function scheduleCall() {
+  clearTimeout(ringT); stopRing();
+  if (!save.power || !run || run.kind !== 'day') return;
+  const id = POW.pickCall(save.power, run.d); if (!id) return;
+  run.call = id;
+  ringT = setTimeout(() => {
+    if (!run || run.call !== id || flow !== 'single') return;
+    office.phoneIt.enabled = true;
+    ringIv = setInterval(() => { A.chime([880, 988], 0.05); office.handset.position.y = 0.17; setTimeout(() => { office.handset.position.y = 0.14; }, 120); }, 1300);
+    if (mode === 'world') toast(t('toast.ring'));
+    setTimeout(() => { if (run && run.call === id) { stopRing(); run.call = null; } }, 40000);
+  }, 9000);
+}
+function stopRing() { clearInterval(ringIv); ringIv = null; office.phoneIt.enabled = false; office.handset.position.y = 0.14; }
+function answerPhone() {
+  if (!run || !run.call) return;
+  const id = run.call; run.call = null; stopRing(); A.sfx('land');
+  showMorning([id], run.d, () => { only(); enterWorld(null, taskKey, taskVars); }, true);
+}
+function openArchive() {
+  if (!save.power || flow !== 'single') return toast(t('toast.noarchive'));
+  const P = save.power; mode = 'archive'; world.enabled = false; hud(false); only('archive');
+  const render = () => {
+    $('arInfo').textContent = t('arch.info', { n: P.influence });
+    const box = $('arList'); box.innerHTML = '';
+    POW.DOSSIERS.forEach(dz => {
+      const el = document.createElement('div'); el.className = 'dos' + (P.read[dz.id] === 'done' ? ' used' : '');
+      const b = document.createElement('b'); b.textContent = L(dz.who); el.appendChild(b);
+      const p = document.createElement('p');
+      const btns = document.createElement('div'); btns.className = 'rbtns';
+      const mkb = (txt, fn, prim, dis) => { const x = document.createElement('button'); x.textContent = txt; if (prim) x.className = 'prim'; x.disabled = !!dis; x.onclick = fn; btns.appendChild(x); };
+      if (!P.read[dz.id]) {
+        p.textContent = t('arch.closed');
+        mkb(t('arch.read', { n: dz.cost }), () => { POW.apply(P, { influence: -dz.cost }); P.read[dz.id] = 'open'; A.sfx('land'); persist(); render(); }, true, P.influence < dz.cost);
+      } else if (P.read[dz.id] === 'open') {
+        p.textContent = L(dz.secret);
+        mkb(t('arch.leak'), () => { POW.apply(P, dz.leak); P.read[dz.id] = 'done'; P.history.push({ day: run ? run.d : 0, ev: 'leak_' + dz.id }); A.stampSound(); persist(); render(); updateAkte(); }, true);
+        mkb(t('arch.keep'), () => { POW.apply(P, dz.keep); P.read[dz.id] = 'done'; A.stampSound(); persist(); render(); updateAkte(); });
+      } else { p.textContent = L(dz.secret); const k = document.createElement('small'); k.textContent = P.lev && P.lev[dz.id] ? t('arch.isLev') : t('arch.used'); el.appendChild(p); el.appendChild(k); box.appendChild(el); return; }
+      el.appendChild(p); el.appendChild(btns); box.appendChild(el);
+    });
+  };
+  render();
+}
+$('arClose').onclick = () => enterWorld(null, taskKey, taskVars);
+function useShredder() {
+  const P = save.power; if (!P || flow !== 'single' || !run) return toast(t('toast.noshred'));
+  if (run.shred) return toast(t('toast.shredDone'));
+  if (P.suspicion <= 0) return toast(t('toast.noshred'));
+  run.shred = true; A.noise(0.9, 'bandpass', 900, 0.4, 2);
+  POW.apply(P, { suspicion: -6 });
+  if (Math.random() < 0.35) POW.schedule(P, run.d + 1, 'shredder_witness');
+  persist(); updateAkte(); toast(t('toast.shred'));
+}
+
 // Machtbericht am Tagesende: Wirkung aller Entscheide, verzögerte Folgen einplanen
 function powerReport(Dy, sum) {
   const P = save.power; if (!P || !run || run.powDone) return; run.powDone = true;
   const all = [];
   Dy.cards.forEach(c => {
     const S = isSpecial(c), pol = S ? POW.SPECIAL_POL[c] : POW.ORDER_POL[c]; if (!pol) return;
-    const yes = run.dec[String(c)] === 'yes', st = S ? 3 : (run.res[c] ?? 0);
+    const v = run.dec[String(c)], yes = v === 'yes', st = S ? 3 : (run.res[c] ?? 0), forged = c === run.forged;
+    if (v === 'fake') { all.push(...POW.apply(P, forged ? { influence: 1, suspicion: -2 } : Object.fromEntries([['trust', Object.fromEntries(pol.groups.map(g => [g, -4]))]]))); return; }
+    if (forged) { if (yes) POW.schedule(P, run.d + 1, 'forgery_exposed'); return; }
     all.push(...POW.apply(P, yes ? pol.yes : pol.no, yes && !S ? POW.STAR_SCALE[st] : 1));
     (pol.later || []).forEach(([k, id, cond]) => { if (cond(st, yes)) POW.schedule(P, run.d + k, id); });
   });

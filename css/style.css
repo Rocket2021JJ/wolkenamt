@@ -351,3 +351,24 @@ body.online #bar{right:264px}
 #hud .akte.hidden{display:none}
 .prow2 .bar{display:block}
 .akte .arow span:first-child{white-space:nowrap}
+
+/* ---------- Etappe 2: Lupe, Archiv ---------- */
+.card button.chk{flex:0 0 auto;padding:4px 8px;font-size:12px}
+.insp{display:none;border-top:1px dashed var(--tinte);margin-top:6px;padding-top:6px;font-size:11.5px}
+.card.open .insp{display:block}
+.insp .sigrow{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px 6px;align-items:center}
+.insp canvas{width:100%;height:auto;background:var(--papier);border:1px solid var(--linie)}
+.insp .lab{color:var(--grau)}
+.insp button.fake{margin-top:6px;width:100%;font-size:12px;padding:4px}
+.insp button.fake.sel{background:var(--rot);color:var(--blatt);border-color:var(--rot)}
+.imp.fake{color:var(--rot);border-color:var(--rot)}
+.dossiers{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:10px 0}
+.dos{background:var(--papier);border:1.5px solid var(--tinte);padding:10px 12px;display:flex;flex-direction:column;gap:6px;text-align:left}
+.dos b{font-family:var(--serif);font-weight:400;font-size:17px}
+.dos p{font-family:var(--schreib);font-size:13px;margin:0;line-height:1.45}
+.dos .rbtns{justify-content:flex-start;margin:0}
+.dos.used{opacity:.55}
+@media (max-width:700px){.dossiers{grid-template-columns:1fr}}
+.insp .sigrow{grid-template-columns:1fr 1fr}
+.insp .sigrow .lab:nth-child(1){display:none}
+.insp .sigrow .lab.rowlab{grid-column:1 / -1;margin-top:3px}

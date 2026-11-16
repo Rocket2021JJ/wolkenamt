@@ -84,4 +84,7 @@ add({
   'sign.amt': ['Wolkenamt', 'Cloud Office'],
   'use.desk': ['Am Pult arbeiten', 'Work at the desk'],
   'use.platform': ['Wolke kurbeln und schneiden', 'Crank up and cut a cloud'],
+  'use.archive': ['Archiv durchsuchen', 'Search the archive'],
+  'use.shredder': ['Akten vernichten', 'Shred files'],
+  'use.phone': ['Telefon abnehmen', 'Answer the phone'],
 });

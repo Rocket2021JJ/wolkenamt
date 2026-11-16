@@ -275,3 +275,38 @@ Object.assign(EVENTS, {
     text: ['Ein Blitz hat in den Kirchturm eingeschlagen. Das Dach brennt kurz, die Feuerwehr ist schnell da. Pfarrer Imhof spricht von «einem Zeichen». Er meint nicht Gott.', 'Lightning struck the church tower. The roof burns briefly, the fire brigade is quick. Father Imhof speaks of “a sign”. He does not mean God.'],
     fx: { trust: { kirche: -6, senioren: -3 }, suspicion: 8 } },
 });
+
+// ---------------- Etappe 4: Sachabstimmung, Gerüchte ----------------
+// lean: wie stark eine Gruppe zu Ja neigt (−1 … +1). stance: Parteiparole.
+export const VOTES = {
+  seilbahn: { q: ['Soll Wolkenwil eine Seilbahn auf den Gipfel bauen? (CHF 14 Mio.)', 'Should Wolkenwil build a cable car to the summit? (CHF 14 m)'],
+    lean: { gewerbe: 0.8, junge: 0.3, vereine: 0.2, bauern: -0.7, senioren: -0.4, kirche: -0.1 },
+    stance: { wvb: 'no', fww: 'yes', pkh: 'no', huber: 'yes' },
+    yes: { fx: { trust: { gewerbe: 4, bauern: -4 } }, text: ['Die Seilbahn kommt. Der Gipfel wird verkauft, die Bauern verlieren eine Weide.', 'The cable car is coming. The summit is sold off, the farmers lose a pasture.'] },
+    no: { fx: { trust: { bauern: 3, gewerbe: -3 } }, text: ['Keine Seilbahn. Der Gipfel bleibt den Kühen. Das Hotel Bergblick droht mit Wegzug.', 'No cable car. The summit stays with the cows. Hotel Bergblick threatens to leave.'] } },
+};
+export const VOTE_ACTIONS = [
+  { id: 'camp', label: ['Kampagne machen', 'Campaign'], cost: { influence: -1 }, shift: 5, need: P => P.influence >= 1, note: ['Du redest im Rössli, an der Bushaltestelle und am Grab der Tante Huber.', 'You speak at the Rössli, at the bus stop and at Aunt Huber’s grave.'] },
+  { id: 'poster', label: ['Plakate kaufen (CHF 800)', 'Buy posters (CHF 800)'], cost: { cash: -800, suspicion: 2 }, shift: 4, need: P => P.cash >= 800, note: ['Über Nacht hängt das Dorf voll. Wer bezahlt hat, steht nirgends.', 'Overnight the village is plastered. Who paid is written nowhere.'] },
+  { id: 'mail', label: ['Briefwahl-Couverts verschwinden lassen', 'Make postal ballots disappear'], cost: { suspicion: 6 }, shift: 9, risk: 0.4, need: () => true, note: ['Ein Sack Couverts liegt jetzt im Heizungskeller. Hoffentlich heizt niemand.', 'A sack of ballots now lies in the boiler room. Hopefully nobody turns on the heating.'] },
+];
+export function voteForecast(P, vid) {
+  const V = VOTES[vid], pos = (P.vote && P.vote[vid]) || { shift: 0 };
+  let y = 50;
+  for (const g in GROUPS) y += GROUPS[g].w * V.lean[g] * 40 * (0.6 + P.trust[g] / 125);
+  return Math.max(3, Math.min(97, Math.round(y + pos.shift)));
+}
+export const RUMORS = [
+  { target: 'huber', text: ['«Huber lässt sich die Gemeinderatssitzungen vom Hotel bezahlen.»', '“Huber gets the hotel to pay for council meetings.”'] },
+  { target: 'fww', text: ['«Der FWW-Präsident ist mit dem Seilbahnbauer verschwägert.»', '“The FWW president is related by marriage to the cable car builder.”'] },
+  { target: 'wvb', text: ['«Der Volksbund kauft seine Kühe im Ausland.»', '“The People’s League buys its cows abroad.”'] },
+  { target: 'pkh', text: ['«Die Partei für klaren Himmel wird von Zürcher Investoren bezahlt.»', '“The Clear Sky Party is funded by Zurich investors.”'] },
+];
+Object.assign(EVENTS, {
+  rumor_traced: { from: 'Bäckerei Moser',
+    text: ['Frau Moser erzählt jedem, der ein Brot kauft, von wem das Gerücht stammt. Von dir.', 'Mrs Moser tells everyone who buys bread where the rumour came from. From you.'],
+    fx: { suspicion: 6, mod: { _own: -0.08 } } },
+  mail_found: { from: 'Gemeindeschreiber',
+    text: ['Im Heizungskeller wurde ein Sack Briefwahl-Couverts gefunden. Der Gemeindeschreiber zählt nach. Der Kanton auch.', 'A sack of postal ballots was found in the boiler room. The town clerk is counting. So is the canton.'],
+    fx: { suspicion: 15, mod: { _own: -0.12 } } },
+});

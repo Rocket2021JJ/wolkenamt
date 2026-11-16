@@ -252,6 +252,38 @@ export function furnish(w) {
   for (let i = 0; i < 6; i++) w.box(0.012, 0.18, 0.008, PAL.papier, -0.1 + i * 0.04, 0.42 + (i % 2) * 0.05, 0.165, { parent: sh, cast: false });
   w.addCollider(sh.position.x - 0.25, 0, sh.position.z - 0.2, sh.position.x + 0.25, 0.7, sh.position.z + 0.2);
 
+  // ---------- Gemeindehaus (Wahlhaus) an der Westseite des Platzes ----------
+  const th = new THREE.Group(); th.position.set(-12.8, 0, 13); th.rotation.y = Math.PI / 2; w.scene.add(th);
+  w.box(7.2, 4.4, 5.2, PAL.schnee, 0, 0, 0, { parent: th, line: 0.01 });
+  w.box(7.4, 0.5, 5.4, PAL.gletscher, 0, 0, 0, { parent: th });
+  w.gable(8.2, 2.0, 6.0, PAL.rot, 0, 4.4, 0, 0, th);
+  // Uhrturm
+  w.box(1.6, 3.2, 1.6, PAL.schnee, 0, 5.4, 0.6, { parent: th, line: 0.01 });
+  w.gable(2.0, 1.4, 2.0, PAL.rot, 0, 8.6, 0.6, 0, th);
+  const cl = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.06, 20), toon(PAL.papier)); cl.rotation.x = Math.PI / 2; cl.position.set(0, 7.6, 1.42); th.add(cl);
+  for (const a of [0.3, 2.2]) { const hd = w.box(0.05, 0.38, 0.03, PAL.tinte, 0, 0, 0, { parent: th }); hd.position.set(Math.sin(a) * 0.17, 7.6 + Math.cos(a) * 0.17, 1.46); hd.rotation.z = -a; }
+  // Eingang mit Säulen, Fenster
+  w.box(1.6, 2.4, 0.08, PAL.tinte, 0, 0.5, 2.62, { parent: th, cast: false });
+  for (const sx of [-1.2, 1.2]) w.cyl(0.14, 0.16, 2.9, PAL.papier, sx, 0.5, 2.85, { parent: th, seg: 10 });
+  w.box(3.0, 0.3, 0.7, PAL.papier, 0, 3.4, 2.85, { parent: th });
+  for (const fx of [-2.6, -1.9, 1.9, 2.6]) for (const fy of [1.4, 3.0]) w.box(0.45, 0.8, 0.06, PAL.tinte, fx, fy, 2.62, { parent: th, cast: false });
+  const thSign = textPlane(t('sign.townhall'), 2.4, 0.4, PAL.blau, PAL.schnee, 'serif'); thSign.position.set(0, 3.15, 2.66); th.add(thSign); o.thSign = thSign;
+  w.addCollider(-12.8 - 2.9, 0, 13 - 3.9, -12.8 + 3.2, 6, 13 + 3.9);
+  // Fahne vor dem Gemeindehaus
+  w.cyl(0.05, 0.06, 5, PAL.schnee, -8.8, 0, 16.2, { seg: 8 });
+  const tf = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.7), toon(PAL.rot, { side: THREE.DoubleSide })); tf.position.set(-8.25, 4.6, 16.2); w.scene.add(tf);
+  w.addInteractable('townhall', new THREE.Vector3(-8.8, 0, 13), 1.6, t('use.townhall'));
+
+  // ---------- Marktstand der Bäckerei Moser ----------
+  const ms = new THREE.Group(); ms.position.set(-5.2, 0, 17.2); ms.rotation.y = 0.35; w.scene.add(ms);
+  w.box(2.0, 0.9, 0.8, PAL.chalet, 0, 0, 0, { parent: ms, line: 0.01 });
+  for (const sx of [-0.95, 0.95]) w.box(0.08, 2.2, 0.08, PAL.chalet, sx, 0, -0.35, { parent: ms });
+  for (let i = 0; i < 5; i++) w.box(0.42, 0.06, 1.1, i % 2 ? PAL.schnee : PAL.rot, -0.84 + i * 0.42, 2.15, 0.1, { parent: ms }).rotation.x = 0.25;
+  for (let i = 0; i < 6; i++) { const g = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.035, 5, 8, Math.PI), toon(PAL.ocker)); g.position.set(-0.7 + i * 0.28, 0.95, 0.1); g.rotation.x = -Math.PI / 2; ms.add(g); }
+  const msSign = textPlane('Bäckerei Moser', 1.6, 0.3, PAL.schnee, PAL.chalet, 'serif'); msSign.position.set(0, 1.85, -0.3); ms.add(msSign);
+  w.addCollider(-6.3, 0, 16.6, -4.1, 1.0, 17.8);
+  w.addInteractable('bakery', new THREE.Vector3(-4.9, 0, 18.3), 1.2, t('use.bakery'));
+
   // ---------- Benutzbare Stellen ----------
   w.addInteractable('archive', new THREE.Vector3(R.x0 + 1.35, 0, -1.75), 1.0, t('use.archive'));
   w.addInteractable('shredder', new THREE.Vector3(sh.position.x, 0, sh.position.z + 0.7), 0.75, t('use.shredder'));
@@ -276,6 +308,7 @@ export function furnish(w) {
     o.posters.forEach(p => p.redraw());
     const it = w.interactables; it.find(i => i.id === 'desk').label = t('use.desk'); it.find(i => i.id === 'platform').label = t('use.platform');
     it.find(i => i.id === 'archive').label = t('use.archive'); it.find(i => i.id === 'shredder').label = t('use.shredder'); it.find(i => i.id === 'phone').label = t('use.phone'); it.find(i => i.id === 'weather').label = t('use.weather');
+    it.find(i => i.id === 'townhall').label = t('use.townhall'); it.find(i => i.id === 'bakery').label = t('use.bakery'); o.thSign.redraw(t('sign.townhall'));
     o.sign.redraw(t('sign.amt'));
   };
   return o;

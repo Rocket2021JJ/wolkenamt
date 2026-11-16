@@ -13,7 +13,7 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
 | 1 | Machtwerte: Parteien, Umfragen, Verdacht, Schwarzkasse, Vertrauen, verzögerte Folgen | fertig |
 | 2 | Pult 2.0: Prüfen, Telefon, Archiv, Aktenvernichter | fertig |
 | 3 | Wetter-Werkzeuge: Nebel, Regen, Sonne, Gewitter | fertig |
-| 4 | Dorf lebt: Gerüchte, Zeitung, Katastrophen, Wahlhaus | offen |
+| 4 | Dorf lebt: Gemeindehaus mit Sachabstimmung, Gerüchte am Marktstand | fertig (Teil 1) |
 | 5 | Kapitel 1 spielbar | offen |
 | 6 | Abendpartie (Mehrspieler) | offen |
 
@@ -38,3 +38,9 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   ist danach im 3D-Dorf zu sehen (Regen, Nebel, Gewitter mit Blitzen). Katastrophen: zweimal Regen über
   dem Hang löst einen Murgang aus, Nebel auf der Passstrasse kann einen Unfall verursachen, ein gezieltes
   Gewitter kann in den Kirchturm einschlagen. Nebel über dem Platz verhindert Zeugen beim Aktenvernichter.
+- Etappe 4: Am Dorfplatz stehen neu das Gemeindehaus (mit Uhrturm) und der Marktstand der Bäckerei Moser.
+  Im Gemeindehaus läuft die Sachabstimmung der Woche (Seilbahn ja/nein). Ab Dienstag: Kampagne machen
+  (Einfluss), Plakate kaufen (Schwarzkasse) oder Briefwahl-Couverts verschwinden lassen (riskant).
+  Am Samstag wird im Tagesbericht ausgezählt. Am Marktstand streust du einmal pro Tag ein Gerücht über
+  eine andere Partei. Es kann zu dir zurückverfolgt werden (ausser bei Nebel).
+  Noch offen aus Etappe 4: begehbarer Innenraum des Gemeindehauses, Zeitungs-Schlagzeile am Morgen.

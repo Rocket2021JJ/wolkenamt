@@ -2,6 +2,23 @@
 import { add } from './i18n.js';
 
 add({
+  'town.kicker': ['Gemeindehaus · Sachabstimmung am Samstag', 'Town hall · referendum on Saturday'],
+  'town.notyet': ['Die Abstimmung wird morgen ausgeschrieben. Komm am Dienstag wieder.', 'The referendum will be announced tomorrow. Come back on Tuesday.'],
+  'town.info': ['Prognose: {y} % Ja, {n} % Nein. Parole der {p}: {s}. Jede Aktion einmal pro Tag.', 'Forecast: {y} % yes, {n} % no. {p} recommends: {s}. Each action once per day.'],
+  'town.yes': ['Ja', 'Yes'], 'town.no': ['Nein', 'No'],
+  'town.forYes': ['Für Ja', 'For yes'], 'town.forNo': ['Für Nein', 'For no'],
+  'town.doneToday': ['Heute schon erledigt.', 'Already done today.'],
+  'town.result': ['Sachabstimmung: {r} ({y} % Ja)', 'Referendum: {r} ({y} % yes)'],
+  'town.won': ['Deine Partei lag richtig.', 'Your party called it right.'],
+  'town.lost': ['Deine Partei hat verloren.', 'Your party lost.'],
+  'toast.townClosed': ['Das Gemeindehaus ist heute geschlossen.', 'The town hall is closed today.'],
+  'toast.bakery': ['Frau Moser hat gerade keine Zeit.', 'Mrs Moser has no time right now.'],
+  'bak.kicker': ['Marktstand · Bäckerei Moser', 'Market stall · Bäckerei Moser'],
+  'bak.title': ['Was man sich so erzählt', 'What people are saying'],
+  'bak.info': ['Ein Satz bei Frau Moser, und morgen weiss es das ganze Dorf. Nur ein Gerücht pro Tag.', 'One sentence to Mrs Moser and tomorrow the whole village knows. Only one rumour per day.'],
+  'bak.done': ['Für heute hast du genug erzählt.', 'You have said enough for today.'],
+  'bak.go': ['Beiläufig erwähnen', 'Mention it casually'],
+  'bak.sent': ['Frau Moser nickt verständnisvoll. Sie wird es niemandem sagen. Ausser allen.', 'Mrs Moser nods sympathetically. She won’t tell anyone. Except everyone.'],
   'wx.kicker': ['Wetterpult · Dach des Wolkenamts', 'Weather console · Cloud Office roof'],
   'wx.title': ['Welches Wetter bekommt Wolkenwil heute?', 'What weather does Wolkenwil get today?'],
   'wx.info': ['Einmal pro Tag. Das Wetter wirkt sofort, die Folgen manchmal erst morgen.', 'Once per day. The weather works instantly, the consequences sometimes only tomorrow.'],

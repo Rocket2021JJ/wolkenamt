@@ -52,7 +52,7 @@ let flow = 'single';   // single | local | online
 let run = null;        // Arbeitstag oder freie Wolke
 let mp = null;         // lokal zu dritt
 let taskKey = null, taskVars = null;
-const OVER = ['weather', 'archive', 'party', 'morning', 'menu', 'brief', 'result', 'desk', 'report', 'mpSetup', 'handoff', 'mpRes', 'onEntry', 'onLobby', 'onVote', 'card'];
+const OVER = ['town', 'weather', 'archive', 'party', 'morning', 'menu', 'brief', 'result', 'desk', 'report', 'mpSetup', 'handoff', 'mpRes', 'onEntry', 'onLobby', 'onVote', 'card'];
 const only = (...ids) => OVER.forEach(x => $(x).classList.toggle('hidden', !ids.includes(x)));
 const touchMode = matchMedia('(pointer: coarse)').matches || /[?&]touch/.test(location.search);
 if (touchMode) document.body.classList.add('touch');
@@ -237,6 +237,8 @@ world.onUse = (id) => {
   if (id === 'archive') return openArchive();
   if (id === 'shredder') return useShredder();
   if (id === 'weather') return openWeather();
+  if (id === 'townhall') return openTownhall();
+  if (id === 'bakery') return openBakery();
   if (id === 'desk') {
     if (flow === 'single' && run && run.kind === 'day' && !run.stamped) { A.sfx('land'); goDesk(openDesk); }
     else toast(t('toast.nodesk'));
@@ -578,6 +580,71 @@ function openWeather() {
 }
 $('wxClose').onclick = () => enterWorld(null, taskKey, taskVars);
 
+// ---------------- Etappe 4: Gemeindehaus, Gerüchte ----------------
+const VID = 'seilbahn';
+function townPanel(kicker, title, info) { mode = 'town'; world.enabled = false; hud(false); only('town'); $('tnKicker').textContent = kicker; $('tnTitle').textContent = title; $('tnInfo').textContent = info; const b = $('tnList'); b.innerHTML = ''; return b; }
+function openTownhall() {
+  const P = save.power; if (!P || flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.townClosed'));
+  const V = POW.VOTES[VID];
+  P.vote = P.vote || {}; const st = P.vote[VID] = P.vote[VID] || { shift: 0, done: {} };
+  const render = () => {
+    const fc = POW.voteForecast(P, VID), par = V.stance[P.party];
+    const box = townPanel(t('town.kicker'), L(V.q), run.d < 1 ? t('town.notyet') : t('town.info', { y: fc, n: 100 - fc, p: POW.PARTIES[P.party].short, s: t(par === 'yes' ? 'town.yes' : 'town.no') }));
+    if (run.d < 1) return;
+    POW.VOTE_ACTIONS.forEach(a => {
+      const el = document.createElement('div'); el.className = 'dos';
+      const b = document.createElement('b'); b.textContent = L(a.label); el.appendChild(b);
+      if (a.risk) { const r = document.createElement('span'); r.className = 'risk'; r.textContent = t('wx.risk'); el.appendChild(r); }
+      const key = run.d + a.id, used = st.done[key];
+      const bt = document.createElement('div'); bt.className = 'rbtns';
+      ['yes', 'no'].forEach(dir => {
+        const x = document.createElement('button'); x.textContent = t(dir === 'yes' ? 'town.forYes' : 'town.forNo'); x.disabled = !!used || !a.need(P);
+        if (dir === par) x.className = 'prim';
+        x.onclick = () => {
+          POW.apply(P, a.cost); st.shift += dir === 'yes' ? a.shift : -a.shift; st.done[key] = 1;
+          if (a.risk && Math.random() < a.risk) POW.schedule(P, run.d + 1, 'mail_found');
+          P.history.push({ day: run.d, ev: 'vote_' + a.id + '_' + dir }); A.stampSound(); persist(); updateAkte(); render();
+          toast(L(a.note));
+        };
+        bt.appendChild(x);
+      });
+      if (used) { const k = document.createElement('small'); k.textContent = t('town.doneToday'); el.appendChild(k); }
+      el.appendChild(bt); $('tnList').appendChild(el);
+    });
+  };
+  render();
+}
+function openBakery() {
+  const P = save.power; if (!P || flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.bakery'));
+  const box = townPanel(t('bak.kicker'), t('bak.title'), run.rumor ? t('bak.done') : t('bak.info'));
+  POW.RUMORS.filter(r => r.target !== P.party).forEach(r => {
+    const el = document.createElement('div'); el.className = 'dos';
+    const tl = document.createElement('span'); tl.className = 'tool'; tl.textContent = L(POW.PARTIES[r.target].name); el.appendChild(tl);
+    const p = document.createElement('p'); p.textContent = L(r.text); el.appendChild(p);
+    const bt = document.createElement('div'); bt.className = 'rbtns'; const x = document.createElement('button'); x.className = 'prim'; x.textContent = t('bak.go'); x.disabled = !!run.rumor;
+    x.onclick = () => {
+      run.rumor = r.target; POW.apply(P, { mod: { [r.target]: -0.12 } });
+      if (!run.fog && Math.random() < 0.3) POW.schedule(P, run.d + 1, 'rumor_traced');
+      P.history.push({ day: run.d, ev: 'rumor_' + r.target }); A.sfx('murmur'); persist(); updateAkte();
+      enterWorld(null, taskKey, taskVars); toast(t('bak.sent'));
+    };
+    bt.appendChild(x); el.appendChild(bt); box.appendChild(el);
+  });
+}
+$('tnClose').onclick = () => enterWorld(null, taskKey, taskVars);
+// Auszählung am Samstag
+function voteResult(P, box) {
+  const V = POW.VOTES[VID], fc = POW.voteForecast(P, VID), yes = fc >= 50, res = yes ? V.yes : V.no;
+  const all = POW.apply(P, res.fx);
+  const match = (V.stance[P.party] === 'yes') === yes;
+  all.push(...POW.apply(P, { mod: { _own: match ? 0.1 : -0.05 } }));
+  const h = document.createElement('h3'); h.textContent = t('town.result', { r: t(yes ? 'town.yes' : 'town.no'), y: fc }); box.appendChild(h);
+  const p = document.createElement('p'); p.className = 'hsub'; p.textContent = L(res.text) + ' ' + t(match ? 'town.won' : 'town.lost'); box.appendChild(p);
+  box.appendChild(fxChips(all));
+  // was noch offen war, kommt am Wahlabend heraus
+  POW.due(P, 99).forEach(id => { const ev = POW.EVENTS[id]; if (!ev || !ev.fx) return; const q = document.createElement('p'); q.className = 'hsub'; q.textContent = nameOf(ev.from) + ': ' + L(ev.text); box.appendChild(q); box.appendChild(fxChips(POW.apply(P, ev.fx))); });
+}
+
 // Machtbericht am Tagesende: Wirkung aller Entscheide, verzögerte Folgen einplanen
 function powerReport(Dy, sum) {
   const P = save.power; if (!P || !run || run.powDone) return; run.powDone = true;
@@ -601,6 +668,7 @@ function powerReport(Dy, sum) {
     r.append(n, bar, v); box.appendChild(r);
   });
   if (all.length) box.appendChild(fxChips(all));
+  if (run.d === DAYS.length - 1) voteResult(P, box);
   const lead = Object.keys(now).sort((a, b) => now[b] - now[a])[0];
   const q = P.queue.length;
   const note = document.createElement('p'); note.className = 'hsub';

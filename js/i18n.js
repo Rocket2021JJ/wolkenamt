@@ -88,4 +88,7 @@ add({
   'use.shredder': ['Akten vernichten', 'Shred files'],
   'use.phone': ['Telefon abnehmen', 'Answer the phone'],
   'use.weather': ['Wetterpult', 'Weather console'],
+  'use.townhall': ['Gemeindehaus betreten', 'Enter the town hall'],
+  'use.bakery': ['Mit Frau Moser plaudern', 'Chat with Mrs Moser'],
+  'sign.townhall': ['Gemeindehaus', 'Town Hall'],
 });

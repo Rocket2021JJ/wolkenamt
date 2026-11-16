@@ -39,12 +39,14 @@ Die **Akte** oben rechts zeigt jederzeit Partei, Umfrage und Verdacht.
 
 ## Parteien
 
-| Partei | Kurz | Steht für |
-|---|---|---|
-| Wolkenwiler Volksbund | WVB | Bauern, Tradition, Sonne fürs Heu |
-| Freie Wähler Wolkenwil | FWW | Gewerbe, Tourismus, Seilbahn |
-| Partei für Klima und Heimat | PKH | Junge, Natur, ehrlicher Regen |
-| Gemeindepräsident Huber | – | Huber. Immer Huber. |
+| Partei | Kurz | Slogan | Stark bei |
+|---|---|---|---|
+| Wolkenwiler Volksbund | WVB | «Wie früher. Nur früher.» | Bauern, Senioren |
+| Fortschritt Wolkenwil | FWW | «Eine Seilbahn für jeden.» | Gewerbe, Junge |
+| Partei für klaren Himmel | PKH | «Der Himmel gehört allen.» | Junge |
+| Liste Huber | HUB | «Huber. Weil Huber.» | Senioren, Vereine (spielt immer mit) |
+
+Wählergruppen: Bauern, Gewerbe, Senioren, Junge, Kirche, Vereine.
 
 ## Steuerung
 

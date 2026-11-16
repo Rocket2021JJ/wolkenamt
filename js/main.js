@@ -147,8 +147,24 @@ function startDay(d) {
   const ords = DAYS[d].cards.filter(c => !isSpecial(c));
   run = { kind: 'day', d, forged: d >= 1 ? ords[(d * 5) % ords.length] : -1, fkind: forgeryKind(d * 13 + 7), dec: {}, queue: [], qi: -1, res: {}, stamped: false, shred: false, before: { polls: POW.polls(P), suspicion: P.suspicion, cash: P.cash, influence: P.influence } };
   const go = () => { enterWorld('door', 'task.desk'); setDay(t('hud.day', { day: L(DAYS[d].name), n: d + 1 })); updateAkte(); };
-  const ev = POW.due(P, d); persist();
+  const ev = POW.due(P, d);
+  const paper = morningPaper(P, d); if (paper) ev.unshift(paper);
+  persist();
   if (ev.length) showMorning(ev, d, go); else go();
+}
+
+// Schlagzeile des Anzeigers am Morgen: aus den echten Veränderungen seit gestern
+function morningPaper(P, d) {
+  if (d < 1 || !P.lastPolls) return null;
+  const now = POW.polls(P), diff = {}; for (const p in now) diff[p] = now[p] - (P.lastPolls[p] || now[p]);
+  const lead = Object.keys(now).sort((a, b) => now[b] - now[a])[0];
+  const mover = Object.keys(diff).sort((a, b) => Math.abs(diff[b]) - Math.abs(diff[a]))[0];
+  const nm = p => L(POW.PARTIES[p].name);
+  let txt;
+  if (P.suspicion >= 60) txt = t('paper.h.susp');
+  else if (Math.abs(diff[mover]) >= 1.5) txt = t(diff[mover] > 0 ? 'paper.h.up' : 'paper.h.down', { p: nm(mover), d: Math.abs(diff[mover]).toFixed(1) });
+  else txt = t(lead === 'huber' ? 'paper.h.huber' : 'paper.h.lead', { p: nm(lead), v: now[lead].toFixed(1) });
+  return { from: 'Wolkenwiler Anzeiger', text: [txt, txt] };
 }
 
 // ---------------- Etappe 1: Parteiwahl, Morgenpost, Akte ----------------
@@ -187,7 +203,7 @@ function showMorning(list, d, done, call) {
   const P = save.power; let i = 0;
   const next = () => {
     if (i >= list.length) { persist(); return done(); }
-    const ev = POW.EVENTS[list[i]] || POW.CALLS[list[i]]; i++;
+    const ev = typeof list[i] === 'object' ? list[i] : (POW.EVENTS[list[i]] || POW.CALLS[list[i]]); i++;
     only('morning');
     $('mlDay').textContent = call ? t('call.time') : t('mail.day', { day: L(DAYS[d].name) });
     $('mlFrom').textContent = nameOf(ev.from); $('mlText').textContent = L(ev.text);
@@ -204,7 +220,7 @@ function showMorning(list, d, done, call) {
       };
       btns.appendChild(b);
     });
-    else { P.history.push({ day: d, ev: list[i - 1] }); const ch = POW.apply(P, ev.fx); $('mlFx').replaceWith(Object.assign(fxChips(ch), { id: 'mlFx' })); cont(); }
+    else { if (typeof list[i - 1] === 'string') P.history.push({ day: d, ev: list[i - 1] }); const ch = POW.apply(P, ev.fx); $('mlFx').replaceWith(Object.assign(fxChips(ch), { id: 'mlFx' })); cont(); }
   };
   next();
 }
@@ -632,6 +648,15 @@ function openBakery() {
   });
 }
 $('tnClose').onclick = () => enterWorld(null, taskKey, taskVars);
+// Ende von Kapitel 1
+function chapterEnd(P, box) {
+  const now = POW.polls(P), lead = Object.keys(now).sort((a, b) => now[b] - now[a])[0];
+  const key = P.suspicion >= 70 ? 'end.susp' : lead === P.party ? 'end.lead' : now[P.party] >= now.huber - 3 ? 'end.close' : 'end.behind';
+  const h = document.createElement('h3'); h.textContent = t('end.title'); box.appendChild(h);
+  const p = document.createElement('p'); p.className = 'lres'; p.textContent = t(key, { p: L(POW.PARTIES[P.party].name), v: now[P.party].toFixed(1) }); box.appendChild(p);
+  const n = document.createElement('p'); n.className = 'hsub'; n.textContent = t('end.next'); box.appendChild(n);
+}
+
 // Auszählung am Samstag
 function voteResult(P, box) {
   const V = POW.VOTES[VID], fc = POW.voteForecast(P, VID), yes = fc >= 50, res = yes ? V.yes : V.no;
@@ -668,7 +693,8 @@ function powerReport(Dy, sum) {
     r.append(n, bar, v); box.appendChild(r);
   });
   if (all.length) box.appendChild(fxChips(all));
-  if (run.d === DAYS.length - 1) voteResult(P, box);
+  if (run.d === DAYS.length - 1) { voteResult(P, box); chapterEnd(P, box); }
+  P.lastPolls = POW.polls(P);
   const lead = Object.keys(now).sort((a, b) => now[b] - now[a])[0];
   const q = P.queue.length;
   const note = document.createElement('p'); note.className = 'hsub';

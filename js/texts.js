@@ -2,6 +2,17 @@
 import { add } from './i18n.js';
 
 add({
+  'paper.h.susp': ['«Was geht im Wolkenamt vor?» Der Anzeiger widmet dem Amt eine ganze Seite. Ohne Foto, aber mit Fragezeichen.', '“What is going on at the Cloud Office?” The Gazette devotes a full page to the office. No photo, but plenty of question marks.'],
+  'paper.h.up': ['«{p} legt zu: +{d} Prozentpunkte in einem Tag.» Der Stammtisch rätselt, warum.', '“{p} gains {d} points in a single day.” The regulars at the pub wonder why.'],
+  'paper.h.down': ['«{p} stürzt ab: −{d} Prozentpunkte.» Im Parteilokal brennt bis spät Licht.', '“{p} slumps: down {d} points.” The lights burn late at the party office.'],
+  'paper.h.huber': ['«Huber weiterhin vorne ({v} %).» Huber lässt ausrichten, er habe nichts anderes erwartet.', '“Huber still ahead ({v} %).” Huber says he expected nothing else.'],
+  'paper.h.lead': ['«{p} führt mit {v} %.» Huber spricht von einer «vorübergehenden Wetterlage».', '“{p} leads with {v} %.” Huber speaks of “a temporary weather situation”.'],
+  'end.title': ['Ende von Kapitel 1', 'End of chapter 1'],
+  'end.susp': ['Inspektor Wyss hat eine Akte mit deinem Namen angelegt. Sie ist dick. Kapitel 2 wird ungemütlich.', 'Inspector Wyss has opened a file with your name on it. It is thick. Chapter 2 will be uncomfortable.'],
+  'end.lead': ['Nach einer Woche führt {p} mit {v} %. Huber hat das bemerkt. Er bemerkt alles.', 'After one week, {p} leads with {v} %. Huber has noticed. He notices everything.'],
+  'end.close': ['{p} liegt knapp hinter Huber. Ein Skandal, und die Wahl kippt. Die Frage ist nur: wessen Skandal?', '{p} is just behind Huber. One scandal and the election tips. The only question is: whose scandal?'],
+  'end.behind': ['Huber sitzt fest im Sattel. {p} kommt auf {v} %. Für einen Neuen im Amt ist das ein Anfang. Für eine Wahl ist es zu wenig.', 'Huber is firmly in the saddle. {p} stands at {v} %. For a newcomer that is a start. For an election it is not enough.'],
+  'end.next': ['Kapitel 2 (Die Kampagne) folgt in der nächsten Version.', 'Chapter 2 (The Campaign) comes in the next version.'],
   'town.kicker': ['Gemeindehaus · Sachabstimmung am Samstag', 'Town hall · referendum on Saturday'],
   'town.notyet': ['Die Abstimmung wird morgen ausgeschrieben. Komm am Dienstag wieder.', 'The referendum will be announced tomorrow. Come back on Tuesday.'],
   'town.info': ['Prognose: {y} % Ja, {n} % Nein. Parole der {p}: {s}. Jede Aktion einmal pro Tag.', 'Forecast: {y} % yes, {n} % no. {p} recommends: {s}. Each action once per day.'],
@@ -103,7 +114,7 @@ add({
   'akte.stars': ['Sterne', 'Stars'],
   'akte.sight': ['Sichtungen', 'Sightings'],
   'akte.rep': ['Ansehen', 'Reputation'],
-  'menu.week': ['Arbeitswoche', 'Working week'],
+  'menu.week': ['Kampagne · Kapitel 1: Der Neue im Amt', 'Campaign · Chapter 1: The new guy at the office'],
   'menu.online': ['Online spielen', 'Play online'],
   'menu.free': ['Freie Wolke formen', 'Shape a free cloud'],
   'menu.local': ['Zu dritt an einem Gerät', 'Three on one device'],

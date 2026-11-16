@@ -14,7 +14,7 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
 | 2 | Pult 2.0: Prüfen, Telefon, Archiv, Aktenvernichter | fertig |
 | 3 | Wetter-Werkzeuge: Nebel, Regen, Sonne, Gewitter | fertig |
 | 4 | Dorf lebt: Gemeindehaus mit Sachabstimmung, Gerüchte am Marktstand | fertig (Teil 1) |
-| 5 | Kapitel 1 spielbar | offen |
+| 5 | Kapitel 1 spielbar | fertig |
 | 6 | Abendpartie (Mehrspieler) | offen |
 
 ## Notizen
@@ -44,3 +44,6 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   Am Samstag wird im Tagesbericht ausgezählt. Am Marktstand streust du einmal pro Tag ein Gerücht über
   eine andere Partei. Es kann zu dir zurückverfolgt werden (ausser bei Nebel).
   Noch offen aus Etappe 4: begehbarer Innenraum des Gemeindehauses, Zeitungs-Schlagzeile am Morgen.
+- Etappe 5: Das Menü heisst jetzt «Kampagne · Kapitel 1». Jeden Morgen bringt der Anzeiger eine Schlagzeile
+  aus den echten Veränderungen (wer zulegt, wer abstürzt, ob das Amt unter Verdacht steht). Am Samstag:
+  Sachabstimmung, offene Folgen und Kapitelende mit 4 möglichen Ausgängen.

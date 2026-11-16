@@ -372,3 +372,9 @@ body.online #bar{right:264px}
 .insp .sigrow{grid-template-columns:1fr 1fr}
 .insp .sigrow .lab:nth-child(1){display:none}
 .insp .sigrow .lab.rowlab{grid-column:1 / -1;margin-top:3px}
+
+.dos .tool{font-size:11.5px;font-weight:700;letter-spacing:.04em;color:var(--grau)}
+.dos .risk{font-size:12px;color:var(--rot)}
+.mpbox.wide{max-height:calc(100vh - 40px);overflow:auto}
+.akte .arow b{white-space:nowrap}
+.dossiers{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}

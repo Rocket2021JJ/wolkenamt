@@ -644,6 +644,41 @@ export class World {
   // ---------------- Kamera-Rundflug fürs Menü ----------------
   orbit(on) { this.orbitOn = on; if (on) { this.camAnim = null; this.hold = null; } }
 
+  // Wetter im Dorf: 'rain', 'fog', 'sun', 'storm' oder null
+  setWeather(kind) {
+    this.weather = kind || null;
+    this.scene.fog = kind === 'fog' ? new THREE.Fog(PAL.papier, 6, 34) : null;
+    if (kind === 'fog') this.scene.background = new THREE.Color(PAL.papier);
+    if (kind === 'storm') { this.scene.background = new THREE.Color(PAL.gletscher); this.sun.intensity = 1.0; this.amb.intensity = 0.8; }
+    if (kind === 'sun') { this.sun.intensity = 2.6; }
+    if (kind === 'rain' || kind === 'storm') {
+      if (!this.rain) {
+        const n = 900, pos = new Float32Array(n * 6);
+        const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        this.rain = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: PAL.gletscher, transparent: true, opacity: 0.6 }));
+        this.rain.frustumCulled = false; this.rainP = Array.from({ length: n }, () => [Math.random() * 40 - 20, Math.random() * 16, Math.random() * 40 - 20]);
+        this.scene.add(this.rain);
+      }
+      this.rain.visible = true;
+      if (kind === 'rain') { this.scene.background = new THREE.Color(PAL.gletscher); this.sun.intensity = 1.3; }
+    } else if (this.rain) this.rain.visible = false;
+  }
+  stepWeather(dt) {
+    if (this.rain && this.rain.visible) {
+      const a = this.rain.geometry.attributes.position.array, c = this.camera.position;
+      this.rainP.forEach((p, i) => {
+        p[1] -= dt * 14; if (p[1] < 0) { p[1] = 16; p[0] = Math.random() * 40 - 20; p[2] = Math.random() * 40 - 20; }
+        const x = c.x + p[0], z = c.z + p[2] - 6;
+        a[i * 6] = x; a[i * 6 + 1] = p[1]; a[i * 6 + 2] = z; a[i * 6 + 3] = x - 0.05; a[i * 6 + 4] = p[1] - 0.5; a[i * 6 + 5] = z;
+      });
+      this.rain.geometry.attributes.position.needsUpdate = true;
+    }
+    if (this.weather === 'storm') {
+      this.flashT = (this.flashT || 0) - dt;
+      if (this.flashT < 0 && Math.random() < dt * 0.25) { this.flashT = 0.12; this.amb.intensity = 3; this.sfx && this.sfx('thunder'); }
+      else if (this.flashT < 0) this.amb.intensity = 0.8;
+    }
+  }
   setFov(f) { this.camera.fov = f; this.camera.updateProjectionMatrix(); }
   teleport(x, y, z, yaw) {
     const p = this.player; p.pos.set(x, y, z); p.vel.set(0, 0, 0); p.grounded = true;
@@ -664,6 +699,7 @@ export class World {
     this.stepRemotes(dt);
     this.stepVillagers(dt);
     this.stepFlying(dt);
+    this.stepWeather(dt);
     const p = this.player.pos, R = ROOM;
     const inside = p.x > R.x0 - 0.2 && p.x < R.x1 + 0.2 && p.z > R.z0 - 0.2 && p.z < R.z1 + 0.1 && p.y < 2.9;
     if (inside !== this.inside) { this.inside = inside; }

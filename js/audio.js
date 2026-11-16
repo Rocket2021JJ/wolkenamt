@@ -54,6 +54,7 @@ export function sfx(kind, surface) {
   else if (kind === 'land') noise(0.08, 'lowpass', 220, 0.35);
   else if (kind === 'tumble') { noise(0.18, 'lowpass', 180, 0.7); tone(260, 0.35, 0.05, 'triangle', -150); }
   else if (kind === 'crank') { for (let i = 0; i < 5; i++) setTimeout(() => noise(0.04, 'bandpass', 1800 + i * 90, 0.2, 4), i * 110); }
+  else if (kind === 'thunder') { setTimeout(() => noise(1.6, 'lowpass', 120, 1.1), 400); }
   else if (kind === 'whoosh') noise(0.6, 'bandpass', 700, 0.18, 0.6);
   else if (kind === 'murmur') { for (let i = 0; i < 6; i++) setTimeout(() => tone(180 + Math.random() * 140, 0.22, 0.02, 'triangle', (Math.random() - 0.5) * 80), i * 90 + Math.random() * 60); }
 }

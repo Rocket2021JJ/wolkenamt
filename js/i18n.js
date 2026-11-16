@@ -87,4 +87,5 @@ add({
   'use.archive': ['Archiv durchsuchen', 'Search the archive'],
   'use.shredder': ['Akten vernichten', 'Shred files'],
   'use.phone': ['Telefon abnehmen', 'Answer the phone'],
+  'use.weather': ['Wetterpult', 'Weather console'],
 });

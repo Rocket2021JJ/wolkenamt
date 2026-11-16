@@ -52,7 +52,7 @@ let flow = 'single';   // single | local | online
 let run = null;        // Arbeitstag oder freie Wolke
 let mp = null;         // lokal zu dritt
 let taskKey = null, taskVars = null;
-const OVER = ['archive', 'party', 'morning', 'menu', 'brief', 'result', 'desk', 'report', 'mpSetup', 'handoff', 'mpRes', 'onEntry', 'onLobby', 'onVote', 'card'];
+const OVER = ['weather', 'archive', 'party', 'morning', 'menu', 'brief', 'result', 'desk', 'report', 'mpSetup', 'handoff', 'mpRes', 'onEntry', 'onLobby', 'onVote', 'card'];
 const only = (...ids) => OVER.forEach(x => $(x).classList.toggle('hidden', !ids.includes(x)));
 const touchMode = matchMedia('(pointer: coarse)').matches || /[?&]touch/.test(location.search);
 if (touchMode) document.body.classList.add('touch');
@@ -69,6 +69,7 @@ function enterWorld(spot, task, vars) {
   if (spot) world.teleport(...SPOT[spot]);
   mode = 'world'; only(flow === 'online' && net.phase === 'lobby' ? 'onLobby' : null);
   hud(true); setTask(task, vars); updateAkte();
+  world.setWeather(flow === 'single' && run && run.wx ? run.wx : null);
   world.resize();
 }
 // Kamera aufs Pult
@@ -235,6 +236,7 @@ world.onUse = (id) => {
   if (id === 'phone') return answerPhone();
   if (id === 'archive') return openArchive();
   if (id === 'shredder') return useShredder();
+  if (id === 'weather') return openWeather();
   if (id === 'desk') {
     if (flow === 'single' && run && run.kind === 'day' && !run.stamped) { A.sfx('land'); goDesk(openDesk); }
     else toast(t('toast.nodesk'));
@@ -545,9 +547,36 @@ function useShredder() {
   if (P.suspicion <= 0) return toast(t('toast.noshred'));
   run.shred = true; A.noise(0.9, 'bandpass', 900, 0.4, 2);
   POW.apply(P, { suspicion: -6 });
-  if (Math.random() < 0.35) POW.schedule(P, run.d + 1, 'shredder_witness');
+  if (!run.fog && Math.random() < 0.35) POW.schedule(P, run.d + 1, 'shredder_witness');
   persist(); updateAkte(); toast(t('toast.shred'));
 }
+
+function openWeather() {
+  const P = save.power; if (!P || flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.noweather'));
+  if (run.wx) return toast(t('toast.weatherDone'));
+  mode = 'weather'; world.enabled = false; hud(false); only('weather');
+  const box = $('wxList'); box.innerHTML = '';
+  POW.WEATHER.forEach(w => {
+    const el = document.createElement('div'); el.className = 'dos';
+    const tl = document.createElement('span'); tl.className = 'tool'; tl.textContent = t('wx.' + w.kind); el.appendChild(tl);
+    const b = document.createElement('b'); b.textContent = L(w.where); el.appendChild(b);
+    if (w.groups.length) { const g = document.createElement('small'); g.textContent = t('card.affects', { g: w.groups.map(x => L(POW.GROUPS[x].name)).join(', ') }); el.appendChild(g); }
+    if (w.risk || (w.hang && (P.flags.hang || 0) >= 1)) { const r = document.createElement('span'); r.className = 'risk'; r.textContent = t('wx.risk'); el.appendChild(r); }
+    const bt = document.createElement('div'); bt.className = 'rbtns'; const x = document.createElement('button'); x.className = 'prim'; x.textContent = t('wx.go');
+    x.onclick = () => {
+      run.wx = w.kind; if (w.id === 'fog_square') run.fog = true;
+      const ch = POW.apply(P, w.fx);
+      if (w.hang) { P.flags.hang = (P.flags.hang || 0) + 1; if (P.flags.hang >= 2 && !P.flags.murgang) { P.flags.murgang = true; POW.schedule(P, run.d + 1, 'murgang'); } }
+      if (w.risk && Math.random() < w.risk[0]) POW.schedule(P, run.d + 1, w.risk[1]);
+      P.history.push({ day: run.d, ev: 'wx_' + w.id });
+      A.sfx('crank'); persist();
+      enterWorld(null, taskKey, taskVars);
+      toast(L(w.note));
+    };
+    bt.appendChild(x); el.appendChild(bt); box.appendChild(el);
+  });
+}
+$('wxClose').onclick = () => enterWorld(null, taskKey, taskVars);
 
 // Machtbericht am Tagesende: Wirkung aller Entscheide, verzögerte Folgen einplanen
 function powerReport(Dy, sum) {

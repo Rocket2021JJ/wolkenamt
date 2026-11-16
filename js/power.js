@@ -242,3 +242,36 @@ export const DOSSIERS = [
     secret: ['Inspektor Wyss hat seinen Führerschein dreimal verloren. Der Kanton weiss von einmal.', 'Inspector Wyss has lost his driving licence three times. The canton knows about once.'],
     leak: { suspicion: -6 }, keep: { lev: 'wyss' } },
 ];
+
+// ---------------- Etappe 3: Wetter-Werkzeuge ----------------
+// Einmal pro Tag am Wetterpult auf dem Dach. risk: Wahrscheinlichkeit einer Katastrophe am nächsten Tag.
+export const WEATHER = [
+  { id: 'rain_fields', kind: 'rain', where: ['Regen über den Feldern', 'Rain over the fields'], groups: ['bauern'],
+    fx: { trust: { bauern: 5 } }, note: ['Die Bauern danken. Der Hang wird nass.', 'The farmers are grateful. The slope gets wet.'], hang: 1 },
+  { id: 'rain_square', kind: 'rain', where: ['Regen über dem Dorfplatz', 'Rain over the village square'], groups: ['gewerbe'],
+    fx: { trust: { gewerbe: -3 }, mod: { huber: -0.08 } }, note: ['Hubers Platzkonzert fällt ins Wasser. Die Marktfahrer fluchen.', 'Huber’s square concert is washed out. The market traders curse.'] },
+  { id: 'fog_square', kind: 'fog', where: ['Nebel über dem Dorfplatz', 'Fog over the village square'], groups: [],
+    fx: { suspicion: -3, flag: 'fog_today' }, note: ['Heute sieht niemand, wer was tut. Ideal für Dinge, die niemand sehen soll.', 'Today nobody sees who does what. Ideal for things nobody should see.'] },
+  { id: 'fog_pass', kind: 'fog', where: ['Nebel auf der Passstrasse', 'Fog on the mountain pass road'], groups: ['gewerbe'],
+    fx: { trust: { gewerbe: -2 }, mod: { fww: -0.06 } }, note: ['Die Ausflügler bleiben weg. Die Hotels auch leer.', 'The day-trippers stay away. The hotels stay empty too.'], risk: [0.35, 'nebel_unfall'] },
+  { id: 'sun_hotel', kind: 'sun', where: ['Sonne über dem Hotel Bergblick', 'Sun over Hotel Bergblick'], groups: ['gewerbe'],
+    fx: { trust: { gewerbe: 4 } }, note: ['Die Terrasse ist voll. Der Hoteldirektor winkt zum Amt hinauf.', 'The terrace is full. The hotel manager waves up at the office.'] },
+  { id: 'sun_church', kind: 'sun', where: ['Sonne über der Kirche', 'Sun over the church'], groups: ['kirche', 'senioren'],
+    fx: { trust: { kirche: 4, senioren: 2 } }, note: ['Pfarrer Imhof predigt über das Licht. Er schaut dabei zum Amt.', 'Father Imhof preaches about the light. He looks at the office while he does.'] },
+  { id: 'storm_rival', kind: 'storm', where: ['Gewitter über dem Parteilokal der Konkurrenz', 'Thunderstorm over the rival party’s office'], groups: ['junge'],
+    fx: { mod: { huber: -0.12 }, suspicion: 7, trust: { junge: 2 } }, note: ['Der Strom fällt aus, die Plakate weichen auf. Ein Gewitter so gezielt? Manche fragen sich das.', 'The power fails, the posters go soggy. A thunderstorm that precise? Some people wonder.'], risk: [0.3, 'blitz'] },
+];
+Object.assign(EVENTS, {
+  murgang: { from: 'Wolkenwiler Anzeiger',
+    text: ['Nach dem vielen Regen ist am Hang ein Murgang niedergegangen. Die Strasse ins Tal ist gesperrt, zwei Ställe sind verschüttet. Verletzt wurde niemand. Der Kanton will wissen, wer so viel Regen bewilligt hat.', 'After all the rain, a mudslide came down the slope. The road to the valley is closed, two barns are buried. Nobody was hurt. The canton wants to know who approved so much rain.'],
+    fx: { trust: { bauern: -8, gewerbe: -4 }, suspicion: 10 } },
+  nebel_unfall: { from: 'Dorfpolizei Wolkenwil',
+    text: ['Im dichten Nebel auf der Passstrasse sind zwei Autos zusammengestossen. Eine Fahrerin liegt mit gebrochenem Arm im Spital. Die Zeitung fragt, warum es dort neblig war.', 'In thick fog on the pass road two cars collided. A driver is in hospital with a broken arm. The paper asks why it was foggy there.'],
+    choices: [
+      [['Wetterprotokoll fälschen', 'Falsify the weather log'], { suspicion: 6, flag: 'log_forged' }, ['Im Protokoll steht jetzt «natürlicher Nebel». Wer genau hinschaut, sieht die frische Tinte.', 'The log now says “natural fog”. Anyone looking closely can see the fresh ink.']],
+      [['Verantwortung übernehmen', 'Take responsibility'], { suspicion: -2, trust: { senioren: 2, kirche: 2 }, mod: { _own: -0.1 } }, ['Du entschuldigst dich öffentlich. Deine Partei ist wütend, das Dorf überrascht.', 'You apologise publicly. Your party is furious, the village surprised.']],
+    ] },
+  blitz: { from: 'Pfarrei St. Niklaus',
+    text: ['Ein Blitz hat in den Kirchturm eingeschlagen. Das Dach brennt kurz, die Feuerwehr ist schnell da. Pfarrer Imhof spricht von «einem Zeichen». Er meint nicht Gott.', 'Lightning struck the church tower. The roof burns briefly, the fire brigade is quick. Father Imhof speaks of “a sign”. He does not mean God.'],
+    fx: { trust: { kirche: -6, senioren: -3 }, suspicion: 8 } },
+});

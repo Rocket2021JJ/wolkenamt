@@ -210,6 +210,13 @@ export function furnish(w) {
   flag.position.set(1.85, 3.0, 0.95); flag.castShadow = true; P.add(flag); o.flag = flag;
   const fc = new THREE.Mesh(new THREE.CircleGeometry(0.16, 10), toon(PAL.schnee, { side: THREE.DoubleSide })); fc.scale.y = 0.6; fc.position.z = 0.005; flag.add(fc);
   o.platform = P.position.clone().add(new THREE.Vector3(-0.6, 0, 0.6));
+  // Wetterpult: kleines Pult mit drei Hebeln
+  const wp = new THREE.Group(); wp.position.set(2.6, 0, -0.2); P.add(wp);
+  w.box(0.7, 0.9, 0.45, PAL.nuss, 0, 0.12, 0, { parent: wp, line: 0.01 });
+  const wtop = w.box(0.8, 0.05, 0.55, PAL.tinte, 0, 1.02, 0, { parent: wp }); wtop.rotation.x = -0.35;
+  [PAL.gletscher, PAL.papier, PAL.ocker].forEach((c, i) => { const lv = new THREE.Group(); lv.position.set(-0.22 + i * 0.22, 1.08, 0.02); lv.rotation.x = -0.5; wp.add(lv); w.box(0.03, 0.22, 0.03, PAL.tinte, 0, 0, 0, { parent: lv }); const k = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), toon(c)); k.position.y = 0.24; lv.add(k); });
+  w.addCollider(P.position.x + 2.2, ROOM.roof, P.position.z - 0.5, P.position.x + 3.0, ROOM.roof + 1.1, P.position.z + 0.1);
+  o.weatherPos = P.position.clone().add(new THREE.Vector3(2.6, 0, 0.6));
 
   // ---------- Plakate ----------
   const r = rng((Date.now() / 1000) | 0);
@@ -250,6 +257,7 @@ export function furnish(w) {
   w.addInteractable('shredder', new THREE.Vector3(sh.position.x, 0, sh.position.z + 0.7), 0.75, t('use.shredder'));
   o.phoneIt = w.addInteractable('phone', new THREE.Vector3(D.x + 0.95, 0, D.z + 0.95), 0.9, t('use.phone'));
   o.phoneIt.enabled = false;
+  w.addInteractable('weather', new THREE.Vector3(o.weatherPos.x, 0, o.weatherPos.z), 0.9, t('use.weather'), R.roof + 0.12);
   w.addInteractable('desk', new THREE.Vector3(D.x, 0, D.z + 1.0), 1.35, t('use.desk'));
   w.addInteractable('platform', new THREE.Vector3(o.platform.x, 0, o.platform.z), 1.6, t('use.platform'), R.roof + 0.12);
 
@@ -267,7 +275,7 @@ export function furnish(w) {
   o.relabel = () => {
     o.posters.forEach(p => p.redraw());
     const it = w.interactables; it.find(i => i.id === 'desk').label = t('use.desk'); it.find(i => i.id === 'platform').label = t('use.platform');
-    it.find(i => i.id === 'archive').label = t('use.archive'); it.find(i => i.id === 'shredder').label = t('use.shredder'); it.find(i => i.id === 'phone').label = t('use.phone');
+    it.find(i => i.id === 'archive').label = t('use.archive'); it.find(i => i.id === 'shredder').label = t('use.shredder'); it.find(i => i.id === 'phone').label = t('use.phone'); it.find(i => i.id === 'weather').label = t('use.weather');
     o.sign.redraw(t('sign.amt'));
   };
   return o;

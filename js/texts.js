@@ -2,6 +2,14 @@
 import { add } from './i18n.js';
 
 add({
+  'wx.kicker': ['Wetterpult · Dach des Wolkenamts', 'Weather console · Cloud Office roof'],
+  'wx.title': ['Welches Wetter bekommt Wolkenwil heute?', 'What weather does Wolkenwil get today?'],
+  'wx.info': ['Einmal pro Tag. Das Wetter wirkt sofort, die Folgen manchmal erst morgen.', 'Once per day. The weather works instantly, the consequences sometimes only tomorrow.'],
+  'wx.rain': ['REGEN', 'RAIN'], 'wx.fog': ['NEBEL', 'FOG'], 'wx.sun': ['SONNE', 'SUN'], 'wx.storm': ['GEWITTER', 'THUNDERSTORM'],
+  'wx.risk': ['Risiko: Das kann schiefgehen.', 'Risk: this can go wrong.'],
+  'wx.go': ['Auslösen', 'Trigger'],
+  'toast.noweather': ['Das Wetterpult ist nur in der Kampagne freigegeben.', 'The weather console is only unlocked in the campaign.'],
+  'toast.weatherDone': ['Für heute ist das Wetter gemacht.', 'Today’s weather has been made.'],
   'fx.lev': ['Druckmittel', 'Leverage'],
   'fx.levUsed': ['Druckmittel eingesetzt', 'Leverage used'],
   'chk.btn': ['Prüfen', 'Inspect'],

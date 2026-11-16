@@ -32,7 +32,7 @@ Die **Akte** oben rechts zeigt jederzeit Partei, Umfrage und Verdacht.
 
 | Modus | Beschreibung |
 |---|---|
-| **Kampagne (Story)** | Kapitel 1 «Der Posten»: Partei wählen, 6 Amtstage mit Ereignissen, Anrufen, Unwettern, Abstimmung und Kapitelende. Kapitel 2–4 folgen. |
+| **Kampagne (Story)** | 3 Kapitel mit je 6 Tagen: «Der Posten» (ins Amt finden), «Die Untersuchung» (Inspektor Wyss verhört dich), «Der Wahlkampf» (Gemeindewahl mit 7 Enden). |
 | **Freie Wolke** | Forme irgendetwas. Das Dorf rätselt, was es sein soll. Als Postkarte speicherbar. |
 | **Abendpartie (online)** | 2–3 Personen, jede mit eigener Partei (WVB, FWW, PKH), Huber spielt als vierte Partei mit. Nach jeder Runde eine Aktion im «Hinterzimmer»: Gerücht streuen, beim Kanton verpfeifen, Plakate kleben, Bestechung annehmen. Wer vorne liegt, gerät unter Verdacht. Am Schluss entscheidet die Gemeindewahl. Etwa 30–45 Minuten. |
 | **Zu dritt an einem Gerät** | Nacheinander am selben Gerät (Pass & Play), nur in der 2D-Schneideansicht. |
@@ -177,7 +177,7 @@ Fortschritt, Ansehen, Sichtungen, Sprache und Ton werden im `localStorage` des B
 - [x] Deutsch und Englisch
 - [x] Parteien, Umfragen, Korruption, Fälschungen, Unwetter, Abstimmungen
 - [x] Abendpartie mit Sabotage und Gemeindewahl
-- [ ] Kapitel 2–4 (Untersuchung, Wahlkampf, Enden)
+- [x] Kapitel 2 und 3 (Untersuchung, Wahlkampf, 7 Enden)
 - [ ] Sandbox über mehrere Jahre
 - [ ] Gemeindehaus von innen begehbar
 - [ ] Sprachkanal (Optik ist schon drin, Funktion folgt)

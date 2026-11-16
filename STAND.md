@@ -18,6 +18,7 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
 | 6 | Abendpartie (Mehrspieler) | fertig (Version 1) |
 | 7 | README für HOCHDRUCK | fertig |
 | 8 | Kapitel 2 «Die Untersuchung» | fertig (Version 1) |
+| 9 | Kapitel 3 «Der Wahlkampf» mit Gemeindewahl und 7 Enden | fertig (Version 1) |
 
 ## Notizen
 
@@ -63,3 +64,10 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   du das Amt los und beginnst Kapitel 2 neu (Stand vom Kapitelanfang). 4 neue Sonderanträge, neue
   Abstimmung «Kantonale Aufsicht». Am Samstag schreibt Wyss den Bericht: entlastet, Bauernopfer, Anklage
   oder (mit Hubers Deal) verraten. Code: js/power.js (Abschnitt Kapitel 2).
+- Etappe 9: Kapitel 3 (6 Tage). Jeden Morgen ein Wahlkampftermin: Plakatspruch, Podium im Rössli,
+  anonymer USB-Stick mit Huber-Fotos, Bauer Zbinden will Regen (oder gekaufte Stimmen), Huber bietet
+  einen Parkplatz für deinen Rückzug, am Wahltag entscheidest du über das Wetter. Neue Abstimmung
+  «Wolkensteuer». Am Samstag Gemeindewahl mit Schlussresultat und einem von 7 Enden: Der saubere Himmel,
+  Gemeindepräsidium, Gewonnen aber…, Nachzählung, Huber für immer, Opposition, Der Parkplatz. Frühere
+  Entscheide (Umschlag an Wyss, Regenversprechen, Anklage aus Kapitel 2) wirken im Abspann nach.
+  Damit ist die Story von Anfang bis Ende spielbar (18 Tage).

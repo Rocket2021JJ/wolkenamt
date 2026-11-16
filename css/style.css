@@ -391,3 +391,4 @@ body.online #bar{right:264px}
 .mpow .prow2 b{white-space:nowrap}
 
 #orders .chhead{font:600 11px/1 'Schibsted Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--rot,#c8452f);margin:10px 0 4px}
+.powrep .kick{font:600 12px/1.2 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--rot);margin:12px 0 2px}

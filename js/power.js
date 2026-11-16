@@ -295,6 +295,11 @@ export const VOTES = {
     stance: { wvb: 'no', fww: 'yes', pkh: 'yes', huber: 'no' },
     yes: { fx: { inv: 8, trust: { junge: 3 } }, text: ['Ja. Ab nächstem Monat sitzt ein Beamter aus der Stadt mit im Büro. Er bringt sein eigenes Znüni mit.', 'Yes. From next month a civil servant from the city sits in the office. He brings his own snack.'] },
     no: { fx: { inv: -6, trust: { vereine: 2, bauern: 2 } }, text: ['Nein. Wolkenwil regelt seinen Himmel selbst. Inspektor Wyss notiert sich das Resultat.', 'No. Wolkenwil runs its own sky. Inspector Wyss writes the result down.'] } },
+  wolkensteuer: { q: ['Soll jede Wolke über Privatgrund eine Gebühr von CHF 20 kosten (Wolkensteuer)?', 'Should every cloud over private land cost a CHF 20 fee (cloud tax)?'],
+    lean: { gewerbe: -0.6, bauern: -0.5, senioren: -0.2, junge: 0.4, kirche: 0.2, vereine: 0.1 },
+    stance: { wvb: 'no', fww: 'no', pkh: 'yes', huber: 'yes' },
+    yes: { fx: { cash: 1500, trust: { gewerbe: -3, bauern: -3 } }, text: ['Die Wolkensteuer kommt. Die Gemeindekasse ist voll, die Gartenbesitzer spannen Planen.', 'The cloud tax is coming. The council coffers are full, garden owners put up tarps.'] },
+    no: { fx: { trust: { gewerbe: 2, bauern: 2 } }, text: ['Keine Wolkensteuer. Der Himmel bleibt gratis. Huber nennt das «Verantwortungslosigkeit».', 'No cloud tax. The sky stays free. Huber calls it “irresponsibility”.'] } },
 };
 export const VOTE_ACTIONS = [
   { id: 'camp', label: ['Kampagne machen', 'Campaign'], cost: { influence: -1 }, shift: 5, need: P => P.influence >= 1, note: ['Du redest im Rössli, an der Bushaltestelle und am Grab der Tante Huber.', 'You speak at the Rössli, at the bus stop and at Aunt Huber’s grave.'] },
@@ -448,3 +453,64 @@ export const VERDICT_FX = {
   scapegoat: { mod: { _own: -0.05 }, suspicion: -15 },
   cleared: { mod: { _own: 0.1 }, suspicion: -20 },
 };
+
+// ---------------- Kapitel 3: Der Wahlkampf ----------------
+// Jeden Morgen ein Wahlkampf-Termin. Am Samstag ist Gemeindewahl, danach eines von mehreren Enden.
+export const CH3_START = 12;
+const R = 'Wolkenwiler Anzeiger';
+export const CAMPAIGN = [
+  { from: 'Parteisekretariat', text: ['Wahlkampfstart. Die Partei will ein Plakat mit deinem Gesicht. Welcher Spruch soll drauf?', 'Campaign launch. The party wants a poster with your face. Which slogan goes on it?'],
+    choices: [
+      [['«Ich habe den Himmel im Griff.»', '“I have the sky under control.”'], { mod: { _own: 0.08 }, suspicion: 3 }, ['Das Plakat hängt überall. Jemand hat «leider» dazugeschrieben.', 'The poster is everywhere. Someone has added “sadly”.']],
+      [['«Sonne für alle.»', '“Sun for everyone.”'], { trust: { senioren: 3, vereine: 3, bauern: -2 } }, ['Die Bauern fragen, wann es dann regnet. Niemand antwortet.', 'The farmers ask when it will rain then. Nobody answers.']],
+      [['«Huber. Wirklich?»', '“Huber. Really?”'], { mod: { huber: -0.1, _own: 0.03 }, trust: { junge: 3 } }, ['Die Jungen lieben es. Huber lässt die Plakate über Nacht überkleben. Mit Huber.', 'The young love it. Huber has the posters covered overnight. With Huber.']],
+    ] },
+  { from: R, text: ['Podium im Rössli. Moderatorin Imboden fragt: «Wer hat im Sommer die Hagelwolke über das Schwingfest geschickt?»', 'Debate at the Rössli. Host Imboden asks: “Who sent the hail cloud over the wrestling festival last summer?”'],
+    choices: [
+      [['«Das war vor meiner Zeit.»', '“That was before my time.”'], { trust: { vereine: -2 }, mod: { _own: 0.03 } }, ['Stimmt sogar. Klingt trotzdem nach Ausrede.', 'It is even true. It still sounds like an excuse.']],
+      [['Auf Huber zeigen', 'Point at Huber'], { mod: { huber: -0.14 }, suspicion: 2 }, ['Huber verschluckt sich am Wasser. Das Publikum klatscht, bevor es weiss, warum.', 'Huber chokes on his water. The audience applauds before it knows why.']],
+      [['Witz machen', 'Crack a joke'], { trust: { junge: 4, senioren: -3 } }, ['Die Hälfte lacht. Die andere Hälfte war am Schwingfest.', 'Half the room laughs. The other half was at the festival.']],
+    ] },
+  { from: 'Unbekannt', text: ['Ein USB-Stick im Briefkasten. Darauf: Fotos von Huber, wie er nachts Briefwahl-Couverts in sein Auto lädt. Echt? Vielleicht.', 'A USB stick in the letterbox. On it: photos of Huber loading postal ballots into his car at night. Real? Maybe.'],
+    choices: [
+      [['An die Zeitung geben', 'Give it to the paper'], { mod: { huber: -0.25 }, suspicion: 6 }, ['Die Schlagzeile ist riesig. Woher die Fotos stammen, fragt Imboden erst morgen.', 'The headline is huge. Imboden only asks tomorrow where the photos came from.']],
+      [['Als Druckmittel behalten', 'Keep it as leverage'], { lev: 'huber' }, ['Der Stick liegt jetzt in deiner Schublade. Unter dem Locher.', 'The stick now lies in your drawer. Under the hole punch.']],
+      [['Zerstören', 'Destroy it'], { trust: { kirche: 3 }, suspicion: -3 }, ['Du wirfst den Stick in den Brunnen. Das fühlt sich anständig an. Und dumm.', 'You throw the stick into the fountain. It feels decent. And stupid.']],
+    ] },
+  { from: 'Bauer Zbinden', text: ['«Wahlkampf hin oder her: Seit einer Woche kein Regen. Wenn Sie wollen, dass die Bauern Sie wählen, dann…»', '“Campaign or not: no rain for a week. If you want the farmers to vote for you, then…”'],
+    choices: [
+      [['Regen versprechen', 'Promise rain'], { trust: { bauern: 8 }, flag: 'rain_promise' }, ['Zbinden schüttelt dir die Hand. Lange. Er wird sich erinnern.', 'Zbinden shakes your hand. For a long time. He will remember.']],
+      [['«Das Wetter ist unpolitisch.»', '“The weather is apolitical.”'], { trust: { bauern: -5, junge: 2 } }, ['Zbinden lacht so laut, dass die Kühe schauen.', 'Zbinden laughs so loudly the cows look over.']],
+      [['Stimmen kaufen (CHF 2500)', 'Buy votes (CHF 2,500)'], { trust: { bauern: 10 }, cash: -2500, suspicion: 8 }, ['Fünfzig Franken pro Hof. «Für Saatgut», steht auf dem Couvert.', 'Fifty francs per farm. “For seeds”, it says on the envelope.'], P => P.cash >= 2500],
+    ] },
+  { from: 'Gemeindepräsident Huber', text: ['Huber am Telefon, ganz freundlich: «Ziehen Sie Ihre Kandidatur zurück. Sie bekommen dafür das Amt auf Lebenszeit und einen Parkplatz.»', 'Huber on the phone, very friendly: “Withdraw your candidacy. In return you get the office for life and a parking space.”'],
+    choices: [
+      [['Annehmen', 'Accept'], { mod: { _own: -0.4, huber: 0.3 }, cash: 3000, flag: 'withdrew' }, ['Du hast jetzt einen Parkplatz. Deine Partei hat jetzt ein Problem.', 'You now have a parking space. Your party now has a problem.']],
+      [['Ablehnen', 'Refuse'], { mod: { _own: 0.05 } }, ['«Schade», sagt Huber. Er klingt nicht, als fände er es schade.', '“Pity,” says Huber. He doesn’t sound like he thinks it is a pity.']],
+      [['Mit dem USB-Stick drohen', 'Threaten with the USB stick'], { mod: { huber: -0.2 }, unlev: 'huber', suspicion: 4 }, ['Langes Schweigen. «Ich werde krank», sagt Huber. «Am Wahltag. Sehr krank.»', 'A long silence. “I am getting ill,” says Huber. “On election day. Very ill.”'], P => P.lev && P.lev.huber],
+    ] },
+  { from: R, text: ['Wahltag. Das Wahllokal öffnet um acht. Der Himmel über Wolkenwil ist leer und wartet auf dich.', 'Election day. The polling station opens at eight. The sky above Wolkenwil is empty and waiting for you.'],
+    choices: [
+      [['Sonnenschein über dem Dorf', 'Sunshine over the village'], { trust: { senioren: 4, vereine: 3 } }, ['Die Senioren gehen bei Sonne wählen. Die Senioren gehen immer wählen.', 'The seniors vote when it is sunny. The seniors always vote.']],
+      [['Regen über den Hochburgen der Gegner', 'Rain over the opponents’ strongholds'], { mod: { huber: -0.15 }, suspicion: 10 }, ['Im Oberdorf bleibt man zu Hause. Imboden fotografiert die einzelne Regenwolke.', 'In the upper village people stay at home. Imboden photographs the single rain cloud.']],
+      [['Nichts tun. Ehrlich wählen lassen.', 'Do nothing. Let them vote honestly.'], { suspicion: -5, trust: { kirche: 3 } }, ['Ein normaler grauer Tag. Fast niemand merkt, wie selten das ist.', 'An ordinary grey day. Almost nobody notices how rare that is.']],
+    ] },
+];
+export function campaignEvent(day) { return CAMPAIGN[day - CH3_START] || null; }
+// Endergebnis der Gemeindewahl
+export function election(P) {
+  const pl = polls(P);
+  if (P.verdict === 'charged' || P.verdict === 'betrayed') pl[P.party] *= 0.85;
+  if (P.flags.withdrew) pl[P.party] *= 0.5;
+  const sum = Object.values(pl).reduce((a, b) => a + b, 0);
+  for (const k in pl) pl[k] = pl[k] / sum * 100;
+  const order = Object.keys(pl).sort((a, b) => pl[b] - pl[a]);
+  let end;
+  if (P.flags.withdrew) end = 'parking';
+  else if (order[0] === P.party && P.suspicion >= 70) end = 'hollow';
+  else if (order[0] === P.party) end = P.suspicion <= 25 ? 'clean' : 'win';
+  else if (pl[P.party] >= pl[order[0]] - 3) end = 'recount';
+  else if (order[0] === 'huber') end = 'huber';
+  else end = 'lost';
+  return { pl, order, end };
+}

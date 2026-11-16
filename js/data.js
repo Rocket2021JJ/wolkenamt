@@ -204,6 +204,13 @@ export const DAYS = [
   { name: ['Donnerstag', 'Thursday'], ch: 2, cards: [11, 'sondersitzung', 8], slots: 2 },
   { name: ['Freitag', 'Friday'], ch: 2, cards: [2, 7, 4], slots: 2 },
   { name: ['Samstag', 'Saturday'], ch: 2, cards: [10, 'regen', 6], slots: 2, end: 2 },
+  // Kapitel 3: Der Wahlkampf
+  { name: ['Montag', 'Monday'], ch: 3, cards: [0, 'leserbrief', 8], slots: 2 },
+  { name: ['Dienstag', 'Tuesday'], ch: 3, cards: [4, 'duerre', 9], slots: 2 },
+  { name: ['Mittwoch', 'Wednesday'], ch: 3, cards: [1, 'schule', 11], slots: 2 },
+  { name: ['Donnerstag', 'Thursday'], ch: 3, cards: [5, 'zeugin', 3], slots: 2 },
+  { name: ['Freitag', 'Friday'], ch: 3, cards: [7, 'sondersitzung', 2], slots: 2 },
+  { name: ['Samstag', 'Saturday'], ch: 3, cards: [6, 10, 'umschlag'], slots: 2, end: 3 },
 ];
 
 export const FREE = { from: 'Sie selbst', nom: ['???', '???'], tod: 'sunset', mods: { free: 1 }, text: ['«Feierabend. Formen Sie, was Sie wollen. Wolkenwil schaut zu.»', '“End of the working day. Shape whatever you like. Wolkenwil is watching.”'] };

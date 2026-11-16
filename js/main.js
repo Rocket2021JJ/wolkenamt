@@ -28,7 +28,7 @@ Object.assign(NAMES, { 'Hotel Bergblick': ['Hotel Bergblick', 'Hotel Bergblick']
 try { const s = JSON.parse(localStorage.getItem('wolkenamt')); if (s && Array.isArray(s.stars)) save = Object.assign(save, s); } catch (e) {}
 const persist = () => { try { localStorage.setItem('wolkenamt', JSON.stringify(save)); } catch (e) {} };
 const chOf = d => DAYS[d].ch || 1;
-const dayNo = d => d - (chOf(d) === 2 ? POW.CH2_START : 0) + 1;
+const dayNo = d => d - DAYS.findIndex(x => (x.ch || 1) === chOf(d)) + 1;
 const rankOf = s => L(RANKS.filter(r => s >= r[0]).pop()[1]);
 const totalStars = () => save.stars.reduce((a, b) => a + (b || 0), 0);
 
@@ -157,6 +157,7 @@ function startDay(d) {
     if (POW.startInvestigation(P)) ev.unshift(POW.INV_INTRO);
     const q = POW.interrogation(d); if (q) ev.push(q);
   }
+  if (chOf(d) === 3) { P.ch = 3; const c = POW.campaignEvent(d); if (c) ev.push(c); }
   persist();
   if (ev.length) showMorning(ev, d, go); else go();
 }
@@ -514,7 +515,7 @@ function showReport() {
     save.day = Math.max(save.day || 0, d + 1);
     sum.append(span('', t('rep.rep', { b: before }) + ' '), span(delta >= 0 ? 'pos' : 'neg', `${save.rep}`), span('', ` (${delta >= 0 ? '+' : ''}${delta})`));
     if (bonus) sum.append(document.createElement('br'), span('', t('rep.bonus', { b: num(bonus) })));
-    if (last) sum.append(document.createElement('br'), document.createElement('br'), span('', t(Dy.end === 2 ? 'rep.week2' : 'rep.week', { r: rankOf(totalStars()) })));
+    if (last) sum.append(document.createElement('br'), document.createElement('br'), span('', t(Dy.end === 3 ? 'rep.week3' : Dy.end === 2 ? 'rep.week2' : 'rep.week', { r: rankOf(totalStars()) })));
     $('pNext').textContent = last ? t('btn.central') : t('rep.next', { day: L(DAYS[d + 1].name) });
     $('pNext').onclick = last ? () => showMenu() : () => startDay(d + 1);
   }
@@ -609,8 +610,8 @@ function openWeather() {
 $('wxClose').onclick = () => enterWorld(null, taskKey, taskVars);
 
 // ---------------- Etappe 4: Gemeindehaus, Gerüchte ----------------
-const vid = () => (run && chOf(run.d) === 2 ? 'aufsicht' : 'seilbahn');
-const firstDay = () => run.d === 0 || run.d === POW.CH2_START;
+const vid = () => (run ? ['seilbahn', 'aufsicht', 'wolkensteuer'][chOf(run.d) - 1] : 'seilbahn');
+const firstDay = () => run.d === 0 || run.d === POW.CH2_START || run.d === POW.CH3_START;
 function townPanel(kicker, title, info) { mode = 'town'; world.enabled = false; hud(false); only('town'); $('tnKicker').textContent = kicker; $('tnTitle').textContent = title; $('tnInfo').textContent = info; const b = $('tnList'); b.innerHTML = ''; return b; }
 function openTownhall() {
   const P = save.power; if (!P || flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.townClosed'));
@@ -668,6 +669,25 @@ function chapterEnd(P, box) {
   const h = document.createElement('h3'); h.textContent = t('end.title'); box.appendChild(h);
   const p = document.createElement('p'); p.className = 'lres'; p.textContent = t(key, { p: L(POW.PARTIES[P.party].name), v: now[P.party].toFixed(1) }); box.appendChild(p);
   const n = document.createElement('p'); n.className = 'hsub'; n.textContent = t('end.next'); box.appendChild(n);
+}
+
+// Kapitel 3: Gemeindewahl und Ende der Geschichte
+function electionEnd(P, box) {
+  const E = POW.election(P);
+  const h = document.createElement('h3'); h.textContent = t('end3.title'); box.appendChild(h);
+  E.order.forEach(p => {
+    const r = document.createElement('div'); r.className = 'prow2' + (p === P.party ? ' me' : '');
+    const n = document.createElement('span'); n.textContent = L(POW.PARTIES[p].name);
+    const bar = document.createElement('span'); bar.className = 'bar'; const f = document.createElement('i'); f.style.width = Math.min(100, E.pl[p] * 2) + '%'; f.style.background = POW.PARTIES[p].color; bar.appendChild(f);
+    const v = document.createElement('b'); v.textContent = E.pl[p].toFixed(1) + ' %';
+    r.append(n, bar, v); box.appendChild(r);
+  });
+  const k = document.createElement('p'); k.className = 'kick'; k.textContent = t('end3.k.' + E.end); box.appendChild(k);
+  const p = document.createElement('p'); p.className = 'lres'; p.textContent = t('end3.' + E.end, { p: L(POW.PARTIES[P.party].name), w: L(POW.PARTIES[E.order[0]].name) }); box.appendChild(p);
+  if (P.flags.wyss_envelope) { const e = document.createElement('p'); e.className = 'hsub'; e.textContent = t('end3.envelope'); box.appendChild(e); }
+  if (P.flags.rain_promise) { const e = document.createElement('p'); e.className = 'hsub'; e.textContent = t('end3.rain'); box.appendChild(e); }
+  P.ending = E.end;
+  const n = document.createElement('p'); n.className = 'hsub'; n.textContent = t('end3.thanks'); box.appendChild(n);
 }
 
 // Kapitel 2: Bericht von Inspektor Wyss
@@ -737,6 +757,7 @@ function powerReport(Dy, sum) {
   }
   if (DAYS[run.d].end === 1) { voteResult(P, box); chapterEnd(P, box); }
   else if (DAYS[run.d].end === 2 && P.inv < 100) { voteResult(P, box); verdictEnd(P, box); }
+  else if (DAYS[run.d].end === 3) { voteResult(P, box); electionEnd(P, box); }
   P.lastPolls = POW.polls(P);
   const lead = Object.keys(now).sort((a, b) => now[b] - now[a])[0];
   const q = P.queue.length;

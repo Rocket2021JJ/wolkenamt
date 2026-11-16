@@ -310,3 +310,60 @@ Object.assign(EVENTS, {
     text: ['Im Heizungskeller wurde ein Sack Briefwahl-Couverts gefunden. Der Gemeindeschreiber zählt nach. Der Kanton auch.', 'A sack of postal ballots was found in the boiler room. The town clerk is counting. So is the canton.'],
     fx: { suspicion: 15, mod: { _own: -0.12 } } },
 });
+
+// ---------------- Etappe 6: Abendpartie (mehrere Parteien gleichzeitig) ----------------
+export function freshMulti(partyIds) {
+  const S = { trust: {}, mod: { wvb: 0, fww: 0, pkh: 0, huber: 0.25 }, susp: {}, log: [] };
+  partyIds.forEach(p => { S.trust[p] = {}; for (const g in GROUPS) S.trust[p][g] = 50; S.susp[p] = 0; });
+  return S;
+}
+export function pollsMulti(S) {
+  const out = {}; for (const p in PARTIES) out[p] = 0;
+  for (const g in GROUPS) {
+    let sum = 0; const sc = {};
+    for (const p in PARTIES) {
+      let v = PARTIES[p].aff[g] + (S.mod[p] || 0);
+      if (S.trust[p]) v += (S.trust[p][g] - 50) / 32;
+      if (S.susp[p] >= 100) v -= 1.2; else if (S.susp[p] >= 60) v -= 0.4;
+      sc[p] = Math.exp(v * 1.6); sum += sc[p];
+    }
+    for (const p in PARTIES) out[p] += GROUPS[g].w * sc[p] / sum;
+  }
+  for (const p in out) out[p] = Math.round(out[p] * 1000) / 10;
+  return out;
+}
+export const MP_ACTIONS = [
+  { id: 'rumor', target: true, label: ['Gerücht streuen', 'Spread a rumour'], tip: ['Ziel verliert Stimmen. Kann auf dich zurückfallen.', 'Target loses votes. Can backfire on you.'] },
+  { id: 'tip', target: true, label: ['Beim Kanton verpfeifen', 'Tip off the canton'], tip: ['Verdacht beim Ziel +15. Ab 60 ermittelt der Kanton.', 'Target suspicion +15. From 60 the canton investigates.'] },
+  { id: 'posters', target: false, label: ['Plakate kleben', 'Put up posters'], tip: ['Eigene Partei legt leicht zu.', 'Your party gains slightly.'] },
+  { id: 'bribe', target: false, label: ['Bestechung annehmen', 'Accept a bribe'], tip: ['Eigene Partei legt stark zu. Verdacht +12.', 'Your party gains a lot. Suspicion +12.'] },
+];
+// Aktion auf dem Host anwenden; Rückgabe: Logzeile als [de, en]
+export function multiAct(S, own, a, target, rnd = Math.random) {
+  const P = n => PARTIES[n].short;
+  if (a === 'rumor' && target) {
+    S.mod[target] = (S.mod[target] || 0) - 0.12;
+    if (rnd() < 0.3) { S.mod[own] -= 0.08; S.susp[own] += 6; return [`Ein Gerücht über ${P(target)} macht die Runde. Frau Moser weiss, dass es von ${P(own)} kommt.`, `A rumour about ${P(target)} is going round. Mrs Moser knows it came from ${P(own)}.`]; }
+    return [`Ein Gerücht über ${P(target)} macht die Runde. Woher, weiss niemand.`, `A rumour about ${P(target)} is going round. Nobody knows where from.`];
+  }
+  if (a === 'tip' && target) {
+    S.susp[target] = Math.min(100, (S.susp[target] || 0) + 15);
+    if (S.susp[target] >= 60) { S.mod[target] -= 0.15; return [`Anonyme Anzeige: Der Kanton ermittelt gegen ${P(target)}.`, `Anonymous tip: the canton is investigating ${P(target)}.`]; }
+    return [`Beim Kanton ist eine anonyme Anzeige gegen ${P(target)} eingegangen.`, `The canton has received an anonymous tip about ${P(target)}.`];
+  }
+  if (a === 'posters') { S.mod[own] += 0.08; S.susp[own] += 2; return [`${P(own)} pflastert das Dorf mit Plakaten.`, `${P(own)} plasters the village with posters.`]; }
+  if (a === 'bribe') { S.mod[own] += 0.18; S.susp[own] = Math.min(100, S.susp[own] + 12); return [`${P(own)} hat plötzlich viel Geld für den Wahlkampf. Woher?`, `${P(own)} suddenly has a lot of money for the campaign. From where?`]; }
+  return null;
+}
+// Wolke einer Partei wirkt auf die Wählergruppen des Antrags
+export function multiCloud(S, own, orderIdx, stars) {
+  const pol = ORDER_POL[orderIdx]; if (!pol || !S.trust[own]) return;
+  const sc = STAR_SCALE[stars] ?? 0;
+  for (const g in (pol.yes.trust || {})) { const v = pol.yes.trust[g]; if (v > 0) S.trust[own][g] = Math.max(0, Math.min(100, S.trust[own][g] + Math.round(v * sc))); }
+}
+// Wer vorne liegt, zieht Aufmerksamkeit auf sich (Designregel 5)
+export function multiRoundEnd(S) {
+  const pl = pollsMulti(S), lead = Object.keys(S.trust).sort((a, b) => pl[b] - pl[a])[0];
+  if (lead) S.susp[lead] = Math.min(100, S.susp[lead] + 5);
+  return lead;
+}

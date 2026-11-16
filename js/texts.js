@@ -2,6 +2,14 @@
 import { add } from './i18n.js';
 
 add({
+  'akte.suspShort': ['Verd.', 'Susp.'],
+  'mp.pow': ['Umfrage nach dieser Runde', 'Poll after this round'],
+  'mp.powFinal': ['Endresultat der Gemeindewahl', 'Final result of the municipal election'],
+  'mp.backroom': ['Hinterzimmer (1 Aktion pro Runde):', 'Back room (1 action per round):'],
+  'mp.actDone': ['Deine Aktion für diese Runde ist erledigt.', 'Your action for this round is done.'],
+  'mp.election': ['Gemeindewahl', 'Municipal election'],
+  'mp.huberWins': ['Huber bleibt Gemeindepräsident. Ihr habt euch gegenseitig zerfleischt.', 'Huber stays mayor. You tore each other apart.'],
+  'mp.partyWins': ['{p} gewinnt die Wahl. {n} wird Gemeindepräsident/in.', '{p} wins the election. {n} becomes mayor.'],
   'paper.h.susp': ['«Was geht im Wolkenamt vor?» Der Anzeiger widmet dem Amt eine ganze Seite. Ohne Foto, aber mit Fragezeichen.', '“What is going on at the Cloud Office?” The Gazette devotes a full page to the office. No photo, but plenty of question marks.'],
   'paper.h.up': ['«{p} legt zu: +{d} Prozentpunkte in einem Tag.» Der Stammtisch rätselt, warum.', '“{p} gains {d} points in a single day.” The regulars at the pub wonder why.'],
   'paper.h.down': ['«{p} stürzt ab: −{d} Prozentpunkte.» Im Parteilokal brennt bis spät Licht.', '“{p} slumps: down {d} points.” The lights burn late at the party office.'],

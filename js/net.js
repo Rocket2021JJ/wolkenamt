@@ -4,6 +4,8 @@
 // neu in v0.4: pos (Position, Richtung, Animationszustand, 12 Hz)
 import { ORDERS } from './data.js';
 import { THRESH } from './cut2d.js';
+import * as POW from './power.js';
+export const partyOf = id => POW.PLAYABLE[Math.max(0, net.players.findIndex(p => p.id === id)) % 3];
 
 const NETPFX = 'wolkenamt-v1-';
 export const LOCALTEST = /[?&]lokaltest/.test(location.search);
@@ -113,6 +115,15 @@ function hostOnMsg(id, m) {
     if (id !== 'host') onNet(out);
   }
   else if (m.t === 'chat') bc({ t: 'chat', from: pname(id), text: String(m.text || '').slice(0, 200) });
+  else if (m.t === 'act') {
+    if (!HS.pw || HS.phase !== 'results' || HS.acted[id]) return;
+    const own = partyOf(id), tg = POW.PARTIES[m.target] ? m.target : null;
+    if (!POW.MP_ACTIONS.find(a => a.id === m.a)) return;
+    HS.acted[id] = 1;
+    const line = POW.multiAct(HS.pw, own, m.a, tg && tg !== own ? tg : null);
+    if (line) HS.pw.log.push(line);
+    bc({ t: 'pstate', pw: HS.pw, polls: POW.pollsMulti(HS.pw), line, acted: Object.keys(HS.acted) });
+  }
   else if (m.t === 'pick') {
     if (HS.phase !== 'vote' || HS.picks[id] !== undefined || ![0, 1, 2].includes(m.i)) return;
     HS.picks[id] = m.i; bc({ t: 'picked', ids: Object.keys(HS.picks) }); hostCheck();
@@ -137,7 +148,9 @@ function hostOnClose(id) {
 export function hostStart() {
   if (!HS) return;
   HS.round = 0; HS.total = {}; net.players.forEach(p => { HS.total[p.id] = 0; });
-  HS.pool = shuffle(ORDERS.map((_, i) => i)); HS.pp = 0; hostVote();
+  HS.pool = shuffle(ORDERS.map((_, i) => i)); HS.pp = 0;
+  HS.pw = POW.freshMulti(net.players.map(p => partyOf(p.id))); HS.acted = {};
+  hostVote();
 }
 function hostVote() {
   HS.phase = 'vote'; HS.picks = {};
@@ -160,9 +173,10 @@ function hostResults() {
   let place = 0;
   res.forEach((r, i) => { if (i > 0 && Math.round(r.score * 100) < Math.round(res[i - 1].score * 100)) place = i; r.place = place; r.pts = MP_POINTS[place]; HS.total[r.id] = (HS.total[r.id] || 0) + r.pts; });
   HS.round++;
-  bc({ t: 'results', res, total: HS.total, order: HS.order, rej: pick(HS.rejected), round: HS.round, rounds: HS.rounds, last: HS.round >= HS.rounds });
+  if (HS.pw) { net.players.forEach(p => { const d = HS.done[p.id]; if (d) POW.multiCloud(HS.pw, partyOf(p.id), HS.order, d.stars); }); POW.multiRoundEnd(HS.pw); HS.acted = {}; }
+  bc({ t: 'results', pw: HS.pw, polls: HS.pw ? POW.pollsMulti(HS.pw) : null, res, total: HS.total, order: HS.order, rej: pick(HS.rejected), round: HS.round, rounds: HS.rounds, last: HS.round >= HS.rounds });
 }
-export function hostNext() { if (!HS) return; if (HS.round >= HS.rounds) { HS.phase = 'final'; bc({ t: 'final', total: HS.total }); } else hostVote(); }
+export function hostNext() { if (!HS) return; if (HS.round >= HS.rounds) { HS.phase = 'final'; bc({ t: 'final', total: HS.total, pw: HS.pw, polls: HS.pw ? POW.pollsMulti(HS.pw) : null }); } else hostVote(); }
 
 // ----- Alle -----
 function onNet(m) {
@@ -179,6 +193,7 @@ function onNet(m) {
   else if (m.t === 'start') { net.phase = 'play'; net.prog = {}; net.doneIds = []; ui('start', m); }
   else if (m.t === 'prog') { net.prog[m.id] = m.s; ui('side'); }
   else if (m.t === 'doneack') { net.doneIds = m.ids; ui('side'); }
-  else if (m.t === 'results') { net.phase = 'results'; ui('results', m); }
+  else if (m.t === 'results') { net.phase = 'results'; net.pw = m.pw; net.polls = m.polls; net.acted = []; ui('results', m); }
+  else if (m.t === 'pstate') { net.pw = m.pw; net.polls = m.polls; net.acted = m.acted || []; ui('pstate', m); }
   else if (m.t === 'final') { net.phase = 'final'; ui('final', m); }
 }

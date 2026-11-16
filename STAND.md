@@ -15,7 +15,7 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
 | 3 | Wetter-Werkzeuge: Nebel, Regen, Sonne, Gewitter | fertig |
 | 4 | Dorf lebt: Gemeindehaus mit Sachabstimmung, Gerüchte am Marktstand | fertig (Teil 1) |
 | 5 | Kapitel 1 spielbar | fertig |
-| 6 | Abendpartie (Mehrspieler) | offen |
+| 6 | Abendpartie (Mehrspieler) | fertig (Version 1) |
 
 ## Notizen
 
@@ -47,3 +47,9 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
 - Etappe 5: Das Menü heisst jetzt «Kampagne · Kapitel 1». Jeden Morgen bringt der Anzeiger eine Schlagzeile
   aus den echten Veränderungen (wer zulegt, wer abstürzt, ob das Amt unter Verdacht steht). Am Samstag:
   Sachabstimmung, offene Folgen und Kapitelende mit 4 möglichen Ausgängen.
+- Etappe 6: Online hat jede Person eine eigene Partei (1. WVB, 2. FWW, 3. PKH), Huber spielt als vierte Partei
+  mit. Wie gut deine Wolke wird, bewegt die Umfrage deiner Partei bei den betroffenen Wählergruppen. Nach
+  jeder Runde gibt es im Ergebnis-Fenster das «Hinterzimmer» mit einer Aktion pro Runde: Gerücht streuen,
+  beim Kanton verpfeifen, Plakate kleben oder Bestechung annehmen. Alles erscheint anonym im Funk. Wer vorne
+  liegt, bekommt jede Runde +5 Verdacht. Am Schluss entscheidet die Gemeindewahl (Umfrage), nicht die Punkte.
+  Getestet mit ?lokaltest in drei Tabs.

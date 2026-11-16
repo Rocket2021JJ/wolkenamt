@@ -378,3 +378,14 @@ body.online #bar{right:264px}
 .mpbox.wide{max-height:calc(100vh - 40px);overflow:auto}
 .akte .arow b{white-space:nowrap}
 .dossiers{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+
+/* ---------- Etappe 6: Hinterzimmer ---------- */
+.mpow{border-top:1.5px solid var(--tinte);margin-top:8px;padding-top:8px;text-align:left}
+.mpow h3{font-family:var(--serif);font-weight:400;font-size:17px;margin:0 0 6px}
+.mpow .prow2{grid-template-columns:170px 1fr 120px}
+.mpow .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+.mpow select{font:inherit;padding:4px}
+.mpow .log{font-family:var(--schreib);font-size:12.5px;margin:6px 0 0;color:var(--grau)}
+#mpRes .mpbox{max-height:calc(100vh - 32px);overflow:auto}
+.mpow .prow2{grid-template-columns:150px 1fr 150px;font-size:13px}
+.mpow .prow2 b{white-space:nowrap}

@@ -11,7 +11,7 @@ import * as A from './audio.js';
 import * as POW from './power.js';
 import { drawSignature, drawStamp, forgeryKind } from './forgery.js';
 import { NAMES } from './data.js';
-import { net, netCreate, netJoin, netReset, netAvailable, hostStart, hostNext, setRounds, toHost, pname, LOCALTEST, MP_POINTS } from './net.js';
+import { net, netCreate, netJoin, netReset, netAvailable, hostStart, hostNext, setRounds, toHost, pname, LOCALTEST, MP_POINTS, partyOf } from './net.js';
 
 const { cut, pad, nameOf } = cutM;
 const $ = id => document.getElementById(id);
@@ -877,6 +877,7 @@ net.ui = {
     }, 2600);
   },
   results(m) { renderSide(); showNetResults(m); },
+  pstate(m) { if (m.line) sysMsg(L(m.line)); renderMultiPow(false); },
   final(m) { renderSide(); showNetFinal(m); },
 };
 function startOnlineCut() {
@@ -904,6 +905,7 @@ function showNetResults(m) {
     m.res.forEach((r, i) => grid.appendChild(resCard(r, pname(r.id) + (r.id === net.id ? ' ' + t('you') : ''), i)));
     standings(net.players.map(p => ({ name: p.name, t: m.total[p.id] || 0 })));
     hostButton(m.last ? t('mp.ceremony') : t('mp.nextSession'), hostNext, t('mp.waitHost'));
+    renderMultiPow(false);
     only('mpRes');
     A.chime([523, 659, 784], 0.1);
   };
@@ -916,6 +918,9 @@ function showNetFinal(m) {
   $('mRound').textContent = t('mp.ceremony'); $('mNote').textContent = '';
   $('mHead').textContent = win.length > 1 ? t('mp.shared', { w: win.join(' & ') }) : t('mp.month', { w: win[0] });
   finalGrid(rk); standings(rk.map(r => ({ ...r })));
+  if (m.polls) { net.polls = m.polls; net.pw = m.pw; const win = Object.keys(m.polls).sort((a, b) => m.polls[b] - m.polls[a])[0]; const who = net.players.find(p => partyOf(p.id) === win);
+    $('mRound').textContent = t('mp.election'); $('mHead').textContent = win === 'huber' ? t('mp.huberWins') : t('mp.partyWins', { p: L(POW.PARTIES[win].name), n: who ? who.name : '?' }); }
+  renderMultiPow(true);
   hostButton(t('mp.revenge'), hostStart, t('mp.waitRevenge'));
   only('mpRes'); A.chime([523, 659, 784, 1047], 0.12);
 }
@@ -923,6 +928,33 @@ function hostButton(label, fn, waitText) {
   $('mMenu').textContent = t('lobby.leave');
   $('mNext').classList.toggle('hidden', !net.host); $('mNext').textContent = label; $('mNext').onclick = fn;
   $('mWait').textContent = net.host ? '' : waitText;
+}
+function renderMultiPow(final) {
+  const box = $('mPow'); if (!net.polls || !net.pw) { box.classList.add('hidden'); return; }
+  box.classList.remove('hidden'); box.innerHTML = '';
+  const h = document.createElement('h3'); h.textContent = final ? t('mp.powFinal') : t('mp.pow'); box.appendChild(h);
+  const mine = partyOf(net.id), inGame = new Set([...Object.keys(net.pw.trust), 'huber']);
+  Object.keys(net.polls).filter(p => inGame.has(p)).sort((a, b) => net.polls[b] - net.polls[a]).forEach(p => {
+    const r = document.createElement('div'); r.className = 'prow2' + (p === mine ? ' me' : '');
+    const who = net.players.find(x => partyOf(x.id) === p);
+    const n = document.createElement('span'); n.textContent = POW.PARTIES[p].short + (who ? ' · ' + who.name : '');
+    const bar = document.createElement('span'); bar.className = 'bar'; const f = document.createElement('i'); f.style.width = Math.min(100, net.polls[p] * 2) + '%'; f.style.background = POW.PARTIES[p].color; bar.appendChild(f);
+    const v = document.createElement('b'); v.textContent = `${net.polls[p].toFixed(1)} %` + (net.pw.susp[p] != null ? ` · ${t('akte.suspShort')} ${net.pw.susp[p]}` : '');
+    r.append(n, bar, v); box.appendChild(r);
+  });
+  if (final || net.phase !== 'results') return;
+  const acts = document.createElement('div'); acts.className = 'acts';
+  const done = (net.acted || []).includes(net.id);
+  const lab = document.createElement('b'); lab.textContent = done ? t('mp.actDone') : t('mp.backroom'); acts.appendChild(lab);
+  if (!done) {
+    const sel = document.createElement('select');
+    [...inGame].filter(p => p !== mine).forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = POW.PARTIES[p].short; sel.appendChild(o); });
+    acts.appendChild(sel);
+    POW.MP_ACTIONS.forEach(a => { const b = document.createElement('button'); b.textContent = L(a.label); b.title = L(a.tip); b.onclick = () => { toHost({ t: 'act', a: a.id, target: a.target ? sel.value : null }); A.stampSound(); acts.querySelectorAll('button,select').forEach(x => { x.disabled = true; }); }; acts.appendChild(b); });
+  }
+  box.appendChild(acts);
+  const last = (net.pw.log || []).slice(-2);
+  last.forEach(l => { const p = document.createElement('p'); p.className = 'log'; p.textContent = L(l); box.appendChild(p); });
 }
 function sysMsg(text) { addChat({ sys: 1, text }); }
 function addChat(m) {
@@ -953,7 +985,7 @@ function renderLobby() {
   const box = $('lPlayers'); box.innerHTML = '';
   for (let i = 0; i < 3; i++) {
     const p = net.players[i], d = document.createElement('div'), a = document.createElement('span'), b = document.createElement('b');
-    if (p) { a.textContent = p.name + (p.id === net.id ? ' ' + t('you') : ''); b.textContent = p.id === 'host' ? t('host') : t('lobby.ready'); a.style.borderLeft = `6px solid ${PLAYER_COLS[i]}`; a.style.paddingLeft = '6px'; }
+    if (p) { a.textContent = p.name + (p.id === net.id ? ' ' + t('you') : '') + ' · ' + POW.PARTIES[POW.PLAYABLE[i]].short; b.textContent = p.id === 'host' ? t('host') : t('lobby.ready'); a.style.borderLeft = `6px solid ${PLAYER_COLS[i]}`; a.style.paddingLeft = '6px'; }
     else { d.className = 'empty'; a.textContent = t('lobby.free'); b.textContent = '…'; }
     d.append(a, b); box.appendChild(d);
   }

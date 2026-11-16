@@ -1,0 +1,18 @@
+Bibliotheken für den 3D-Umbau (bitte vor dem Hochladen in den neuen Chat hier ablegen)
+
+Die Umgebung, in der Claude arbeitet, hat kein Internet. Damit das Spiel dort
+getestet werden kann, müssen diese zwei Dateien in DIESEM Ordner (lib/) liegen:
+
+1) three.module.min.js
+   Herunterladen: https://unpkg.com/three@0.160.0/build/three.module.min.js
+   (Falls die Seite nicht gefunden wird: https://unpkg.com/three@0.160.0/build/three.module.js
+    und die Datei trotzdem als three.module.min.js speichern.)
+
+2) peerjs.min.js
+   Herunterladen: https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js
+
+So geht's: Link im Browser öffnen, Rechtsklick > "Speichern unter ..." und
+genau mit dem Dateinamen oben in diesen Ordner speichern.
+
+Sicherheit: Nur von unpkg.com herunterladen (offizielles npm-CDN), keine
+Kopien von anderen Seiten verwenden.

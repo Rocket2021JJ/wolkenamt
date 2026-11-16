@@ -1,0 +1,290 @@
+/* =========================================================
+   WOLKENAMT – Gestaltung (v0.4)
+   Farbkonzept «Alpenplakat × Amtsstube»: Papier und Tinte,
+   Signalrot für Stempel und Freigaben, Stempelblau für Schilder.
+   Keine Verläufe, kein Glas, keine Emojis in der Bedienung.
+   ========================================================= */
+:root{
+  --papier:#E9E6DA;      /* Papier: Wände, Formulare */
+  --blatt:#F3F1EA;       /* Schnee: frisches Blatt */
+  --wand:#E9E6DA;        /* rund um das Spielfeld */
+  --linie:rgba(34,48,58,.25);
+  --tinte:#22303A;       /* Tinte: Schrift, Linien */
+  --grau:rgba(34,48,58,.68);
+  --rot:#C8352B;         /* Signalrot: Stempel, Freigeben */
+  --tanne:#4F6B57;       /* Linoleum: positive Werte */
+  --blau:#2F4E8C;        /* Stempelblau: Schilder */
+  --ocker:#C99A3B;
+  --nuss:#6B4A33;
+  --serif:"Young Serif",Georgia,"Times New Roman",serif;
+  --sans:"Schibsted Grotesk","Helvetica Neue",Arial,sans-serif;
+  --schreib:"Courier Prime","Courier New",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--wand);font-family:var(--sans);color:var(--tinte);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#wrap{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px}
+#stage{position:relative;width:min(calc(100vw - 24px),calc((100vh - 96px) * 1.5));aspect-ratio:3/2;border:1.5px solid var(--tinte);border-radius:3px;overflow:hidden;background:var(--papier)}
+canvas#c{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:none;touch-action:none;visibility:hidden}
+body.mode2d canvas#c{visibility:visible}
+canvas#c3d{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+body.mode2d canvas#c3d{visibility:hidden}
+.prompt{position:absolute;transform:translate(-50%,-100%);background:var(--blatt);border:1.5px solid var(--tinte);padding:4px 9px;font-size:13.5px;display:flex;gap:7px;align-items:center;pointer-events:none;white-space:nowrap;box-shadow:3px 3px 0 rgba(34,48,58,.25)}
+.prompt kbd{font-family:var(--schreib);font-weight:700;border:1.5px solid var(--tinte);padding:0 5px;border-radius:2px}
+
+/* Knöpfe: wie Beschriftungsschilder */
+button{font-family:var(--sans);font-size:14px;font-weight:500;border:1.5px solid var(--tinte);border-radius:3px;padding:8px 13px;background:var(--blatt);color:var(--tinte);cursor:pointer;transition:background .12s,color .12s}
+button:hover{background:#fff}
+button:active{transform:translateY(1px)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--rot);outline-offset:2px}
+button.on{background:var(--tinte);color:var(--blatt)}
+button.prim{background:var(--rot);border-color:var(--rot);color:#fff;font-weight:700}
+button.prim:hover{background:#b02e25}
+button.ghost{background:transparent}
+button:disabled{opacity:.4;cursor:default}
+button kbd{font-family:var(--sans);font-size:11px;color:inherit;opacity:.55;margin-left:6px}
+#bar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:100%;transition:opacity .2s}
+#bar.idle{opacity:0;pointer-events:none}
+
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+.dim{background:rgba(34,48,58,.42)}
+.hidden{display:none!important}
+.full{width:100%}
+
+/* ---------- Menü: amtliche Anzeige links, Landschaft rechts ---------- */
+#menu{justify-content:flex-start;align-items:stretch;padding:4% 0 4% 3.5%}
+.sheet{width:min(440px,52%);background:var(--blatt);border:1.5px solid var(--tinte);padding:18px 22px 14px;display:flex;flex-direction:column;gap:10px;overflow:auto;box-shadow:5px 5px 0 rgba(34,48,58,.22)}
+.amt{display:flex;align-items:center;gap:12px;padding-bottom:10px;border-bottom:1.5px solid var(--tinte)}
+.wappen{width:34px;height:auto;flex:none}
+.amt b{display:block;font-weight:700;font-size:15px}
+.amt span{display:block;font-size:13px;color:var(--grau)}
+.title{font-family:var(--serif);font-weight:400;font-size:clamp(32px,4.2vw,48px);line-height:1;letter-spacing:.02em;margin-top:2px}
+.claim{font-family:var(--serif);font-size:16px;color:var(--grau);margin-top:-4px}
+.akte{display:grid;grid-template-columns:1.3fr .8fr .9fr .8fr;gap:0;border-top:1px solid var(--linie);border-left:1px solid var(--linie);font-size:13px}
+.akte div{padding:6px 8px;border-right:1px solid var(--linie);border-bottom:1px solid var(--linie)}
+.akte dt{color:var(--grau);font-size:12px}
+.akte dd{font-family:var(--schreib);font-size:13.5px;font-weight:700;white-space:nowrap}
+.akte dd b{font-weight:700}
+.sect{font-family:var(--serif);font-weight:400;font-size:20px;margin-top:4px}
+#orders{border-top:1.5px solid var(--tinte)}
+.ord{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:baseline;padding:6px 2px;border-bottom:1px solid var(--linie);cursor:pointer;font-size:15px}
+.ord:hover{background:var(--papier)}
+.ord .no{font-family:var(--schreib);font-size:13px;color:var(--grau)}
+.ord .st{font-family:var(--schreib);font-size:13px;color:var(--tinte)}
+.ord small{display:block;font-size:12px;color:var(--grau)}
+.ord.locked{color:var(--grau);cursor:default}
+.ord.locked:hover{background:none}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.actions .prim{grid-column:1/-1;padding:11px 13px;font-size:15px}
+.studio{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:12px;border-top:1px solid var(--linie);font-size:12px;color:var(--grau)}
+.studio svg{width:18px;height:auto}
+.studio .sw{font-family:"Space Grotesk",var(--sans);font-weight:600;letter-spacing:.18em;color:var(--tinte);font-size:12px}
+
+/* ---------- Formulare (Antrag, Online, Mehrspieler) ---------- */
+.form{position:relative;background:var(--blatt);color:var(--tinte);width:min(460px,100%);padding:20px 24px 18px;border:1.5px solid var(--tinte);box-shadow:5px 5px 0 rgba(34,48,58,.25);font-size:14px;line-height:1.5}
+.formhead{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--grau);border-bottom:1.5px solid var(--tinte);padding-bottom:8px;margin-bottom:12px}
+.formhead span:first-child{color:var(--tinte);font-weight:700}
+.formno{font-family:var(--serif);font-size:26px;line-height:1.15;margin-bottom:10px}
+.frow{display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:baseline;border-bottom:1px solid var(--linie);padding:6px 0}
+.frow b{font-weight:500;font-size:12.5px;color:var(--grau)}
+.frow span,.frow input,.frow select{font-family:var(--schreib);font-size:15px}
+.ftext{margin:12px 0;font-family:var(--schreib);font-style:italic;font-size:15px;line-height:1.5}
+.fimg{display:flex;justify-content:center;margin:6px 0 8px}
+.fimg canvas{width:180px;height:135px;border:1px dashed var(--grau);background:var(--papier)}
+.stamp{position:absolute;right:22px;top:76px;border:3px solid var(--rot);color:var(--rot);font-family:var(--schreib);font-weight:700;letter-spacing:.12em;padding:3px 10px;transform:rotate(-12deg);opacity:.85;font-size:16px;mix-blend-mode:multiply}
+.form > button{margin-top:12px;width:100%;padding:11px}
+.form input,.form select{font:inherit;font-family:var(--schreib);background:transparent;border:0;border-bottom:1px solid var(--grau);padding:3px 0;color:var(--tinte);width:100%;outline:none}
+.form input:focus{border-bottom-color:var(--tinte)}
+
+/* ---------- Resultat: Lokalzeitung + Dorfgespräch ---------- */
+#result{gap:14px;align-items:flex-start;flex-wrap:wrap;align-content:flex-end;padding-bottom:16px}
+#rFeed{display:flex;flex-direction:column}
+.paper{background:var(--blatt);color:var(--tinte);width:min(370px,100%);padding:16px 20px 14px;border:1.5px solid var(--tinte);box-shadow:5px 5px 0 rgba(34,48,58,.25)}
+.mast{font-family:var(--serif);font-size:27px;line-height:1.1;border-bottom:3px double var(--tinte);padding-bottom:6px}
+.pdate{font-size:12px;color:var(--grau);padding:5px 0;border-bottom:1px solid var(--tinte);margin-bottom:12px}
+.paper h2{font-family:var(--serif);font-weight:400;font-size:23px;line-height:1.18;margin-bottom:10px}
+.paper p{font-size:14px;line-height:1.55;hyphens:auto}
+.pmeta{display:flex;justify-content:space-between;margin-top:14px;padding-top:8px;border-top:1px solid var(--tinte);font-size:13px;font-weight:700}
+.pmeta .st{letter-spacing:2px}
+.feed{background:var(--papier);border:1.5px solid var(--tinte);width:min(340px,100%);padding:14px 16px;display:flex;flex-direction:column;gap:0;box-shadow:5px 5px 0 rgba(34,48,58,.25)}
+.feedhead{font-family:var(--serif);font-size:20px;padding-bottom:6px;border-bottom:1.5px solid var(--tinte)}
+.post{padding:9px 0;border-bottom:1px solid var(--linie);font-size:14px;line-height:1.4;animation:pop .35s both}
+.post .who{font-weight:700;font-size:13px}
+.post .who span{font-weight:400;color:var(--grau)}
+.post .lk{font-size:12px;color:var(--grau);margin-top:2px}
+@keyframes pop{from{opacity:0}to{opacity:1}}
+.gain{font-size:13px;padding-top:10px;font-weight:500}
+.rbtns{display:flex;gap:8px;flex-wrap:wrap;width:100%;justify-content:center}
+
+/* ---------- Schreibtisch ---------- */
+#desk,#onVote,#report{flex-direction:column;gap:14px}
+#desk,#onVote{justify-content:center;background:rgba(34,48,58,.18)}
+.deskhead{display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;justify-content:center;background:var(--blatt);border:1.5px solid var(--tinte);padding:8px 16px;font-size:14px}
+.deskhead b{font-family:var(--serif);font-size:20px;font-weight:400}
+.meter{width:110px;height:6px;background:var(--linie);display:inline-block;vertical-align:middle;margin:0 6px}
+.meter i{display:block;height:100%;background:var(--tinte);transition:width .4s}
+.cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;width:100%;padding:6px 0}
+.card{position:relative;background:var(--blatt);color:var(--tinte);width:min(250px,31%);min-width:185px;padding:12px 14px 10px;box-shadow:3px 6px 0 rgba(0,0,0,.35);font-size:12.5px;line-height:1.45;display:flex;flex-direction:column;gap:6px;transition:transform .2s}
+.card:hover{transform:rotate(0deg) translateY(-4px)!important}
+.card .ch{font-size:11.5px;color:var(--grau);border-bottom:1.5px solid var(--tinte);padding-bottom:4px;display:flex;justify-content:space-between}
+.card .cf{font-family:var(--serif);font-size:17px;line-height:1.15}
+.card .cn{font-size:12px;color:var(--grau)}
+.card .ct{font-family:var(--schreib);font-style:italic;font-size:13px;flex:1}
+.card canvas{width:104px;height:78px;align-self:center;background:var(--papier);border:1px dashed var(--grau)}
+.card .tagS{font-size:11px;border:1px solid var(--tinte);padding:1px 6px;align-self:flex-start}
+.card .cb{display:flex;gap:6px}
+.card .cb button{flex:1;font-size:12.5px;padding:6px 4px;background:transparent}
+.card .cb button.yes.sel{background:var(--tanne);border-color:var(--tanne);color:#fff}
+.card .cb button.no.sel{background:var(--rot);border-color:var(--rot);color:#fff}
+.card.special{background:var(--papier)}
+.imp{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) rotate(-14deg);border:3px solid;font-family:var(--schreib);font-weight:700;letter-spacing:.12em;padding:3px 10px;font-size:18px;opacity:.88;pointer-events:none;animation:stampin .2s ease-out both;mix-blend-mode:multiply}
+.imp.yes{color:var(--tanne);border-color:var(--tanne)}
+.imp.no{color:var(--rot);border-color:var(--rot)}
+@keyframes stampin{from{transform:translate(-50%,-50%) rotate(-14deg) scale(1.7);opacity:0}to{transform:translate(-50%,-50%) rotate(-14deg) scale(1);opacity:.88}}
+.deskfoot{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+.hint{font-size:13.5px;background:var(--blatt);border:1.5px solid var(--tinte);padding:7px 12px}
+.hint.warn{color:var(--rot);border-color:var(--rot)}
+
+/* ---------- Tagesbericht ---------- */
+.report{background:var(--blatt);color:var(--tinte);width:min(580px,100%);padding:18px 22px;border:1.5px solid var(--tinte);box-shadow:5px 5px 0 rgba(34,48,58,.25);font-size:14px;line-height:1.5}
+.report h2{font-family:var(--serif);font-weight:400;font-size:26px;border-bottom:1.5px solid var(--tinte);margin-bottom:6px;padding-bottom:6px}
+.rl{display:grid;grid-template-columns:22px 1fr auto;gap:8px;padding:8px 0;border-bottom:1px solid var(--linie)}
+.rl .d{font-weight:700}
+.rl em{display:block;font-family:var(--schreib);font-size:13.5px;color:var(--grau)}
+.rl .rp{font-family:var(--schreib);font-weight:700;white-space:nowrap}
+.rsum{margin-top:12px;line-height:1.6}
+.pos{color:var(--tanne)}.neg{color:var(--rot)}
+
+/* ---------- Mehrspieler ---------- */
+#handoff{flex-direction:column;gap:10px;text-align:center;background:rgba(233,230,218,.94)}
+.hround{font-size:14px;color:var(--grau)}
+.hname{font-family:var(--serif);font-size:clamp(40px,7vw,72px);line-height:1}
+.hsub{font-size:15px}
+.hhint{font-size:13px;color:var(--grau)}
+#handoff canvas{width:120px;height:90px}
+.mpbox{width:min(780px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;text-align:center;background:var(--blatt);border:1.5px solid var(--tinte);padding:20px;box-shadow:5px 5px 0 rgba(34,48,58,.25)}
+.mpbox h2{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3.4vw,32px);line-height:1.15}
+.roomcode{font-family:var(--schreib);font-weight:700;font-size:clamp(40px,7vw,64px);letter-spacing:.22em;margin-right:-.22em;line-height:1.1;user-select:text;-webkit-user-select:text}
+.mpgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.mpc{background:var(--papier);border:1.5px solid var(--linie);padding:10px;display:flex;flex-direction:column;gap:5px;align-items:center;animation:pop .35s both}
+.mpc.win{border-color:var(--tinte);box-shadow:4px 4px 0 var(--rot)}
+.mpc img{width:100%;max-height:130px;object-fit:cover;border:1px solid var(--tinte)}
+.mpc .nm{font-weight:700}
+.mpc .pc{font-family:var(--serif);font-size:21px}
+.mpc .cm{font-size:13px;color:var(--grau);font-family:var(--schreib);font-style:italic;min-height:2.6em}
+.stand{background:var(--papier);border-top:1.5px solid var(--tinte);padding:6px 4px;font-family:var(--schreib);font-size:15px;text-align:left}
+.stand div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--linie)}
+.stand div.empty{color:var(--grau);font-style:italic}
+label.rounds{font-size:14px;display:flex;align-items:center;gap:6px}
+label.rounds select{font:inherit;padding:6px 8px;border:1.5px solid var(--tinte);border-radius:3px;background:var(--blatt)}
+@media (max-width:600px){.mpgrid{grid-template-columns:1fr}}
+
+/* ---------- Postkarte ---------- */
+#card{flex-direction:column;gap:12px;text-align:center}
+#card img{max-width:100%;max-height:72%;border:10px solid var(--blatt);box-shadow:5px 5px 0 rgba(34,48,58,.3)}
+#card p{font-size:13.5px;background:var(--blatt);padding:6px 10px;border:1.5px solid var(--tinte)}
+
+/* ---------- Online-Seitenleiste ---------- */
+#side{position:absolute;right:12px;top:12px;bottom:12px;width:240px;display:flex;flex-direction:column;gap:10px;font-size:13.5px}
+body.online #wrap{padding-right:264px}
+body.online #stage{width:min(calc(100vw - 288px),calc((100vh - 96px) * 1.5))}
+.sroom{background:var(--blatt);border:1.5px solid var(--tinte);padding:8px 12px;color:var(--grau)}
+.sroom b{font-family:var(--schreib);font-size:18px;letter-spacing:.12em;margin-left:6px;color:var(--tinte);user-select:text;-webkit-user-select:text}
+.sbox{background:var(--blatt);border:1.5px solid var(--tinte);padding:10px 12px}
+.sbox small{display:block;color:var(--grau);font-size:12px;margin-top:6px}
+.sbox .full{margin-top:8px}
+.sh{font-family:var(--serif);font-size:17px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:baseline}
+.badge{font-family:var(--sans);font-size:11px;border:1px solid var(--rot);color:var(--rot);padding:0 6px}
+.prow{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--linie)}
+.av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--tinte);font-size:13px;border:1.5px solid var(--tinte)}
+.prow .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .pn small{display:inline;margin:0 0 0 4px;font-size:11px;color:var(--grau)}
+.prow .ps{font-family:var(--schreib);font-size:13px}
+.pbar{grid-column:1/-1;height:3px;background:var(--linie)}
+.pbar i{display:block;height:100%;background:var(--tinte);transition:width .4s}
+.schat{flex:1;display:flex;flex-direction:column;min-height:120px}
+#sLog{flex:1;overflow:auto;display:flex;flex-direction:column;gap:5px;line-height:1.35;user-select:text;-webkit-user-select:text}
+#sLog .sys{color:var(--grau);font-style:italic}
+#sLog b{font-weight:700}
+#sIn{width:100%;margin-top:8px;font:inherit;background:var(--papier);color:var(--tinte);border:1.5px solid var(--tinte);border-radius:3px;padding:7px 9px;outline:none}
+@media (max-width:820px){
+  html,body{overflow:auto}
+  body.online #wrap{padding-right:12px;position:static;min-height:100%;justify-content:flex-start}
+  body.online #stage{width:calc(100vw - 24px)}
+  #side{position:static;width:100%}
+  .schat{min-height:180px;max-height:240px}
+}
+@media (max-width:700px){
+  #menu{padding:0}
+  .sheet{width:100%;box-shadow:none;border:0}
+}
+
+/* Startanimation / Ladebildschirm (Duchy Games) */
+#intro{position:fixed;inset:0;z-index:100;background:radial-gradient(ellipse at 50% 40%,#1c1f2a 0%,#15171F 55%,#0f1117 100%);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .9s ease}
+#intro.out{opacity:0;pointer-events:none}
+.istage{display:flex;flex-direction:column;align-items:center;text-align:center;transform:translateY(-2vh)}
+.icrown{width:clamp(80px,11vw,132px);height:auto;overflow:visible;filter:drop-shadow(0 0 22px rgba(200,162,81,.0));animation:iglow 2.6s 1.4s ease-in-out forwards}
+.icrown .cbody{transform-box:fill-box;transform-origin:50% 100%;opacity:0;transform:translateY(14px) scale(.9);animation:icrown .9s .15s cubic-bezier(.2,.9,.25,1.15) forwards}
+.icrown .cbase{transform-box:fill-box;transform-origin:50% 50%;transform:scaleX(0);animation:iscale .6s .55s cubic-bezier(.3,.9,.3,1) forwards}
+.icrown .cj{transform-box:fill-box;transform-origin:50% 50%;transform:scale(0);animation:ipop .45s cubic-bezier(.3,1.6,.5,1) forwards}
+.icrown .j1{animation-delay:.85s}.icrown .j2{animation-delay:1s}.icrown .j3{animation-delay:1.15s}
+.iword{margin-top:clamp(22px,4vh,40px);font-family:"Space Grotesk","Helvetica Neue",Arial,sans-serif;font-weight:600;font-size:clamp(30px,6vw,76px);color:#F3EFE6;letter-spacing:.55em;margin-right:-.55em;opacity:0;filter:blur(6px);animation:iword 1.3s .9s cubic-bezier(.2,.8,.2,1) forwards;white-space:nowrap}
+.isig{display:flex;align-items:center;gap:16px;margin-top:clamp(12px,2.2vh,22px)}
+.isig .ln{display:block;width:clamp(36px,5vw,64px);height:1px;background:#C8A251;transform:scaleX(0);animation:iscale .7s 1.7s ease-out forwards}
+.isig .ln:first-child{transform-origin:100% 50%}.isig .ln:last-child{transform-origin:0 50%}
+.isig span{font-family:"Instrument Serif",Georgia,serif;font-style:italic;font-size:clamp(18px,2.6vw,34px);color:#C8A251;opacity:0;animation:ifade .9s 1.9s forwards}
+.iload{margin-top:clamp(36px,7vh,64px);display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;animation:ifade .6s 1.2s forwards}
+.ibar{width:clamp(160px,22vw,240px);height:2px;background:rgba(243,239,230,.12);border-radius:2px;overflow:hidden}
+.ibar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#9c7c38,#C8A251,#f0d690);transition:width .35s ease}
+.itxt{font-family:"Helvetica Neue",Arial,sans-serif;font-size:12px;letter-spacing:.12em;color:#F3EFE6;opacity:.45;min-height:1.2em}
+.iskip{position:absolute;bottom:22px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#F3EFE6;opacity:0;animation:iskip .8s 1.4s forwards}
+@keyframes icrown{to{opacity:1;transform:none}}
+@keyframes iscale{to{transform:scaleX(1)}}
+@keyframes ipop{to{transform:scale(1)}}
+@keyframes iword{to{opacity:1;filter:blur(0);letter-spacing:.2em;margin-right:-.2em}}
+@keyframes ifade{to{opacity:1}}
+@keyframes iskip{to{opacity:.3}}
+@keyframes iglow{50%{filter:drop-shadow(0 0 26px rgba(200,162,81,.45))}to{filter:drop-shadow(0 0 14px rgba(200,162,81,.18))}}
+@media (prefers-reduced-motion:reduce){#intro *{animation-duration:.01s!important;animation-delay:0s!important}}
+
+
+/* ---------- 3D-Welt: Aufgabe, Hinweise, Namensschilder ---------- */
+#hud{position:absolute;inset:0;pointer-events:none}
+#hud .task{position:absolute;left:14px;top:14px;max-width:min(420px,60%);background:var(--blatt);border:1.5px solid var(--tinte);padding:7px 11px 8px;font-size:14px;line-height:1.35;box-shadow:3px 3px 0 rgba(34,48,58,.25);transform:rotate(-.4deg)}
+#hud .task small{display:block;font-size:12px;color:var(--grau)}
+#hud .task small:empty{display:none}
+#hud.flash .task{border-color:var(--rot);color:var(--rot)}
+#hud .hbtns{position:absolute;right:14px;top:14px;display:flex;gap:6px;pointer-events:auto}
+#hud .keys{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);font-size:12px;color:var(--tinte);background:rgba(243,241,234,.85);padding:3px 9px;border:1px solid var(--linie);white-space:nowrap}
+body.touch #hud .keys{display:none}
+#tags{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.tag{position:absolute;transform:translate(-50%,-100%);background:var(--blatt);border:1.5px solid var(--tinte);border-bottom-width:4px;padding:1px 7px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.prompt{z-index:2}
+.lang{margin-left:auto;display:flex;border:1.5px solid var(--tinte);border-radius:3px;overflow:hidden;align-self:flex-start}
+.lang button{border:0;border-radius:0;padding:4px 8px;font-size:12px;background:transparent}
+.lang button.on{background:var(--tinte);color:var(--blatt)}
+button.small{padding:3px 8px;font-size:12px;margin-left:auto}
+#oMsg{margin-top:8px;min-height:1.4em;font-weight:700}
+#oMsg.bad{color:var(--rot)}
+input.code{text-transform:uppercase;letter-spacing:.2em}
+.overlay.side{justify-content:flex-start;align-items:flex-start;pointer-events:none;padding:64px 14px 14px}
+.overlay.side .mpbox{pointer-events:auto;width:min(300px,100%);padding:14px;gap:8px}
+.overlay.side .roomcode{font-size:34px}
+/* Joystick und Tasten am Handy */
+#touch{position:absolute;inset:0;pointer-events:none}
+#joy{position:absolute;left:22px;bottom:22px;width:118px;height:118px;border-radius:50%;border:2px solid var(--tinte);background:rgba(243,241,234,.55);pointer-events:auto;touch-action:none}
+#joy i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:var(--tinte)}
+#tJump,#tUse{position:absolute;pointer-events:auto;touch-action:none}
+#tJump{right:24px;bottom:24px;width:70px;height:70px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;background:var(--rot);border-color:var(--rot);color:var(--blatt)}
+#tJump svg{width:30px;height:30px}
+#tUse{right:104px;bottom:34px;padding:12px 14px;font-weight:700}
+body.mode2d #tags,body.mode2d #prompt,body.mode2d #hud{display:none}
+@media (max-height:480px){
+  #wrap{padding:6px;gap:6px}
+  #stage{width:min(calc(100vw - 12px),calc((100vh - 60px) * 1.5))}
+  #hud .task{font-size:12px;padding:5px 8px;max-width:55%}
+  #hud .hbtns button{padding:5px 9px;font-size:12px}
+  #joy{width:96px;height:96px;left:12px;bottom:12px}
+  #tJump{width:58px;height:58px;right:12px;bottom:14px}
+  #tUse{right:80px;bottom:20px;padding:9px 11px}
+  #bar button{padding:6px 9px;font-size:12.5px}
+}

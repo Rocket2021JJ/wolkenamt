@@ -2,7 +2,7 @@
 import { add } from './i18n.js';
 
 add({
-  'doc.title': ['WOLKENAMT – Amt für Himmelsgestaltung', 'WOLKENAMT – Office for Sky Design'],
+  'doc.title': ['HOCHDRUCK – Macht über Wolkenwil', 'HIGH PRESSURE – Power over Wolkenwil'],
   'intro.skip': ['Klicken zum Überspringen', 'Click to skip'],
   'intro.l1': ['Akten werden sortiert …', 'Sorting files …'],
   'intro.l2': ['Stempel werden geölt …', 'Oiling the stamps …'],
@@ -22,7 +22,8 @@ add({
 
   'amt.gemeinde': ['Gemeinde Wolkenwil', 'Municipality of Wolkenwil'],
   'amt.name': ['Amt für Himmelsgestaltung', 'Office for Sky Design'],
-  'claim': ['Sie formen, was die Leute sehen.', 'You shape what people see.'],
+  'claim': ['Wer den Himmel hat, hat das Dorf.', 'Whoever owns the sky owns the village.'],
+  'game.title': ['HOCHDRUCK', 'HIGH PRESSURE'],
   'akte.rank': ['Rang', 'Rank'],
   'akte.stars': ['Sterne', 'Stars'],
   'akte.sight': ['Sichtungen', 'Sightings'],

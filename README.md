@@ -1,8 +1,10 @@
 <p align="center"><img src="img/duchy-logo-rund.png" width="110" alt="Duchy Games"></p>
 
-# WOLKENAMT – Amt für Himmelsgestaltung
+# HOCHDRUCK – Macht über Wolkenwil
 
-> *Sie formen, was die Leute sehen.*
+> *Wer den Himmel hat, hat das Dorf.*
+
+(früherer Arbeitstitel: WOLKENAMT)
 
 Du arbeitest beim **Wolkenamt** der Gemeinde Wolkenwil. Als kleines, wackeliges **Beamtli** mit Amtsmütze läufst du durch ein uraltes Amtsbüro, stempelst am Pult die Anträge aus dem Dorf, kurbelst auf dem Dach die Wolke hoch und schneidest sie in Form. Danach stehst du auf dem Dorfplatz, die Leute zücken die Handys, und der *Wolkenwiler Anzeiger* berichtet.
 

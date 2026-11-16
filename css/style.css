@@ -288,3 +288,26 @@ body.mode2d #tags,body.mode2d #prompt,body.mode2d #hud{display:none}
   #tUse{right:80px;bottom:20px;padding:9px 11px}
   #bar button{padding:6px 9px;font-size:12.5px}
 }
+
+/* ---------- v0.4.1: Spielfeld füllt das ganze Fenster ---------- */
+html,body{overflow:hidden}
+#wrap{position:fixed;inset:0;padding:0;display:block}
+#stage,body.online #stage{position:absolute;inset:0;width:auto;height:auto;aspect-ratio:auto;border:0;border-radius:0;background:var(--tinte)}
+body.online #stage{right:264px}
+/* 2D-Schneideansicht bleibt 3:2, mittig, mit Platz für die Werkzeugleiste */
+canvas#c{inset:auto;left:50%;top:calc(50% - 28px);transform:translate(-50%,-50%);width:min(100%,calc((100vh - 72px) * 1.5));height:auto;aspect-ratio:3/2}
+#bar{position:fixed;left:0;right:0;bottom:10px;z-index:5}
+body.online #bar{right:264px}
+#side{position:fixed;right:12px;top:12px;bottom:12px}
+@media (max-width:820px){
+  body.online #stage,body.online #bar{right:0}
+  body.online #stage{bottom:250px}
+  #side{position:fixed;left:8px;right:8px;top:auto;bottom:8px;width:auto;height:234px;flex-direction:row}
+  #side .sbox{flex:1;overflow:auto}
+  #side .sroom{display:none}
+}
+@media (max-height:480px){
+  #stage,body.online #stage{width:auto}
+  canvas#c{width:min(100%,calc((100vh - 52px) * 1.5));top:calc(50% - 22px)}
+  #bar{bottom:4px}
+}

@@ -8,6 +8,8 @@ import './texts.js';
 import { ORDERS, NO, NOREP, SPECIALS, DAYS, FREE, AUTHORS, HANDLES, GENERIC, FREE_POSTS, RANKS, MP_TALK, MP_FINAL } from './data.js';
 import * as cutM from './cut2d.js';
 import * as A from './audio.js';
+import * as POW from './power.js';
+import { NAMES } from './data.js';
 import { net, netCreate, netJoin, netReset, netAvailable, hostStart, hostNext, setRounds, toHost, pname, LOCALTEST, MP_POINTS } from './net.js';
 
 const { cut, pad, nameOf } = cutM;
@@ -20,7 +22,8 @@ const stars = n => '★'.repeat(n) + '☆'.repeat(3 - n);
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
 // ---------------- Speicher ----------------
-let save = { stars: [], sight: 0, rep: 50, day: 0 };
+let save = { stars: [], sight: 0, rep: 50, day: 0, power: null };
+Object.assign(NAMES, { 'Hotel Bergblick': ['Hotel Bergblick', 'Hotel Bergblick'], 'Redaktorin Imboden': ['Redaktorin Imboden', 'Editor Imboden'] });
 try { const s = JSON.parse(localStorage.getItem('wolkenamt')); if (s && Array.isArray(s.stars)) save = Object.assign(save, s); } catch (e) {}
 const persist = () => { try { localStorage.setItem('wolkenamt', JSON.stringify(save)); } catch (e) {} };
 const rankOf = s => L(RANKS.filter(r => s >= r[0]).pop()[1]);
@@ -33,6 +36,7 @@ world.bake([world.player.b.root, ...world.skyClouds, office.clock.h, office.cloc
 world.spawnVillagers(11);
 world.sfx = A.sfx;
 window.__world = world;
+window.__dbg = { save: () => save };
 const D = world.deskPos, PLAT = office.platform;
 const SPOT = {
   door: [0, 0, 3.4, Math.PI],
@@ -47,7 +51,7 @@ let flow = 'single';   // single | local | online
 let run = null;        // Arbeitstag oder freie Wolke
 let mp = null;         // lokal zu dritt
 let taskKey = null, taskVars = null;
-const OVER = ['menu', 'brief', 'result', 'desk', 'report', 'mpSetup', 'handoff', 'mpRes', 'onEntry', 'onLobby', 'onVote', 'card'];
+const OVER = ['party', 'morning', 'menu', 'brief', 'result', 'desk', 'report', 'mpSetup', 'handoff', 'mpRes', 'onEntry', 'onLobby', 'onVote', 'card'];
 const only = (...ids) => OVER.forEach(x => $(x).classList.toggle('hidden', !ids.includes(x)));
 const touchMode = matchMedia('(pointer: coarse)').matches || /[?&]touch/.test(location.search);
 if (touchMode) document.body.classList.add('touch');
@@ -63,7 +67,7 @@ function enterWorld(spot, task, vars) {
   world.orbit(false); world.release(); world.enabled = true;
   if (spot) world.teleport(...SPOT[spot]);
   mode = 'world'; only(flow === 'online' && net.phase === 'lobby' ? 'onLobby' : null);
-  hud(true); setTask(task, vars);
+  hud(true); setTask(task, vars); updateAkte();
   world.resize();
 }
 // Kamera aufs Pult
@@ -125,16 +129,93 @@ function showMenu() {
   });
   $('lDe').classList.toggle('on', lang === 'de'); $('lEn').classList.toggle('on', lang === 'en');
   soundLabels();
+  $('mReset').classList.toggle('hidden', !save.power);
+  if (save.power) $('mReset').textContent = t('menu.newcampaign', { p: POW.PARTIES[save.power.party].short });
 }
+$('mReset').onclick = () => { save.power = null; save.day = 0; save.rep = 50; persist(); openParty(() => showMenu()); };
 
 // ---------------- Arbeitstag (allein) ----------------
 const isSpecial = c => typeof c === 'string';
 function startDay(d) {
   A.ensureAudio();
+  if (!save.power) return openParty(() => startDay(d));
   flow = 'single';
-  run = { kind: 'day', d, dec: {}, queue: [], qi: -1, res: {}, stamped: false };
-  enterWorld('door', 'task.desk');
-  setDay(t('hud.day', { day: L(DAYS[d].name), n: d + 1 }));
+  const P = save.power;
+  run = { kind: 'day', d, dec: {}, queue: [], qi: -1, res: {}, stamped: false, before: { polls: POW.polls(P), suspicion: P.suspicion, cash: P.cash, influence: P.influence } };
+  const go = () => { enterWorld('door', 'task.desk'); setDay(t('hud.day', { day: L(DAYS[d].name), n: d + 1 })); updateAkte(); };
+  const ev = POW.due(P, d); persist();
+  if (ev.length) showMorning(ev, d, go); else go();
+}
+
+// ---------------- Etappe 1: Parteiwahl, Morgenpost, Akte ----------------
+function openParty(done) {
+  mode = 'party'; only('party'); world.orbit(true);
+  const wrap = $('pCards'); wrap.innerHTML = '';
+  POW.PLAYABLE.forEach(id => {
+    const pa = POW.PARTIES[id], el = document.createElement('button'); el.className = 'pcard'; el.style.borderTopColor = pa.color;
+    const base = Object.entries(pa.aff).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([g]) => L(POW.GROUPS[g].name)).join(', ');
+    const mk = (tag, txt) => { const e = document.createElement(tag); e.textContent = txt; el.appendChild(e); };
+    mk('b', L(pa.name)); mk('em', '«' + L(pa.slogan) + '»'); mk('small', t('party.base', { g: base }));
+    el.onclick = () => { save.power = POW.freshPower(id); persist(); A.stampSound(); done(); };
+    wrap.appendChild(el);
+  });
+}
+$('pBack').onclick = () => showMenu();
+const fmtCash = n => 'CHF ' + num(Math.abs(n));
+function fxChips(ch) {
+  const box = document.createElement('div'); box.className = 'lfx';
+  ch.forEach(c => {
+    const e = document.createElement('span'); let txt, good = c.d > 0;
+    if (c.k === 'trust') txt = `${L(POW.GROUPS[c.g].name)} ${c.d > 0 ? '+' : ''}${c.d}`;
+    else if (c.k === 'mod') { txt = `${POW.PARTIES[c.p].short} ${c.d > 0 ? '▲' : '▼'}`; good = (c.p === save.power.party) === c.d > 0; }
+    else if (c.k === 'influence') txt = `${t('akte.inf')} ${c.d > 0 ? '+' : ''}${c.d}`;
+    else if (c.k === 'cash') txt = `${t('akte.cash')} ${c.d > 0 ? '+' : '−'}${fmtCash(c.d)}`;
+    else if (c.k === 'suspicion') { txt = `${t('akte.susp')} ${c.d > 0 ? '+' : ''}${c.d}`; good = c.d < 0; }
+    e.className = 'fx ' + (good ? 'pos' : 'neg'); e.textContent = txt; box.appendChild(e);
+  });
+  return box;
+}
+function showMorning(list, d, done) {
+  mode = 'morning'; world.orbit(true); hud(false);
+  const P = save.power; let i = 0;
+  const next = () => {
+    if (i >= list.length) { persist(); return done(); }
+    const ev = POW.EVENTS[list[i++]];
+    only('morning');
+    $('mlDay').textContent = t('mail.day', { day: L(DAYS[d].name) });
+    $('mlFrom').textContent = nameOf(ev.from); $('mlText').textContent = L(ev.text);
+    $('mlRes').classList.add('hidden'); $('mlFx').replaceWith(Object.assign(document.createElement('div'), { id: 'mlFx', className: 'lfx' }));
+    const btns = $('mlBtns'); btns.innerHTML = '';
+    const cont = () => { btns.innerHTML = ''; const b = document.createElement('button'); b.className = 'prim'; b.textContent = t('btn.next'); b.onclick = next; btns.appendChild(b); updateAkte(); };
+    if (ev.choices) ev.choices.forEach(([label, fx, res]) => {
+      const b = document.createElement('button'); b.textContent = L(label);
+      if (fx.cash < 0 && P.cash < -fx.cash) { b.disabled = true; b.title = t('mail.nocash'); }
+      b.onclick = () => {
+        const ch = POW.apply(P, fx); P.history.push({ day: d, ev: list[i - 1], pick: L(label) });
+        $('mlRes').textContent = L(res); $('mlRes').classList.remove('hidden'); $('mlFx').replaceWith(Object.assign(fxChips(ch), { id: 'mlFx' }));
+        A.stampSound(); cont();
+      };
+      btns.appendChild(b);
+    });
+    else { const ch = POW.apply(P, ev.fx); $('mlFx').replaceWith(Object.assign(fxChips(ch), { id: 'mlFx' })); cont(); }
+  };
+  next();
+}
+function updateAkte() {
+  const P = save.power, box = $('akte');
+  if (!P || flow !== 'single') { box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  $('aParty').textContent = POW.PARTIES[P.party].short;
+  const pl = POW.polls(P), wrap = $('aPolls'); wrap.innerHTML = '';
+  Object.keys(POW.PARTIES).sort((a, b) => pl[b] - pl[a]).forEach(p => {
+    const r = document.createElement('div'); r.className = 'prow2' + (p === P.party ? ' me' : '');
+    const n = document.createElement('span'); n.textContent = POW.PARTIES[p].short;
+    const bar = document.createElement('span'); bar.className = 'bar'; const f = document.createElement('i'); f.style.width = Math.min(100, pl[p] * 2) + '%'; f.style.background = POW.PARTIES[p].color; bar.appendChild(f);
+    const v = document.createElement('b'); v.textContent = pl[p].toFixed(1) + ' %';
+    r.append(n, bar, v); wrap.appendChild(r);
+  });
+  $('aSusp').style.width = P.suspicion + '%'; $('aSuspN').textContent = P.suspicion;
+  $('aInf').textContent = P.influence; $('aCash').textContent = fmtCash(P.cash);
 }
 function startFree() {
   A.ensureAudio();
@@ -174,6 +255,7 @@ function openDesk() {
     a.textContent = S ? t('card.special') : t('card.order'); b.textContent = S ? '§ 7b' : t('card.no', { n: pad(c + 1) }); head.append(a, b);
     mk('cf', nameOf(o.from));
     mk('cn', S ? L(o.title) : t('card.shape', { s: L(o.nom) }));
+    { const pol = S ? POW.SPECIAL_POL[c] : POW.ORDER_POL[c]; if (pol && pol.groups.length) mk('cg', t('card.affects', { g: pol.groups.map(g => L(POW.GROUPS[g].name)).join(', ') })); }
     if (S) mk('tagS', t('card.slot'));
     else { const cv = document.createElement('canvas'); cv.width = 200; cv.height = 150; cutM.drawOrder(cv, c); el.appendChild(cv); }
     mk('ct', L(o.text));
@@ -328,6 +410,7 @@ $('rMenu').onclick = () => showMenu(); $('pMenu').onclick = () => showMenu();
 function showReport() {
   mode = 'report'; world.enabled = false; hud(false);
   const Dy = DAYS[run.d], list = $('pList'); list.innerHTML = '';
+  document.querySelectorAll('#report .powrep').forEach(e => e.remove());
   let delta = 0, bonus = 0;
   const line = (ok, title, sub, rep) => {
     const r = document.createElement('div'); r.className = 'rl';
@@ -371,9 +454,40 @@ function showReport() {
     $('pNext').textContent = last ? t('btn.central') : t('rep.next', { day: L(DAYS[d + 1].name) });
     $('pNext').onclick = last ? () => showMenu() : () => startDay(d + 1);
   }
+  powerReport(Dy, sum);
   persist();
   only('report');
   A.chime(delta >= 0 ? [523, 659, 784] : [392, 330], 0.1);
+}
+
+// Machtbericht am Tagesende: Wirkung aller Entscheide, verzögerte Folgen einplanen
+function powerReport(Dy, sum) {
+  const P = save.power; if (!P || !run || run.powDone) return; run.powDone = true;
+  const all = [];
+  Dy.cards.forEach(c => {
+    const S = isSpecial(c), pol = S ? POW.SPECIAL_POL[c] : POW.ORDER_POL[c]; if (!pol) return;
+    const yes = run.dec[String(c)] === 'yes', st = S ? 3 : (run.res[c] ?? 0);
+    all.push(...POW.apply(P, yes ? pol.yes : pol.no, yes && !S ? POW.STAR_SCALE[st] : 1));
+    (pol.later || []).forEach(([k, id, cond]) => { if (cond(st, yes)) POW.schedule(P, run.d + k, id); });
+  });
+  const box = document.createElement('div'); box.className = 'powrep';
+  const h = document.createElement('h3'); h.textContent = t('pow.title', { p: L(POW.PARTIES[P.party].name) }); box.appendChild(h);
+  const now = POW.polls(P), before = run.before.polls;
+  Object.keys(POW.PARTIES).sort((a, b) => now[b] - now[a]).forEach(p => {
+    const r = document.createElement('div'); r.className = 'prow2' + (p === P.party ? ' me' : '');
+    const n = document.createElement('span'); n.textContent = L(POW.PARTIES[p].name);
+    const bar = document.createElement('span'); bar.className = 'bar'; const f = document.createElement('i'); f.style.width = Math.min(100, now[p] * 2) + '%'; f.style.background = POW.PARTIES[p].color; bar.appendChild(f);
+    const d = now[p] - before[p], v = document.createElement('b'); v.textContent = `${now[p].toFixed(1)} % (${d >= 0 ? '+' : ''}${d.toFixed(1)})`;
+    r.append(n, bar, v); box.appendChild(r);
+  });
+  if (all.length) box.appendChild(fxChips(all));
+  const lead = Object.keys(now).sort((a, b) => now[b] - now[a])[0];
+  const q = P.queue.length;
+  const note = document.createElement('p'); note.className = 'hsub';
+  note.textContent = (lead === P.party ? t('pow.lead') : t('pow.behind', { p: L(POW.PARTIES[lead].name) })) + (q ? ' ' + t('pow.queue', { n: q }) : '') + (P.suspicion >= 70 ? ' ' + t('pow.danger') : '');
+  box.appendChild(note);
+  sum.after(box);
+  $('report').addEventListener('transitionend', () => {}, { once: true });
 }
 
 // ---------------- Lokal zu dritt (ein Gerät) ----------------

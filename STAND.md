@@ -20,6 +20,7 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
 | 8 | Kapitel 2 «Die Untersuchung» | fertig (Version 1) |
 | 9 | Kapitel 3 «Der Wahlkampf» mit Gemeindewahl und 7 Enden | fertig (Version 1) |
 | 10 | Sandbox «Jahre im Amt» | fertig (Version 1) |
+| 11 | Ratssaal im Gemeindehaus begehbar | fertig |
 
 ## Notizen
 
@@ -77,3 +78,8 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   Morgenpost mit verzögerten Folgen, bei hohem Verdacht Verhöre von Wyss, in Wahljahren
   Wahlkampftermine. Jedes Jahr eine Abstimmung (wechselt zwischen Seilbahn, Aufsicht, Wolkensteuer),
   alle 2 Jahre Gemeindewahl. Wer regiert, verliert langsam an Glanz. Ab Verdacht 95 ist die Sandbox vorbei.
+- Etappe 11: Das Gemeindehaus ist jetzt begehbar (E an der Türe). Im Ratssaal: Ratstisch mit Hubers
+  hohem roten Stuhl, Wappen, Zuschauerbänke, Rednerpult (Abstimmung beeinflussen), Wahlurne (nachzählen
+  lassen, Zettel dazulegen, Gemeindeschreiber bestechen; kann am nächsten Tag auffliegen) und Hubers
+  Schreibtisch (einmal pro Kapitel durchsuchen: Druckmittel finden oder von Huber erwischt werden; Nebel
+  hilft). Raus geht es durch die Türe. Code: js/hall.js

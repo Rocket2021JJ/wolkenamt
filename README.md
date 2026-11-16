@@ -23,7 +23,7 @@ Seit v0.5 geht es nicht mehr nur um schöne Wolken. Du arbeitest für eine **Par
 3. **Telefon, Archiv, Aktenvernichter:** Dossiers über Huber, Gerber, Moser und Wyss sammeln, Druckmittel aufbauen, Beweise verschwinden lassen.
 4. **Wetterpult auf dem Dach:** Regen, Nebel, Föhn oder Sturm für einen Dorfteil bestellen. Alles hat Nebenwirkungen.
 5. **Wolke schneiden** und freigeben, danach der Dorfplatz.
-6. **Gemeindehaus und Bäckerei:** Abstimmungen (z. B. Seilbahn) beeinflussen, Gerüchte streuen.
+6. **Gemeindehaus und Bäckerei:** Im Ratssaal am Rednerpult Abstimmungen beeinflussen, an der Urne nachhelfen, Hubers Schreibtisch durchsuchen. Am Marktstand Gerüchte streuen.
 7. **Abendbericht:** Umfrage nach Wählergruppen, Einfluss, Kasse und **Verdacht**. Zu viel Verdacht führt zur Untersuchung.
 
 Die **Akte** oben rechts zeigt jederzeit Partei, Umfrage und Verdacht.
@@ -142,6 +142,7 @@ wolkenamt/
 ├── js/
 │   ├── main.js         # Ablauf: Menü, Kampagne, Pult, Plattform, Dorfplatz, Mehrspieler
 │   ├── power.js        # Macht-Modell: Parteien, Wählergruppen, Umfragen, Ereignisse, Verdacht
+│   ├── hall.js         # Ratssaal im Gemeindehaus (begehbar)
 │   ├── forgery.js      # Unterschriften und Stempel (echt und gefälscht)
 │   ├── world3d.js      # 3D-Welt: Amtshaus, Dorf, Physik, Kamera, Dorfleute
 │   ├── beamtli.js      # Spielfigur mit Feder-Animation
@@ -180,7 +181,7 @@ Fortschritt, Ansehen, Sichtungen, Sprache und Ton werden im `localStorage` des B
 - [x] Abendpartie mit Sabotage und Gemeindewahl
 - [x] Kapitel 2 und 3 (Untersuchung, Wahlkampf, 7 Enden)
 - [x] Sandbox über mehrere Jahre
-- [ ] Gemeindehaus von innen begehbar
+- [x] Gemeindehaus von innen begehbar (Ratssaal mit Urne und Hubers Schreibtisch)
 - [ ] Sprachkanal (Optik ist schon drin, Funktion folgt)
 - [ ] Steam-Version
 

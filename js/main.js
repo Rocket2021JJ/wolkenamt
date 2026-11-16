@@ -1,4 +1,5 @@
 // WOLKENAMT v0.4 – Ablaufsteuerung: 3D-Welt, Schreibtisch, Wolkenplattform, Dorfplatz, Mehrspieler
+import { buildHall, HALL_SPOT } from './hall.js';
 import * as THREE from 'three';
 import { World, ROOM } from './world3d.js';
 import { furnish } from './office.js';
@@ -36,7 +37,8 @@ const totalStars = () => save.stars.reduce((a, b) => a + (b || 0), 0);
 // ---------------- Welt ----------------
 const world = new World($('c3d'));
 const office = world.office = furnish(world);
-world.bake([office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank]);
+buildHall(world, office);
+world.bake([office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank, office.hall]);
 world.spawnVillagers(11);
 world.sfx = A.sfx;
 window.__world = world;
@@ -72,7 +74,7 @@ function enterWorld(spot, task, vars) {
   if (spot) world.teleport(...SPOT[spot]);
   mode = 'world'; only(flow === 'online' && net.phase === 'lobby' ? 'onLobby' : null);
   hud(true); setTask(task, vars); updateAkte();
-  world.setWeather(flow === 'single' && run && run.wx ? run.wx : null);
+  world.setWeather(flow === 'single' && run && run.wx && !(office.hall && office.hall.visible) ? run.wx : null);
   world.resize();
 }
 // Kamera aufs Pult
@@ -270,7 +272,11 @@ world.onUse = (id) => {
   if (id === 'archive') return openArchive();
   if (id === 'shredder') return useShredder();
   if (id === 'weather') return openWeather();
-  if (id === 'townhall') return openTownhall();
+  if (id === 'townhall') return enterHall();
+  if (id === 'hallexit') return leaveHall();
+  if (id === 'podium') return openTownhall();
+  if (id === 'urn') return openUrn();
+  if (id === 'huberdesk') return searchHuber();
   if (id === 'bakery') return openBakery();
   if (id === 'desk') {
     if (flow === 'single' && run && run.kind === 'day' && !run.stamped) { A.sfx('land'); goDesk(openDesk); }
@@ -614,6 +620,66 @@ function openWeather() {
   });
 }
 $('wxClose').onclick = () => enterWorld(null, taskKey, taskVars);
+
+// ---------------- Ratssaal (begehbar) ----------------
+function enterHall() {
+  if (flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.townClosed'));
+  if (taskKey !== 'task.hall') run.hallPrev = [taskKey, taskVars];
+  A.sfx('whoosh'); world.teleport(...HALL_SPOT); world.camYawT = 0.28; world.setWeather(null);
+  setTask('task.hall');
+}
+function leaveHall() {
+  A.sfx('whoosh'); world.teleport(-8.2, 0, 13, Math.PI / 2 + Math.PI); world.setWeather(run && run.wx ? run.wx : null);
+  const pv = run && run.hallPrev; if (taskKey === 'task.hall') setTask(pv ? pv[0] : 'task.desk', pv ? pv[1] : undefined);
+}
+// Wahlurne: nachzählen lassen oder nachhelfen
+function openUrn() {
+  const P = save.power; if (!P || !run || run.kind !== 'day') return;
+  const V = POW.VOTES[vid()]; P.vote = P.vote || {}; const st = P.vote[vid()] = P.vote[vid()] || { shift: 0, done: {} };
+  const render = () => {
+    const fc = POW.voteForecast(P, vid()), par = V.stance[P.party];
+    const box = townPanel(t('urn.kicker'), L(V.q), t('urn.info', { y: fc, s: t(par === 'yes' ? 'town.yes' : 'town.no') }));
+    const key = 'urn' + run.d, used = st.done[key];
+    const want = par === 'yes' ? 1 : -1;
+    [['urn.count', { influence: -2 }, 3, P => P.influence >= 2, 0, 'urn.countRes'],
+     ['urn.stuff', { suspicion: 9 }, 8, () => true, 0.45, 'urn.stuffRes'],
+     ['urn.swap', { cash: -1500, suspicion: 5 }, 6, P => P.cash >= 1500, 0.2, 'urn.swapRes']].forEach(([lab, fx, sh, need, risk, res]) => {
+      const el = document.createElement('div'); el.className = 'dos';
+      const b = document.createElement('b'); b.textContent = t(lab); el.appendChild(b);
+      const n = document.createElement('small'); n.textContent = t(lab + 'Info'); el.appendChild(n);
+      const btn = document.createElement('button'); btn.textContent = used ? t('town.doneToday') : t('urn.do');
+      btn.disabled = !!used || !need(P) || firstDay();
+      btn.onclick = () => {
+        POW.apply(P, fx); st.shift += want * sh; st.done[key] = true;
+        if (risk && !run.fog && Math.random() < risk) POW.schedule(P, run.d + 1, 'urn_caught');
+        P.history.push({ day: run.d, ev: lab }); A.stampSound(); persist(); updateAkte(); toast(t(res)); render();
+      };
+      el.appendChild(btn); box.appendChild(el);
+    });
+  };
+  render();
+}
+// Hubers Schreibtisch durchsuchen (einmal pro Kapitel)
+function searchHuber() {
+  const P = save.power; if (!P || !run || run.kind !== 'day') return;
+  const tag = 'huberdesk' + (inSB() ? save.sb.year : chOf(run.d));
+  P.flags = P.flags || {};
+  if (P.flags[tag]) return toast(t('hd.already'));
+  const box = townPanel(t('hd.kicker'), t('hd.title'), t('hd.info'));
+  const el = document.createElement('div'); el.className = 'dos';
+  const go = document.createElement('button'); go.textContent = t('hd.go');
+  go.onclick = () => {
+    P.flags[tag] = true;
+    const caught = !run.fog && Math.random() < 0.35;
+    const fx = caught ? { suspicion: 12, mod: { _own: -0.08 } } : (P.lev && P.lev.huber ? { influence: 2, mod: { huber: -0.06 } } : { lev: 'huber' });
+    const ch = POW.apply(P, fx);
+    box.innerHTML = '';
+    const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t(caught ? 'hd.caught' : P.lev && P.lev.huber && !ch.some(c => c.k === 'lev') ? 'hd.more' : 'hd.found'); box.appendChild(p);
+    box.appendChild(fxChips(ch));
+    P.history.push({ day: run.d, ev: 'huberdesk' }); A.stampSound(); persist(); updateAkte();
+  };
+  el.appendChild(go); box.appendChild(el);
+}
 
 // ---------------- Etappe 4: Gemeindehaus, Gerüchte ----------------
 const vid = () => (run && inSB() ? POW.SB_VOTES[(save.sb.year - 1) % 3] : run ? ['seilbahn', 'aufsicht', 'wolkensteuer'][chOf(run.d) - 1] : 'seilbahn');

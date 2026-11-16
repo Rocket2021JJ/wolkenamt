@@ -60,8 +60,10 @@ export function apply(P, fx, scale = 1) {
   if (fx.trust) for (const g in fx.trust) { const d = Math.round(fx.trust[g] * (fx.trust[g] > 0 ? scale : 1)); if (!d) continue; P.trust[g] = clamp(P.trust[g] + d, 0, 100); ch.push({ k: 'trust', g, d }); }
   if (fx.mod) for (const k in fx.mod) { const p = k === '_own' ? P.party : k; P.mod[p] = (P.mod[p] || 0) + fx.mod[k]; ch.push({ k: 'mod', p, d: fx.mod[k] }); }
   if (fx.influence) { P.influence = Math.max(0, P.influence + fx.influence); ch.push({ k: 'influence', d: fx.influence }); }
+  if (fx.cashAll && P.cash) { ch.push({ k: 'cash', d: -P.cash }); P.cash = 0; }
   if (fx.cash) { P.cash = Math.max(0, P.cash + fx.cash); ch.push({ k: 'cash', d: fx.cash }); }
   if (fx.suspicion) { P.suspicion = clamp(P.suspicion + fx.suspicion, 0, 100); ch.push({ k: 'suspicion', d: fx.suspicion }); }
+  if (fx.inv) { P.inv = clamp((P.inv || 0) + fx.inv, 0, 100); ch.push({ k: 'inv', d: fx.inv }); }
   if (fx.flag) P.flags[fx.flag] = true;
   if (fx.lev) { P.lev = P.lev || {}; P.lev[fx.lev] = true; ch.push({ k: 'lev', p: fx.lev, d: 1 }); }
   if (fx.unlev && P.lev) { delete P.lev[fx.unlev]; ch.push({ k: 'lev', p: fx.unlev, d: -1 }); }
@@ -97,6 +99,10 @@ export const SPECIAL_POL = {
   abschaffung: { groups: ['junge'], yes: { mod: { pkh: 0.3 }, trust: { junge: 4 } }, no: {}, later: [] },
   schule: { groups: ['senioren', 'vereine'], yes: { trust: { senioren: 4, vereine: 4, junge: 3 } }, no: { trust: { vereine: -4 } }, later: [] },
   umschlag: { groups: [], yes: { cash: 5000, suspicion: 22, influence: 2 }, no: { trust: { senioren: 3, kirche: 3 } }, later: [[1, 'umschlag_journalistin', (s, yes) => yes]] },
+  akten: { groups: [], yes: { inv: -8, suspicion: 4 }, no: { inv: 7, influence: 1 }, later: [] },
+  sondersitzung: { groups: ['vereine', 'senioren'], yes: { trust: { vereine: 4, senioren: 3 }, inv: 3 }, no: { trust: { vereine: -3 } }, later: [] },
+  leserbrief: { groups: ['senioren', 'kirche'], yes: { trust: { senioren: 3, kirche: 3 }, mod: { _own: 0.05 } }, no: { trust: { junge: 2 } }, later: [] },
+  zeugin: { groups: [], yes: { inv: -10, cash: -1500 }, no: { inv: 4, trust: { kirche: 2 } }, later: [] },
 };
 
 // ---------------- Morgenpost: verzögerte Folgen ----------------
@@ -284,6 +290,11 @@ export const VOTES = {
     stance: { wvb: 'no', fww: 'yes', pkh: 'no', huber: 'yes' },
     yes: { fx: { trust: { gewerbe: 4, bauern: -4 } }, text: ['Die Seilbahn kommt. Der Gipfel wird verkauft, die Bauern verlieren eine Weide.', 'The cable car is coming. The summit is sold off, the farmers lose a pasture.'] },
     no: { fx: { trust: { bauern: 3, gewerbe: -3 } }, text: ['Keine Seilbahn. Der Gipfel bleibt den Kühen. Das Hotel Bergblick droht mit Wegzug.', 'No cable car. The summit stays with the cows. Hotel Bergblick threatens to leave.'] } },
+  aufsicht: { q: ['Soll das Wolkenamt unter die Aufsicht des Kantons gestellt werden?', 'Should the Cloud Office be placed under the canton’s supervision?'],
+    lean: { junge: 0.6, kirche: 0.3, gewerbe: 0.1, senioren: -0.3, vereine: -0.4, bauern: -0.6 },
+    stance: { wvb: 'no', fww: 'yes', pkh: 'yes', huber: 'no' },
+    yes: { fx: { inv: 8, trust: { junge: 3 } }, text: ['Ja. Ab nächstem Monat sitzt ein Beamter aus der Stadt mit im Büro. Er bringt sein eigenes Znüni mit.', 'Yes. From next month a civil servant from the city sits in the office. He brings his own snack.'] },
+    no: { fx: { inv: -6, trust: { vereine: 2, bauern: 2 } }, text: ['Nein. Wolkenwil regelt seinen Himmel selbst. Inspektor Wyss notiert sich das Resultat.', 'No. Wolkenwil runs its own sky. Inspector Wyss writes the result down.'] } },
 };
 export const VOTE_ACTIONS = [
   { id: 'camp', label: ['Kampagne machen', 'Campaign'], cost: { influence: -1 }, shift: 5, need: P => P.influence >= 1, note: ['Du redest im Rössli, an der Bushaltestelle und am Grab der Tante Huber.', 'You speak at the Rössli, at the bus stop and at Aunt Huber’s grave.'] },
@@ -367,3 +378,73 @@ export function multiRoundEnd(S) {
   if (lead) S.susp[lead] = Math.min(100, S.susp[lead] + 5);
   return lead;
 }
+
+// ---------------- Kapitel 2: Die Untersuchung ----------------
+// Inspektor Wyss befragt dich jeden Morgen. «inv» ist der Stand der Ermittlung (0–100).
+// Bei 100 ist das Amt weg. Am Samstag entscheidet Wyss.
+export const CH2_START = 6;
+export function startInvestigation(P) {
+  if (P.inv != null) return false;
+  P.ch = 2; P.inv = clamp(Math.round(10 + P.suspicion * 0.5), 10, 70);
+  P.snap2 = JSON.stringify(P);
+  return true;
+}
+export const INV_INTRO = { from: 'Kanton Wolkenwil, Inspektorat',
+  text: ['Einschreiben. «Gegen das Wolkenamt Wolkenwil wird eine Untersuchung eröffnet. Inspektor B. Wyss wird ab heute vor Ort sein. Bitte stellen Sie ihm einen Stuhl und Kaffee bereit.»', 'Registered letter. “An investigation into the Cloud Office of Wolkenwil is opened. Inspector B. Wyss will be on site from today. Please provide him with a chair and coffee.”'],
+  fx: { suspicion: 0 } };
+const W = 'Inspektor Wyss';
+export const INTERROGATIONS = [
+  { from: W, text: ['Wyss hat sich im Archiv eingerichtet. «Erklären Sie mir eines: Wer entscheidet hier, welche Wolke wohin fliegt?»', 'Wyss has settled into the archive. “Explain one thing to me: who decides here which cloud goes where?”'],
+    choices: [
+      [['«Ich. Nach Vorschrift.»', '“I do. By the rules.”'], { inv: -4, influence: -1 }, ['Wyss nickt langsam. «Nach welcher Vorschrift?» Du zeigst ihm einen Ordner. Er ist leer, aber dick.', 'Wyss nods slowly. “Which rules?” You show him a binder. It is empty, but thick.']],
+      [['«Der Gemeinderat.»', '“The council.”'], { inv: 3, mod: { huber: -0.08 } }, ['Wyss schreibt «Gemeinderat» auf und unterstreicht es zweimal. Huber wird das nicht mögen.', 'Wyss writes “council” and underlines it twice. Huber will not like that.']],
+      [['«Das Wetter.»', '“The weather.”'], { inv: 6, trust: { junge: 2 } }, ['Wyss lacht nicht. Draussen schon: Der Satz steht am Abend auf einem Plakat der Jungen.', 'Wyss does not laugh. Outside they do: by evening the line is on a poster by the young people.']],
+    ] },
+  { from: W, text: ['«In Ihrem Pultschrank liegt eine Kaffeekasse. Sie ist sehr voll. Woher stammt das Geld?»', '“There is a coffee fund in your desk. It is very full. Where does the money come from?”'],
+    choices: [
+      [['Kasse offenlegen', 'Open the books'], { inv: -12, cashAll: true, mod: { _own: -0.05 } }, ['Du legst alles auf den Tisch. Wyss zählt zweimal. Die Kasse ist jetzt leer und beim Kanton.', 'You put everything on the table. Wyss counts twice. The fund is now empty and with the canton.'], P => P.cash > 0],
+      [['«Spenden vom Turnverein.»', '“Donations from the gym club.”'], { inv: 7, suspicion: 4 }, ['«Ich rufe den Turnverein an», sagt Wyss. Der Turnverein hat kein Telefon. Noch nicht.', '“I will call the gym club,” says Wyss. The gym club has no phone. Not yet.']],
+      [['Anwalt Dr. Steiner holen (CHF 2000)', 'Call lawyer Dr Steiner (CHF 2,000)'], { inv: -9, cash: -2000 }, ['Dr. Steiner redet zwanzig Minuten ohne Punkt. Wyss gibt auf, für heute.', 'Dr Steiner talks for twenty minutes without a full stop. Wyss gives up, for today.'], P => P.cash >= 2000],
+    ] },
+  { from: W, text: ['«Herr Gerber, Frau Moser und der FC haben ausgesagt. Alle sagen etwas anderes. Und alle sagen Ihren Namen.»', '“Mr Gerber, Mrs Moser and the FC have given statements. They all say something different. And they all say your name.”'],
+    choices: [
+      [['Gerber als Lügner hinstellen', 'Paint Gerber as a liar'], { inv: -6, trust: { senioren: -5 }, suspicion: 3 }, ['Wyss streicht Gerbers Aussage an. Gerber hört davon und spricht im Rössli von nichts anderem.', 'Wyss marks Gerber’s statement. Gerber hears about it and talks about nothing else at the Rössli.']],
+      [['Frau Moser um Hilfe bitten', 'Ask Mrs Moser for help'], { inv: -5, trust: { gewerbe: 2 }, cash: -500 }, ['Frau Moser erinnert sich plötzlich an nichts mehr. Für fünfhundert Franken Gipfeli.', 'Mrs Moser suddenly remembers nothing. For five hundred francs of croissants.'], P => P.cash >= 500],
+      [['Schweigen', 'Stay silent'], { inv: 4 }, ['Du sagst nichts. Wyss schreibt trotzdem drei Seiten.', 'You say nothing. Wyss writes three pages anyway.']],
+    ] },
+  { from: W, text: ['«Der Aktenvernichter war gestern warm. Und im Heizungskeller riecht es nach Papier. Was haben Sie vernichtet?»', '“The shredder was warm yesterday. And the boiler room smells of paper. What did you destroy?”'],
+    choices: [
+      [['«Werbung.»', '“Junk mail.”'], { inv: 5, suspicion: 3 }, ['Wyss zieht einen Schnipsel aus dem Papierkorb. «Werbung mit Amtsstempel?»', 'Wyss pulls a scrap out of the bin. “Junk mail with an official stamp?”']],
+      [['Huber belasten (Druckmittel)', 'Incriminate Huber (leverage)'], { inv: -16, mod: { huber: -0.2 }, unlev: 'huber' }, ['Du legst die Seilbahn-Studie auf den Tisch. Wyss liest lange. «Das ändert einiges», sagt er. Huber wird bleich.', 'You put the cable car study on the table. Wyss reads for a long time. “That changes a lot,” he says. Huber goes pale.'], P => P.lev && P.lev.huber],
+      [['Gerber belasten (Druckmittel)', 'Incriminate Gerber (leverage)'], { inv: -10, trust: { senioren: -3 }, unlev: 'gerber' }, ['Gerbers alte Baubewilligung landet bei Wyss. Er hat jetzt zwei Akten statt einer.', 'Gerber’s old building permit lands with Wyss. He now has two files instead of one.'], P => P.lev && P.lev.gerber],
+      [['Nichts sagen', 'Say nothing'], { inv: 6 }, ['Wyss notiert: «Verweigert die Aussage.» Er notiert es schön.', 'Wyss writes: “Refuses to testify.” He writes it neatly.']],
+    ] },
+  { from: 'Gemeindepräsident Huber', text: ['Huber steht in der Tür und schliesst sie leise. «Machen wir es einfach. Sie nehmen alles auf sich. Ich sorge dafür, dass es nicht so schlimm wird. Ehrenwort.»', 'Huber stands in the doorway and quietly closes the door. “Let’s keep it simple. You take the blame for everything. I make sure it won’t be so bad. Word of honour.”'],
+    choices: [
+      [['Deal annehmen', 'Take the deal'], { inv: -14, mod: { _own: -0.18, huber: 0.15 }, flag: 'huber_deal' }, ['Ihr gebt euch die Hand. Huber hat sehr weiche Hände. Am Nachmittag ist er bester Laune.', 'You shake hands. Huber has very soft hands. In the afternoon he is in excellent spirits.']],
+      [['Ablehnen', 'Refuse'], { inv: 3, trust: { kirche: 2, junge: 2 } }, ['«Wie Sie wollen», sagt Huber. Er öffnet die Tür nicht leise.', '“As you wish,” says Huber. He does not open the door quietly.']],
+      [['Das Gespräch aufnehmen', 'Record the conversation'], { inv: -4, lev: 'huber', suspicion: 2 }, ['Dein Telefon lag die ganze Zeit offen auf dem Pult. Huber hat es nicht bemerkt. Du hast jetzt etwas gegen ihn.', 'Your phone was lying open on the desk the whole time. Huber did not notice. You now have something on him.']],
+    ] },
+  { from: W, text: ['Samstagmorgen. Wyss packt seine Akten. «Bevor ich meinen Bericht schreibe: Gibt es noch etwas, das Sie mir sagen wollen?»', 'Saturday morning. Wyss packs his files. “Before I write my report: is there anything else you want to tell me?”'],
+    choices: [
+      [['Gestehen', 'Confess'], { inv: -22, suspicion: -25, mod: { _own: -0.22 } }, ['Du erzählst alles. Wyss schreibt nicht mit. Er hört nur zu. Am Ende sagt er: «Danke. Das war selten.»', 'You tell him everything. Wyss does not take notes. He just listens. At the end he says: “Thank you. That was rare.”']],
+      [['«Nein.»', '“No.”'], {}, ['Wyss schliesst den Koffer. Das Schloss klickt laut.', 'Wyss closes the briefcase. The lock clicks loudly.']],
+      [['Wyss einen Umschlag geben (CHF 5000)', 'Give Wyss an envelope (CHF 5,000)'], { inv: -30, cash: -5000, suspicion: 12, flag: 'wyss_envelope' }, ['Wyss sieht den Umschlag lange an. Dann steckt er ihn ein. Ohne ein Wort.', 'Wyss looks at the envelope for a long time. Then he pockets it. Without a word.'], P => P.cash >= 5000],
+    ] },
+];
+export function interrogation(day) { return INTERROGATIONS[day - CH2_START] || null; }
+// Ermittlung wächst mit dem Verdacht
+export function invDaily(P) { const d = Math.round(P.suspicion / 7); if (d) apply(P, { inv: d }); return d; }
+export function verdict(P) {
+  if (P.inv >= 100) return 'removed';
+  if (P.inv >= 65) return P.flags.huber_deal ? 'betrayed' : 'charged';
+  if (P.inv >= 35) return 'scapegoat';
+  return 'cleared';
+}
+export const VERDICT_FX = {
+  removed: { mod: { _own: -0.5 }, influence: -5 },
+  charged: { mod: { _own: -0.35 }, suspicion: 10 },
+  betrayed: { mod: { _own: -0.3, huber: 0.2 } },
+  scapegoat: { mod: { _own: -0.05 }, suspicion: -15 },
+  cleared: { mod: { _own: 0.1 }, suspicion: -20 },
+};

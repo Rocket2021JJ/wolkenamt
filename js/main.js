@@ -27,6 +27,8 @@ let save = { stars: [], sight: 0, rep: 50, day: 0, power: null };
 Object.assign(NAMES, { 'Hotel Bergblick': ['Hotel Bergblick', 'Hotel Bergblick'], 'Redaktorin Imboden': ['Redaktorin Imboden', 'Editor Imboden'] });
 try { const s = JSON.parse(localStorage.getItem('wolkenamt')); if (s && Array.isArray(s.stars)) save = Object.assign(save, s); } catch (e) {}
 const persist = () => { try { localStorage.setItem('wolkenamt', JSON.stringify(save)); } catch (e) {} };
+const chOf = d => DAYS[d].ch || 1;
+const dayNo = d => d - (chOf(d) === 2 ? POW.CH2_START : 0) + 1;
 const rankOf = s => L(RANKS.filter(r => s >= r[0]).pop()[1]);
 const totalStars = () => save.stars.reduce((a, b) => a + (b || 0), 0);
 
@@ -37,7 +39,7 @@ world.bake([office.handset, world.player.b.root, ...world.skyClouds, office.cloc
 world.spawnVillagers(11);
 world.sfx = A.sfx;
 window.__world = world;
-window.__dbg = { save: () => save };
+window.__dbg = { save: () => save, run: () => run, startDay: d => startDay(d), report: () => showReport() };
 const D = world.deskPos, PLAT = office.platform;
 const SPOT = {
   door: [0, 0, 3.4, Math.PI],
@@ -118,11 +120,12 @@ function showMenu() {
   $('mRep').innerHTML = `<b>${save.rep}</b> ${t('of')} 100`;
   const list = $('orders'); list.innerHTML = '';
   DAYS.forEach((Dy, d) => {
+    if (d === 0 || chOf(d) !== chOf(d - 1)) { const hd = document.createElement('div'); hd.className = 'chhead'; hd.textContent = t('menu.ch' + chOf(d)); list.appendChild(hd); }
     const un = d <= (save.day || 0);
     const orders = Dy.cards.filter(c => typeof c !== 'string');
     const s = orders.reduce((a, c) => a + (save.stars[c] || 0), 0), max = orders.length * 3;
     const row = document.createElement('div'); row.className = 'ord' + (un ? '' : ' locked');
-    const no = document.createElement('span'); no.className = 'no'; no.textContent = t('menu.day', { n: d + 1 });
+    const no = document.createElement('span'); no.className = 'no'; no.textContent = t('menu.day', { n: dayNo(d) });
     const mid = document.createElement('span'); mid.textContent = L(Dy.name);
     if (un) { const sm = document.createElement('small'); sm.textContent = t('menu.dayinfo', { a: Dy.cards.length, w: Dy.slots }); mid.appendChild(sm); }
     const st = document.createElement('span'); st.className = 'st'; st.textContent = un ? `${s} ${t('of')} ${max} ★` : t('menu.locked');
@@ -146,9 +149,14 @@ function startDay(d) {
   const P = save.power;
   const ords = DAYS[d].cards.filter(c => !isSpecial(c));
   run = { kind: 'day', d, forged: d >= 1 ? ords[(d * 5) % ords.length] : -1, fkind: forgeryKind(d * 13 + 7), dec: {}, queue: [], qi: -1, res: {}, stamped: false, shred: false, before: { polls: POW.polls(P), suspicion: P.suspicion, cash: P.cash, influence: P.influence } };
-  const go = () => { enterWorld('door', 'task.desk'); setDay(t('hud.day', { day: L(DAYS[d].name), n: d + 1 })); updateAkte(); };
+  const go = () => { enterWorld('door', 'task.desk'); setDay(t('hud.day', { day: L(DAYS[d].name), n: dayNo(d) })); updateAkte(); };
+  if (chOf(d) === 2 && P.inv != null && P.inv >= 100) return showRemoved(P);
   const ev = POW.due(P, d);
   const paper = morningPaper(P, d); if (paper) ev.unshift(paper);
+  if (chOf(d) === 2) {
+    if (POW.startInvestigation(P)) ev.unshift(POW.INV_INTRO);
+    const q = POW.interrogation(d); if (q) ev.push(q);
+  }
   persist();
   if (ev.length) showMorning(ev, d, go); else go();
 }
@@ -191,6 +199,7 @@ function fxChips(ch) {
     else if (c.k === 'influence') txt = `${t('akte.inf')} ${c.d > 0 ? '+' : ''}${c.d}`;
     else if (c.k === 'cash') txt = `${t('akte.cash')} ${c.d > 0 ? '+' : '−'}${fmtCash(c.d)}`;
     else if (c.k === 'suspicion') { txt = `${t('akte.susp')} ${c.d > 0 ? '+' : ''}${c.d}`; good = c.d < 0; }
+    else if (c.k === 'inv') { txt = `${t('akte.inv')} ${c.d > 0 ? '+' : ''}${c.d}`; good = c.d < 0; }
     else if (c.k === 'lev') txt = `${c.d > 0 ? t('fx.lev') : t('fx.levUsed')}: ${c.p.charAt(0).toUpperCase() + c.p.slice(1)}`;
     e.className = 'fx ' + (good ? 'pos' : 'neg'); e.textContent = txt; box.appendChild(e);
   });
@@ -239,6 +248,8 @@ function updateAkte() {
   });
   $('aSusp').style.width = P.suspicion + '%'; $('aSuspN').textContent = P.suspicion;
   $('aInf').textContent = P.influence; $('aCash').textContent = fmtCash(P.cash);
+  $('aInvRow').classList.toggle('hidden', P.inv == null);
+  if (P.inv != null) { $('aInv').style.width = P.inv + '%'; $('aInvN').textContent = P.inv; }
 }
 function startFree() {
   A.ensureAudio();
@@ -273,7 +284,7 @@ world.onUse = (id) => {
 function openDesk() {
   const Dy = DAYS[run.d];
   only('desk');
-  $('dTitle').textContent = t('desk.title', { day: L(Dy.name), n: run.d + 1 });
+  $('dTitle').textContent = t('desk.title', { day: L(Dy.name), n: dayNo(run.d) });
   const wrap = $('dCards'); wrap.innerHTML = '';
   Dy.cards.forEach((c, idx) => {
     const S = isSpecial(c), o = S ? SPECIALS[c] : ORDERS[c];
@@ -472,7 +483,8 @@ function showReport() {
       line(v === 'yes', `${nameOf(o.from)} – ${L(o.title)}${v === 'yes' ? '' : ' ' + t('rep.rejected')}`, L(res.text) + (res.sight ? `  (+${num(res.sight)} ${t('akte.sight')})` : ''), res.rep);
     } else {
       const o = ORDERS[c], forged = c === run.forged;
-      if (v === 'fake') {
+      if (c === 'zeugin' && yes && P.cash < 1500) { all.push(...POW.apply(P, pol.no)); return; }
+    if (v === 'fake') {
         const rep = forged ? 3 : -5; delta += rep;
         line(forged, `${nameOf(o.from)} – ${forged ? t('rep.fakeOk') : t('rep.fakeBad')}`, forged ? t('rep.fakeOkSub') : t('rep.fakeBadSub'), rep);
       } else if (v === 'no' && forged) {
@@ -491,7 +503,7 @@ function showReport() {
   save.sight = (save.sight || 0) + bonus;
   $('pTitle').textContent = t('rep.title', { day: L(Dy.name) });
   const sum = $('pSum'); sum.innerHTML = '';
-  const last = run.d >= DAYS.length - 1;
+  const last = !!Dy.end || run.d >= DAYS.length - 1;
   const span = (cls, txt) => { const s = document.createElement('span'); if (cls) s.className = cls; s.textContent = txt; return s; };
   const d = run.d;
   if (save.rep <= 0) {
@@ -502,7 +514,7 @@ function showReport() {
     save.day = Math.max(save.day || 0, d + 1);
     sum.append(span('', t('rep.rep', { b: before }) + ' '), span(delta >= 0 ? 'pos' : 'neg', `${save.rep}`), span('', ` (${delta >= 0 ? '+' : ''}${delta})`));
     if (bonus) sum.append(document.createElement('br'), span('', t('rep.bonus', { b: num(bonus) })));
-    if (last) sum.append(document.createElement('br'), document.createElement('br'), span('', t('rep.week', { r: rankOf(totalStars()) })));
+    if (last) sum.append(document.createElement('br'), document.createElement('br'), span('', t(Dy.end === 2 ? 'rep.week2' : 'rep.week', { r: rankOf(totalStars()) })));
     $('pNext').textContent = last ? t('btn.central') : t('rep.next', { day: L(DAYS[d + 1].name) });
     $('pNext').onclick = last ? () => showMenu() : () => startDay(d + 1);
   }
@@ -597,16 +609,17 @@ function openWeather() {
 $('wxClose').onclick = () => enterWorld(null, taskKey, taskVars);
 
 // ---------------- Etappe 4: Gemeindehaus, Gerüchte ----------------
-const VID = 'seilbahn';
+const vid = () => (run && chOf(run.d) === 2 ? 'aufsicht' : 'seilbahn');
+const firstDay = () => run.d === 0 || run.d === POW.CH2_START;
 function townPanel(kicker, title, info) { mode = 'town'; world.enabled = false; hud(false); only('town'); $('tnKicker').textContent = kicker; $('tnTitle').textContent = title; $('tnInfo').textContent = info; const b = $('tnList'); b.innerHTML = ''; return b; }
 function openTownhall() {
   const P = save.power; if (!P || flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.townClosed'));
-  const V = POW.VOTES[VID];
-  P.vote = P.vote || {}; const st = P.vote[VID] = P.vote[VID] || { shift: 0, done: {} };
+  const V = POW.VOTES[vid()];
+  P.vote = P.vote || {}; const st = P.vote[vid()] = P.vote[vid()] || { shift: 0, done: {} };
   const render = () => {
-    const fc = POW.voteForecast(P, VID), par = V.stance[P.party];
-    const box = townPanel(t('town.kicker'), L(V.q), run.d < 1 ? t('town.notyet') : t('town.info', { y: fc, n: 100 - fc, p: POW.PARTIES[P.party].short, s: t(par === 'yes' ? 'town.yes' : 'town.no') }));
-    if (run.d < 1) return;
+    const fc = POW.voteForecast(P, vid()), par = V.stance[P.party];
+    const box = townPanel(t('town.kicker'), L(V.q), firstDay() ? t('town.notyet') : t('town.info', { y: fc, n: 100 - fc, p: POW.PARTIES[P.party].short, s: t(par === 'yes' ? 'town.yes' : 'town.no') }));
+    if (firstDay()) return;
     POW.VOTE_ACTIONS.forEach(a => {
       const el = document.createElement('div'); el.className = 'dos';
       const b = document.createElement('b'); b.textContent = L(a.label); el.appendChild(b);
@@ -657,9 +670,33 @@ function chapterEnd(P, box) {
   const n = document.createElement('p'); n.className = 'hsub'; n.textContent = t('end.next'); box.appendChild(n);
 }
 
+// Kapitel 2: Bericht von Inspektor Wyss
+function verdictEnd(P, box) {
+  const k = POW.verdict(P);
+  const h = document.createElement('h3'); h.textContent = t('end2.title'); box.appendChild(h);
+  const p = document.createElement('p'); p.className = 'lres'; p.textContent = t('end2.' + k, { p: L(POW.PARTIES[P.party].name) }); box.appendChild(p);
+  if (P.flags.wyss_envelope) { const e = document.createElement('p'); e.className = 'hsub'; e.textContent = t('end2.envelope'); box.appendChild(e); }
+  box.appendChild(fxChips(POW.apply(P, POW.VERDICT_FX[k])));
+  P.verdict = k;
+  const n = document.createElement('p'); n.className = 'hsub'; n.textContent = t('end2.next'); box.appendChild(n);
+}
+function removedEnd(P, box) {
+  const h = document.createElement('h3'); h.textContent = t('end2.title'); box.appendChild(h);
+  const p = document.createElement('p'); p.className = 'lres'; p.textContent = t('end2.removed'); box.appendChild(p);
+  P.verdict = 'removed';
+}
+// Amt verloren: Kapitel 2 von vorne (Stand vom Kapitelanfang)
+function showRemoved(P) {
+  showMorning([{ from: 'Kanton Wolkenwil, Inspektorat', text: [t('end2.removedMail'), t('end2.removedMail')],
+    choices: [[[t('end2.retry'), t('end2.retry')], {}, [t('end2.retryRes'), t('end2.retryRes')]]] }], POW.CH2_START, () => {
+    if (P.snap2) { save.power = JSON.parse(P.snap2); save.power.snap2 = P.snap2; }
+    save.day = POW.CH2_START; persist(); showMenu();
+  });
+}
+
 // Auszählung am Samstag
 function voteResult(P, box) {
-  const V = POW.VOTES[VID], fc = POW.voteForecast(P, VID), yes = fc >= 50, res = yes ? V.yes : V.no;
+  const V = POW.VOTES[vid()], fc = POW.voteForecast(P, vid()), yes = fc >= 50, res = yes ? V.yes : V.no;
   const all = POW.apply(P, res.fx);
   const match = (V.stance[P.party] === 'yes') === yes;
   all.push(...POW.apply(P, { mod: { _own: match ? 0.1 : -0.05 } }));
@@ -693,7 +730,13 @@ function powerReport(Dy, sum) {
     r.append(n, bar, v); box.appendChild(r);
   });
   if (all.length) box.appendChild(fxChips(all));
-  if (run.d === DAYS.length - 1) { voteResult(P, box); chapterEnd(P, box); }
+  if (chOf(run.d) === 2 && P.inv != null) {
+    const g = POW.invDaily(P);
+    const r = document.createElement('p'); r.className = 'hsub'; r.textContent = t('inv.daily', { v: P.inv, d: g }); box.appendChild(r);
+    if (P.inv >= 100) { removedEnd(P, box); $('pNext').textContent = t('btn.central'); $('pNext').onclick = () => showMenu(); }
+  }
+  if (DAYS[run.d].end === 1) { voteResult(P, box); chapterEnd(P, box); }
+  else if (DAYS[run.d].end === 2 && P.inv < 100) { voteResult(P, box); verdictEnd(P, box); }
   P.lastPolls = POW.polls(P);
   const lead = Object.keys(now).sort((a, b) => now[b] - now[a])[0];
   const q = P.queue.length;

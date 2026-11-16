@@ -389,3 +389,5 @@ body.online #bar{right:264px}
 #mpRes .mpbox{max-height:calc(100vh - 32px);overflow:auto}
 .mpow .prow2{grid-template-columns:150px 1fr 150px;font-size:13px}
 .mpow .prow2 b{white-space:nowrap}
+
+#orders .chhead{font:600 11px/1 'Schibsted Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--rot,#c8452f);margin:10px 0 4px}

@@ -16,6 +16,8 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
 | 4 | Dorf lebt: Gemeindehaus mit Sachabstimmung, Gerüchte am Marktstand | fertig (Teil 1) |
 | 5 | Kapitel 1 spielbar | fertig |
 | 6 | Abendpartie (Mehrspieler) | fertig (Version 1) |
+| 7 | README für HOCHDRUCK | fertig |
+| 8 | Kapitel 2 «Die Untersuchung» | fertig (Version 1) |
 
 ## Notizen
 
@@ -53,3 +55,11 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   beim Kanton verpfeifen, Plakate kleben oder Bestechung annehmen. Alles erscheint anonym im Funk. Wer vorne
   liegt, bekommt jede Runde +5 Verdacht. Am Schluss entscheidet die Gemeindewahl (Umfrage), nicht die Punkte.
   Getestet mit ?lokaltest in drei Tabs.
+- Etappe 8: Nach Kapitel 1 wird im Menü Kapitel 2 freigeschaltet (6 weitere Tage). Am Montag kommt ein
+  Einschreiben vom Kanton, Inspektor Wyss zieht ins Archiv. Neu in der Akte: «Ermittlung» (0–100), Start
+  aus dem Verdacht. Jeden Morgen befragt dich Wyss (6 Verhöre: Kaffeekasse, Zeugen, Aktenvernichter,
+  Hubers Deal, Schlussgespräch) mit Antworten wie Anwalt, Lügen, Huber belasten (Druckmittel), Gespräch
+  aufnehmen oder Wyss einen Umschlag geben. Die Ermittlung wächst täglich mit dem Verdacht. Bei 100 bist
+  du das Amt los und beginnst Kapitel 2 neu (Stand vom Kapitelanfang). 4 neue Sonderanträge, neue
+  Abstimmung «Kantonale Aufsicht». Am Samstag schreibt Wyss den Bericht: entlastet, Bauernopfer, Anklage
+  oder (mit Hubers Deal) verraten. Code: js/power.js (Abschnitt Kapitel 2).

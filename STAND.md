@@ -19,6 +19,7 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
 | 7 | README für HOCHDRUCK | fertig |
 | 8 | Kapitel 2 «Die Untersuchung» | fertig (Version 1) |
 | 9 | Kapitel 3 «Der Wahlkampf» mit Gemeindewahl und 7 Enden | fertig (Version 1) |
+| 10 | Sandbox «Jahre im Amt» | fertig (Version 1) |
 
 ## Notizen
 
@@ -71,3 +72,8 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   Gemeindepräsidium, Gewonnen aber…, Nachzählung, Huber für immer, Opposition, Der Parkplatz. Frühere
   Entscheide (Umschlag an Wyss, Regenversprechen, Anklage aus Kapitel 2) wirken im Abspann nach.
   Damit ist die Story von Anfang bis Ende spielbar (18 Tage).
+- Etappe 10: Neuer Menüpunkt «Sandbox: Jahre im Amt». Eigene Partei und eigener Spielstand (die
+  Kampagne bleibt unberührt). Endlos: jedes Jahr 6 Tage mit zufälligen Anträgen und Sonderanträgen,
+  Morgenpost mit verzögerten Folgen, bei hohem Verdacht Verhöre von Wyss, in Wahljahren
+  Wahlkampftermine. Jedes Jahr eine Abstimmung (wechselt zwischen Seilbahn, Aufsicht, Wolkensteuer),
+  alle 2 Jahre Gemeindewahl. Wer regiert, verliert langsam an Glanz. Ab Verdacht 95 ist die Sandbox vorbei.

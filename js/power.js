@@ -1,7 +1,7 @@
 // HOCHDRUCK – Machtwerte: Parteien, Wählergruppen, Umfragen, Verdacht, Schwarzkasse, Einfluss,
 // und verzögerte Folgen («Morgenpost»), die Tage später zurückkommen.
 // Texte als [deutsch, english].
-import { PAL } from './palette.js';
+import { PAL, rng } from './palette.js';
 
 export const GROUPS = {
   bauern:   { name: ['Bauern', 'Farmers'], w: 0.18 },
@@ -513,4 +513,29 @@ export function election(P) {
   else if (order[0] === 'huber') end = 'huber';
   else end = 'lost';
   return { pl, order, end };
+}
+
+// ---------------- Sandbox: Jahre im Amt ----------------
+// Endlos: jedes Jahr 6 Tage, jedes Jahr eine Abstimmung, alle 2 Jahre Gemeindewahl.
+export const SB_INDEX = 18;
+const SB_SPECIALS = ['regen', 'duerre', 'abschaffung', 'schule', 'umschlag', 'akten', 'sondersitzung', 'leserbrief', 'zeugin'];
+const DAYNAMES = [['Montag', 'Monday'], ['Dienstag', 'Tuesday'], ['Mittwoch', 'Wednesday'], ['Donnerstag', 'Thursday'], ['Freitag', 'Friday'], ['Samstag', 'Saturday']];
+export function sbDay(year, day) {
+  const r = rng((year * 7919 + day * 104729) % 2147483647 + 17); r(); r(); r();
+  const o = []; while (o.length < 2) { const c = Math.floor(r() * 12); if (!o.includes(c)) o.push(c); }
+  const sp = SB_SPECIALS[Math.floor(r() * SB_SPECIALS.length)];
+  const cards = r() < 0.5 ? [o[0], sp, o[1]] : [o[0], o[1], sp];
+  return { name: DAYNAMES[day], ch: 4, cards, slots: 2, end: day === 5 ? 4 : undefined };
+}
+export const SB_VOTES = ['seilbahn', 'aufsicht', 'wolkensteuer'];
+export const isElectionYear = y => y % 2 === 0;
+// Zufällige Morgenereignisse in der Sandbox (aus allen Kapiteln)
+export function sbMorning(P, year, day) {
+  const r = rng((year * 15485863 + day * 32452843) % 2147483647 + 5), out = []; r(); r();
+  if (P.suspicion >= 55 && r() < 0.5) out.push(INTERROGATIONS[Math.floor(r() * INTERROGATIONS.length)]);
+  else if (isElectionYear(year) && day >= 3) out.push(CAMPAIGN[Math.min(CAMPAIGN.length - 1, Math.floor(r() * 4))]);
+  // Abkühlung: Verdacht verfliegt langsam, Huber erholt sich
+  apply(P, { suspicion: -2 });
+  P.mod.huber = Math.max(0.15, P.mod.huber + (0.35 - P.mod.huber) * 0.05);
+  return out;
 }

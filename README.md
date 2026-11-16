@@ -33,6 +33,7 @@ Die **Akte** oben rechts zeigt jederzeit Partei, Umfrage und Verdacht.
 | Modus | Beschreibung |
 |---|---|
 | **Kampagne (Story)** | 3 Kapitel mit je 6 Tagen: «Der Posten» (ins Amt finden), «Die Untersuchung» (Inspektor Wyss verhört dich), «Der Wahlkampf» (Gemeindewahl mit 7 Enden). |
+| **Sandbox: Jahre im Amt** | Endlos weiterspielen mit eigener Partei: zufällige Anträge, jedes Jahr eine Abstimmung, alle 2 Jahre Gemeindewahl. Vorbei ist es erst, wenn der Verdacht dich erdrückt. |
 | **Freie Wolke** | Forme irgendetwas. Das Dorf rätselt, was es sein soll. Als Postkarte speicherbar. |
 | **Abendpartie (online)** | 2–3 Personen, jede mit eigener Partei (WVB, FWW, PKH), Huber spielt als vierte Partei mit. Nach jeder Runde eine Aktion im «Hinterzimmer»: Gerücht streuen, beim Kanton verpfeifen, Plakate kleben, Bestechung annehmen. Wer vorne liegt, gerät unter Verdacht. Am Schluss entscheidet die Gemeindewahl. Etwa 30–45 Minuten. |
 | **Zu dritt an einem Gerät** | Nacheinander am selben Gerät (Pass & Play), nur in der 2D-Schneideansicht. |
@@ -178,7 +179,7 @@ Fortschritt, Ansehen, Sichtungen, Sprache und Ton werden im `localStorage` des B
 - [x] Parteien, Umfragen, Korruption, Fälschungen, Unwetter, Abstimmungen
 - [x] Abendpartie mit Sabotage und Gemeindewahl
 - [x] Kapitel 2 und 3 (Untersuchung, Wahlkampf, 7 Enden)
-- [ ] Sandbox über mehrere Jahre
+- [x] Sandbox über mehrere Jahre
 - [ ] Gemeindehaus von innen begehbar
 - [ ] Sprachkanal (Optik ist schon drin, Funktion folgt)
 - [ ] Steam-Version

@@ -27,7 +27,8 @@ let save = { stars: [], sight: 0, rep: 50, day: 0, power: null };
 Object.assign(NAMES, { 'Hotel Bergblick': ['Hotel Bergblick', 'Hotel Bergblick'], 'Redaktorin Imboden': ['Redaktorin Imboden', 'Editor Imboden'] });
 try { const s = JSON.parse(localStorage.getItem('wolkenamt')); if (s && Array.isArray(s.stars)) save = Object.assign(save, s); } catch (e) {}
 const persist = () => { try { localStorage.setItem('wolkenamt', JSON.stringify(save)); } catch (e) {} };
-const chOf = d => DAYS[d].ch || 1;
+const chOf = d => (DAYS[d] && DAYS[d].ch) || 1;
+const inSB = () => !!save.sbActive;
 const dayNo = d => d - DAYS.findIndex(x => (x.ch || 1) === chOf(d)) + 1;
 const rankOf = s => L(RANKS.filter(r => s >= r[0]).pop()[1]);
 const totalStars = () => save.stars.reduce((a, b) => a + (b || 0), 0);
@@ -119,7 +120,10 @@ function showMenu() {
   $('mSight').textContent = num(save.sight || 0);
   $('mRep').innerHTML = `<b>${save.rep}</b> ${t('of')} 100`;
   const list = $('orders'); list.innerHTML = '';
+  if (save.sbActive) { save.sb.P = save.power; save.power = save.stash || null; save.stash = null; save.sbActive = false; persist(); }
+  $('mSandbox').textContent = save.sb && !save.sb.over ? t('menu.sbGo', { y: save.sb.year, p: POW.PARTIES[save.sb.P.party].short }) : t('menu.sb');
   DAYS.forEach((Dy, d) => {
+    if (Dy.ch === 4) return;
     if (d === 0 || chOf(d) !== chOf(d - 1)) { const hd = document.createElement('div'); hd.className = 'chhead'; hd.textContent = t('menu.ch' + chOf(d)); list.appendChild(hd); }
     const un = d <= (save.day || 0);
     const orders = Dy.cards.filter(c => typeof c !== 'string');
@@ -149,7 +153,7 @@ function startDay(d) {
   const P = save.power;
   const ords = DAYS[d].cards.filter(c => !isSpecial(c));
   run = { kind: 'day', d, forged: d >= 1 ? ords[(d * 5) % ords.length] : -1, fkind: forgeryKind(d * 13 + 7), dec: {}, queue: [], qi: -1, res: {}, stamped: false, shred: false, before: { polls: POW.polls(P), suspicion: P.suspicion, cash: P.cash, influence: P.influence } };
-  const go = () => { enterWorld('door', 'task.desk'); setDay(t('hud.day', { day: L(DAYS[d].name), n: dayNo(d) })); updateAkte(); };
+  const go = () => { enterWorld('door', 'task.desk'); setDay(inSB() ? t('sb.hud', { day: L(DAYS[d].name), y: save.sb.year }) : t('hud.day', { day: L(DAYS[d].name), n: dayNo(d) })); updateAkte(); };
   if (chOf(d) === 2 && P.inv != null && P.inv >= 100) return showRemoved(P);
   const ev = POW.due(P, d);
   const paper = morningPaper(P, d); if (paper) ev.unshift(paper);
@@ -157,6 +161,7 @@ function startDay(d) {
     if (POW.startInvestigation(P)) ev.unshift(POW.INV_INTRO);
     const q = POW.interrogation(d); if (q) ev.push(q);
   }
+  if (chOf(d) === 4) { ev.push(...POW.sbMorning(P, save.sb.year, save.sb.day)); }
   if (chOf(d) === 3) { P.ch = 3; const c = POW.campaignEvent(d); if (c) ev.push(c); }
   persist();
   if (ev.length) showMorning(ev, d, go); else go();
@@ -285,7 +290,7 @@ world.onUse = (id) => {
 function openDesk() {
   const Dy = DAYS[run.d];
   only('desk');
-  $('dTitle').textContent = t('desk.title', { day: L(Dy.name), n: dayNo(run.d) });
+  $('dTitle').textContent = inSB() ? t('sb.hud', { day: L(Dy.name), y: save.sb.year }) : t('desk.title', { day: L(Dy.name), n: dayNo(run.d) });
   const wrap = $('dCards'); wrap.innerHTML = '';
   Dy.cards.forEach((c, idx) => {
     const S = isSpecial(c), o = S ? SPECIALS[c] : ORDERS[c];
@@ -512,14 +517,15 @@ function showReport() {
     save.rep = 50;
     $('pNext').textContent = t('rep.again'); $('pNext').onclick = () => startDay(d);
   } else {
-    save.day = Math.max(save.day || 0, d + 1);
+    if (!inSB()) save.day = Math.max(save.day || 0, d + 1);
     sum.append(span('', t('rep.rep', { b: before }) + ' '), span(delta >= 0 ? 'pos' : 'neg', `${save.rep}`), span('', ` (${delta >= 0 ? '+' : ''}${delta})`));
     if (bonus) sum.append(document.createElement('br'), span('', t('rep.bonus', { b: num(bonus) })));
-    if (last) sum.append(document.createElement('br'), document.createElement('br'), span('', t(Dy.end === 3 ? 'rep.week3' : Dy.end === 2 ? 'rep.week2' : 'rep.week', { r: rankOf(totalStars()) })));
+    if (last) sum.append(document.createElement('br'), document.createElement('br'), span('', t(Dy.end === 4 ? 'sb.repYear' : Dy.end === 3 ? 'rep.week3' : Dy.end === 2 ? 'rep.week2' : 'rep.week', { r: rankOf(totalStars()) })));
     $('pNext').textContent = last ? t('btn.central') : t('rep.next', { day: L(DAYS[d + 1].name) });
     $('pNext').onclick = last ? () => showMenu() : () => startDay(d + 1);
   }
   powerReport(Dy, sum);
+  if (inSB()) sbAfterReport();
   persist();
   only('report');
   A.chime(delta >= 0 ? [523, 659, 784] : [392, 330], 0.1);
@@ -610,8 +616,8 @@ function openWeather() {
 $('wxClose').onclick = () => enterWorld(null, taskKey, taskVars);
 
 // ---------------- Etappe 4: Gemeindehaus, Gerüchte ----------------
-const vid = () => (run ? ['seilbahn', 'aufsicht', 'wolkensteuer'][chOf(run.d) - 1] : 'seilbahn');
-const firstDay = () => run.d === 0 || run.d === POW.CH2_START || run.d === POW.CH3_START;
+const vid = () => (run && inSB() ? POW.SB_VOTES[(save.sb.year - 1) % 3] : run ? ['seilbahn', 'aufsicht', 'wolkensteuer'][chOf(run.d) - 1] : 'seilbahn');
+const firstDay = () => inSB() ? save.sb.day === 0 : (run.d === 0 || run.d === POW.CH2_START || run.d === POW.CH3_START);
 function townPanel(kicker, title, info) { mode = 'town'; world.enabled = false; hud(false); only('town'); $('tnKicker').textContent = kicker; $('tnTitle').textContent = title; $('tnInfo').textContent = info; const b = $('tnList'); b.innerHTML = ''; return b; }
 function openTownhall() {
   const P = save.power; if (!P || flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.townClosed'));
@@ -669,6 +675,56 @@ function chapterEnd(P, box) {
   const h = document.createElement('h3'); h.textContent = t('end.title'); box.appendChild(h);
   const p = document.createElement('p'); p.className = 'lres'; p.textContent = t(key, { p: L(POW.PARTIES[P.party].name), v: now[P.party].toFixed(1) }); box.appendChild(p);
   const n = document.createElement('p'); n.className = 'hsub'; n.textContent = t('end.next'); box.appendChild(n);
+}
+
+// ---------------- Sandbox: Jahre im Amt ----------------
+function openSandbox() {
+  A.ensureAudio();
+  const go = () => { $('pBack').onclick = () => showMenu(); save.sbActive = true; persist(); sbDayStart(); };
+  if (save.sb && !save.sb.over) { save.stash = save.power; save.power = save.sb.P; return go(); }
+  save.stash = save.power; save.power = null;
+  openParty(() => { save.sb = { P: save.power, year: 1, day: 0, terms: 0, history: [] }; go(); });
+  // Zurück aus der Parteiwahl: Kampagne wiederherstellen
+  $('pBack').onclick = () => { save.power = save.stash; save.stash = null; persist(); $('pBack').onclick = () => showMenu(); showMenu(); };
+}
+function sbDayStart() {
+  const sb = save.sb, P = save.power;
+  DAYS[POW.SB_INDEX] = POW.sbDay(sb.year, sb.day);
+  if (sb.day === 0) P.vote = {};
+  // Morgenpost-Warteschlange um einen Tag vorrücken (run.d bleibt in der Sandbox gleich)
+  P.queue.forEach(q => { q.day -= 1; });
+  startDay(POW.SB_INDEX);
+}
+function sbAfterReport() {
+  const sb = save.sb;
+  if (sb.over) { $('pNext').textContent = t('btn.central'); $('pNext').onclick = () => { save.sb = null; persist(); showMenu(); }; return; }
+  const endYear = sb.day === 5;
+  const nd = endYear ? 0 : sb.day + 1, ny = endYear ? sb.year + 1 : sb.year;
+  $('pNext').textContent = endYear ? t('sb.nextYear', { y: ny }) : t('rep.next', { day: L(POW.sbDay(ny, nd).name) });
+  $('pNext').onclick = () => { sb.day = nd; sb.year = ny; persist(); sbDayStart(); };
+  const m = $('pMenu'); if (m) m.onclick = () => showMenu();
+}
+function sbYearEnd(P, box) {
+  const sb = save.sb;
+  const h = document.createElement('h3'); h.textContent = t('sb.yearTitle', { y: sb.year }); box.appendChild(h);
+  if (POW.isElectionYear(sb.year)) {
+    const E = POW.election(P), won = E.order[0] === P.party;
+    const p = document.createElement('p'); p.className = 'lres';
+    p.textContent = t(won ? 'sb.won' : 'sb.lost', { p: L(POW.PARTIES[P.party].name), w: L(POW.PARTIES[E.order[0]].name), v: E.pl[E.order[0]].toFixed(1) });
+    box.appendChild(p);
+    if (won) sb.terms++;
+    sb.history.push({ year: sb.year, winner: E.order[0] });
+    // Wer regiert, verliert langsam an Glanz
+    box.appendChild(fxChips(POW.apply(P, won ? { mod: { _own: -0.08 }, influence: 2 } : { mod: { _own: 0.06 }, suspicion: -10 })));
+  } else {
+    const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('sb.noElection', { y: sb.year + 1 }); box.appendChild(p);
+  }
+  const s = document.createElement('p'); s.className = 'hsub'; s.textContent = t('sb.terms', { n: sb.terms, y: sb.year }); box.appendChild(s);
+}
+function sbRemoved(P, box) {
+  const sb = save.sb; sb.over = true;
+  const h = document.createElement('h3'); h.textContent = t('sb.overTitle'); box.appendChild(h);
+  const p = document.createElement('p'); p.className = 'lres'; p.textContent = t('sb.over', { y: sb.year, n: sb.terms }); box.appendChild(p);
 }
 
 // Kapitel 3: Gemeindewahl und Ende der Geschichte
@@ -758,6 +814,8 @@ function powerReport(Dy, sum) {
   if (DAYS[run.d].end === 1) { voteResult(P, box); chapterEnd(P, box); }
   else if (DAYS[run.d].end === 2 && P.inv < 100) { voteResult(P, box); verdictEnd(P, box); }
   else if (DAYS[run.d].end === 3) { voteResult(P, box); electionEnd(P, box); }
+  else if (DAYS[run.d].end === 4) { voteResult(P, box); sbYearEnd(P, box); }
+  if (inSB() && P.suspicion >= 95 && !save.sb.over) sbRemoved(P, box);
   P.lastPolls = POW.polls(P);
   const lead = Object.keys(now).sort((a, b) => now[b] - now[a])[0];
   const q = P.queue.length;
@@ -1104,6 +1162,7 @@ function toast(text) { $('hTask').textContent = text; $('hud').classList.add('fl
 
 // ---------------- Knöpfe ----------------
 $('mFree').onclick = startFree;
+$('mSandbox').onclick = openSandbox;
 let leaveArm = 0;
 function confirmLeave() { if (performance.now() < leaveArm) return true; leaveArm = performance.now() + 3000; toast(t('toast.leave')); return false; }
 $('hMenu').onclick = () => { if (flow === 'online' && !confirmLeave()) return; showMenu(); };

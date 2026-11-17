@@ -300,6 +300,7 @@ function startDay(d) {
   if (chOf(d) === 2 && P.inv != null && P.inv >= 100) return showRemoved(P);
   const ev = POW.due(P, d);
   if (P.rivalNext) { ev.push(POW.rivalEvent(P.rivalNext, P)); P.rivalNext = null; }
+  if (d !== 0 && d !== POW.CH2_START && d !== POW.CH3_START && !DAYS[d].end) { const ve = POW.villageEvent(P); if (ve) ev.push(ve); }
   const paper = morningPaper(P, d); if (paper) ev.unshift(paper);
   if (chOf(d) === 2) {
     if (POW.startInvestigation(P)) ev.unshift(POW.INV_INTRO);
@@ -414,6 +415,7 @@ function fillPaper(ev, d, page, pages, ask) {
   $('npDate').textContent = inSB() ? t('sb.hud', { day: L(DAYS[d].name), y: save.sb.year }) : L(DAYS[d].name);
   $('npKick').textContent = ev.from === 'Wolkenwiler Anzeiger' ? t('np.kickHome') : from;
   $('npHead').textContent = head;
+  { const n = 1180 + d + (inSB() ? save.sb.year * 6 : 0), A2 = save.papers || (save.papers = []); if (!A2.some(x => x.n === n && x.h === head)) { A2.push({ n, day: L(DAYS[d].name), h: head, b: (body || '').slice(0, 220), f: from }); if (A2.length > 80) A2.shift(); } }
   const fills = t('np.fill').split('|');
   $('npBody').innerHTML = ''; const by = document.createElement('b'); by.textContent = '(im) '; $('npBody').append(by, document.createTextNode(body || fills[h % fills.length]));
   $('npBody').classList.toggle('short', !body);
@@ -813,6 +815,13 @@ function openArchive() {
     });
   };
   render();
+  // alte Titelseiten
+  const pp = save.papers || [];
+  const sec = document.createElement('div'); sec.className = 'paperarch';
+  const h = document.createElement('h3'); h.textContent = t('arch.papers', { n: pp.length }); sec.appendChild(h);
+  if (!pp.length) { const e = document.createElement('p'); e.className = 'hsub'; e.textContent = t('arch.noPapers'); sec.appendChild(e); }
+  [...pp].reverse().forEach(x => { const el = document.createElement('div'); el.className = 'npold'; const k = document.createElement('small'); k.textContent = t('np.no', { n: x.n }) + ' · ' + x.day + ' · ' + x.f; const b = document.createElement('b'); b.textContent = x.h; el.append(k, b); if (x.b) { const p = document.createElement('p'); p.textContent = x.b + (x.b.length >= 220 ? ' …' : ''); el.appendChild(p); } sec.appendChild(el); });
+  $('arList').appendChild(sec);
 }
 $('arClose').onclick = () => enterWorld(null, taskKey, taskVars);
 function useShredder() {

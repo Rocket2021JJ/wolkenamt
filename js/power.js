@@ -584,7 +584,7 @@ export function rivalEvent(R, P) {
     if (P.flags.lock) return { from: 'Wolkenwiler Anzeiger', text: tx(`Versuchter Einbruch im Büro von ${own}! Das neue Schloss hat gehalten. Am Türrahmen klebt ein ${PS(a)}-Kleber.`, `Attempted break-in at the ${own} office! The new lock held. A ${PS(a)} sticker is stuck to the door frame.`), fx: { mod: { [a]: -0.04 } } };
     const levs = Object.keys(P.lev || {}).filter(k => P.lev[k]);
     const fx = levs.length ? { unlev: levs[0], mod: { _own: -0.03 } } : P.cash >= 800 ? { cash: -800, mod: { _own: -0.03 } } : { influence: -2, mod: { _own: -0.03 } };
-    return { from: 'Wolkenwiler Anzeiger', text: tx(`Einbruch im Büro von ${own}! Die Akten liegen am Boden, ${levs.length ? 'ein Dossier fehlt' : P.cash >= 800 ? 'die Kasse ist leichter' : 'die Pläne für den Wahlkampf sind weg'}. Tipp: im Parteienhaus ein neues Schloss kaufen.`, `Break-in at the ${own} office! Files on the floor, ${levs.length ? 'a dossier is missing' : P.cash >= 800 ? 'the cash box is lighter' : 'the campaign plans are gone'}. Tip: buy a new lock at the party house.`), fx };
+    return { from: 'Wolkenwiler Anzeiger', text: tx(`Einbruch im Büro von ${own}! Die Akten liegen am Boden, ${levs.length ? 'ein Dossier fehlt' : P.cash >= 800 ? 'die Kasse ist leichter' : 'die Pläne für den Wahlkampf sind weg'}. Tipp: im eigenen Parteibüro in der Parteigasse ein Schloss kaufen.`, `Break-in at the ${own} office! Files on the floor, ${levs.length ? 'a dossier is missing' : P.cash >= 800 ? 'the cash box is lighter' : 'the campaign plans are gone'}. Tip: buy a lock at your own party office in Party Lane.`), fx };
   }
   return { from: PN(a)[0] === 'Liste Huber' ? 'Gemeindepräsident Huber' : 'Wolkenwiler Anzeiger',
     text: tx(`Über Nacht hängen überall neue Plakate von ${PS(a)}. Sogar auf dem Brunnen.`, `Overnight new ${PS(a)} posters went up everywhere. Even on the fountain.`),
@@ -592,4 +592,42 @@ export function rivalEvent(R, P) {
       [tx('Überkleben lassen (CHF 600)', 'Have them pasted over (CHF 600)'), { cash: -600, suspicion: 2 }, tx('Am Mittag kleben eure Plakate drüber. Am Abend wieder ihre.', 'By noon your posters cover theirs. By evening theirs are back on top.'), Q => Q.cash >= 600],
       [tx('Hinnehmen', 'Accept it'), { mod: { [a]: 0.05 } }, tx('Die Plakate bleiben. Die Kühe lesen sie auch.', 'The posters stay. The cows read them too.')],
     ] };
+}
+
+// ---------------- Dorfgeschehen: kleine Ereignisse an den Orten im Dorf ----------------
+// Kommt an manchen Tagen zusätzlich zur Post. Jedes nur einmal pro Spiel, Auswahl mit Folgen.
+const VE = [
+  { id: 'kuehe', from: 'Wolkenwiler Anzeiger', text: tx('Bauer Mosers Kühe sind ausgebüxt und stehen auf dem Dorfplatz. Eine frisst die Geranien vor dem Rathaus.', 'Farmer Moser’s cows have escaped and are standing on the village square. One is eating the geraniums outside the town hall.'),
+    choices: [[tx('Selbst beim Einfangen helfen', 'Help catch them yourself'), { trust: { bauern: 3 } }, tx('Du rennst eine Stunde hinter einer Kuh namens Berta her. Moser nickt anerkennend.', 'You chase a cow called Berta for an hour. Moser nods approvingly.')],
+      [tx('Die Feuerwehr rufen', 'Call the fire brigade'), { trust: { vereine: 2 }, influence: -1 }, tx('Die Feuerwehr kommt mit Blaulicht. Die Kühe sind beeindruckt.', 'The fire brigade arrives with sirens. The cows are impressed.')],
+      [tx('Nicht zuständig', 'Not my department'), { trust: { bauern: -2 } }, tx('Formal korrekt. Moser schreibt es sich auf.', 'Formally correct. Moser makes a note.')]] },
+  { id: 'schulzeitung', from: 'Schulhaus Wolkenwil', text: tx('Die Klasse 3b macht eine Schülerzeitung und möchte ein Interview mit dem Wolkenamt. Thema: «Wem gehört der Himmel?»', 'Class 3b is making a school paper and wants an interview with the Cloud Office. Topic: “Who owns the sky?”'),
+    choices: [[tx('Interview geben', 'Give the interview'), { trust: { junge: 3 }, suspicion: 1 }, tx('Die erste Frage lautet: «Nehmen Sie Geld?» Du antwortest sehr lange.', 'The first question is: “Do you take money?” Your answer is very long.')],
+      [tx('Schriftlich antworten', 'Answer in writing'), { trust: { junge: 1 } }, tx('Die Kinder finden die Antworten langweilig, aber korrekt.', 'The children find the answers boring but correct.')]] },
+  { id: 'orgel', from: 'Pfarrer Imhof', text: tx('Die Orgel in St. Niklaus pfeift aus dem letzten Loch. Pfarrer Imhof bittet um eine Spende und um Sonne für das Kirchenfest.', 'The organ at St. Niklaus is on its last legs. Father Imhof asks for a donation and for sun for the church fete.'),
+    choices: [[tx('CHF 300 spenden', 'Donate CHF 300'), { cash: -300, trust: { kirche: 4, senioren: 1 } }, tx('Die Orgel spielt wieder. Etwas schief, aber laut.', 'The organ plays again. A bit off-key, but loud.'), Q => Q.cash >= 300],
+      [tx('Sonne versprechen', 'Promise sunshine'), { trust: { kirche: 2 } }, tx('Imhof dankt. Er wird dich daran erinnern.', 'Imhof thanks you. He will remind you.')],
+      [tx('Ablehnen', 'Decline'), { trust: { kirche: -2 } }, tx('Imhof betet jetzt auch für dich. Nicht nur im guten Sinn.', 'Imhof now prays for you too. Not only in a good way.')]] },
+  { id: 'torte', from: 'Herr Gerber', text: tx('Bäcker Gerber hat eine Torte in Form deines Parteilogos gebacken und stellt sie ins Schaufenster.', 'Baker Gerber has baked a cake in the shape of your party logo and put it in the shop window.'),
+    choices: [[tx('Stolz posieren für ein Foto', 'Pose proudly for a photo'), { mod: { _own: 0.02 }, trust: { gewerbe: 2 }, suspicion: 1 }, tx('Das Foto ist im Anzeiger. Die anderen Parteien wittern Vetternwirtschaft.', 'The photo is in the paper. The other parties smell favouritism.')],
+      [tx('Höflich ablehnen', 'Politely decline'), { trust: { gewerbe: 1 } }, tx('Gerber isst die Torte selbst. Er ist nicht beleidigt. Eher satt.', 'Gerber eats the cake himself. He isn’t offended. More full.')]] },
+  { id: 'feuerwehr', from: 'Feuerwehr Wolkenwil', text: tx('Die Feuerwehr hat Hauptübung und bittet das Amt um einen kleinen Regen, damit der neue Schlauch nicht umsonst gekauft wurde.', 'The fire brigade has its main drill and asks the office for a little rain, so the new hose wasn’t bought for nothing.'),
+    choices: [[tx('Regen zusagen', 'Agree to rain'), { trust: { vereine: 3, gewerbe: -1 } }, tx('Die Übung wird nass und fröhlich. Der Gewerbeverein nicht.', 'The drill gets wet and cheerful. The trade association doesn’t.')],
+      [tx('Lieber nicht', 'Rather not'), { trust: { vereine: -1 } }, tx('Die Feuerwehr spritzt sich gegenseitig nass. Geht auch.', 'The fire brigade sprays each other instead. That works too.')]] },
+  { id: 'bienen', from: 'Gemeindepräsident Huber', text: tx('Ein Bienenschwarm hat sich an der Villa Huber niedergelassen. Huber behauptet, das Wolkenamt habe ihn «mit einer Pollenwolke» hingeschickt.', 'A swarm of bees has settled on Villa Huber. Huber claims the Cloud Office sent it “with a pollen cloud”.'),
+    choices: [[tx('Sachlich dementieren', 'Deny it calmly'), { mod: { huber: 0.01 } }, tx('Niemand interessiert sich für Dementis. Huber jammert weiter.', 'Nobody cares about denials. Huber keeps whining.')],
+      [tx('Im Anzeiger einen Witz darüber machen', 'Make a joke about it in the paper'), { mod: { huber: -0.04 }, suspicion: 1 }, tx('«Selbst die Bienen wollen zu Huber. Sie suchen den Honig.» Das Dorf lacht.', '“Even the bees go to Huber. They’re looking for the honey.” The village laughs.')]] },
+  { id: 'seilbahn', from: 'Tourismusbüro', text: tx('Die Seilbahn steckt fest, mit 14 Ausflüglern drin. Sie hängen seit einer Stunde über dem Tal.', 'The cable car is stuck with 14 day-trippers inside. They have been hanging over the valley for an hour.'),
+    choices: [[tx('Gipfeli per Seil hinaufschicken (CHF 100)', 'Send croissants up on a rope (CHF 100)'), { cash: -100, trust: { gewerbe: 3 } }, tx('Die Ausflügler schreiben begeisterte Bewertungen. Über die Gipfeli.', 'The day-trippers write rave reviews. About the croissants.'), Q => Q.cash >= 100],
+      [tx('Eine Sonnenwolke darüberschieben', 'Push a sunny cloud over them'), { trust: { gewerbe: 1 }, suspicion: 1 }, tx('Warm haben sie es jetzt. Bewegen tut sich trotzdem nichts.', 'Now they’re warm. Still nothing moves.')]] },
+  { id: 'kolumne', from: 'Wolkenwiler Anzeiger', text: tx('Imboden will eine wöchentliche Kolumne auf Wolkwilisch drucken, «weil es eh niemand versteht, wie die Politik». Sie fragt, ob das Amt mitschreibt.', 'Imboden wants to print a weekly column in Wolkwilish, “because nobody understands it anyway, like politics”. She asks whether the office will contribute.'),
+    choices: [[tx('Mitschreiben', 'Contribute'), { trust: { junge: 1 }, influence: 1 }, tx('Deine erste Kolumne heisst «Grüüzimpf, Hubärli». Sie wird ausgeschnitten und an Kühlschränke geklebt.', 'Your first column is called “Grüüzimpf, Hubärli”. People cut it out and stick it on fridges.')],
+      [tx('Keine Zeit', 'No time'), {}, tx('Imboden schreibt sie allein. Sie ist besser darin als erwartet.', 'Imboden writes it alone. She is better at it than expected.')]] },
+];
+export function villageEvent(P, rnd = Math.random) {
+  P.flags = P.flags || {}; const seen = P.flags.veSeen || (P.flags.veSeen = []);
+  if (rnd() > 0.45) return null;
+  const left = VE.filter(e => !seen.includes(e.id)); if (!left.length) return null;
+  const e = left[Math.floor(rnd() * left.length)]; seen.push(e.id);
+  return { from: e.from, text: e.text, choices: e.choices };
 }

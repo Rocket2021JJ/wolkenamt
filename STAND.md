@@ -132,3 +132,15 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   einen See (mit Steg und Booten), Felder, Strasse mit gelbem Bus, Bahnlinie mit Fahrleitung und rotem
   Zug, Seitenstrasse mit Steinbrücke ins Dorf am Osthang, Nachbardörfer, Wasserfall am Osthang,
   Seilbahn vom Talboden zur Bergstation östlich vom Dorf. Wolken ziehen unter dem Dorf talauswärts.
+
+## Plan für später (noch nicht bauen, nur offen halten)
+
+- **Mit dem Bus ins Nachbardorf:** Der gelbe Bus im Tal fährt schon. Später: Bushaltestelle im Dorf, Fahrt
+  ins Nachbardorf, dort ein eigenes Wolkenamt «übernehmen» (eigene Parteien, eigener Huber, eigene Zeitung).
+- **Danach die ganze Schweiz:** Karte mit Tälern und Gemeinden, die man nacheinander einnimmt.
+- **Damit das später geht:** Dorfinhalt sollte als Daten beschrieben werden (Name, Häuser, Bewohner,
+  Parteien, Ereignisse), nicht fest im Code. Neue Arbeit möglichst so bauen.
+- **Vertrieb:** Gratis-Webspiel auf itch.io, CrazyGames und ähnlichen Portalen statt Steam.
+  CrazyGames verlangt u. a. Startdownload höchstens 50 MB, höchstens 1500 Dateien, Inhalte nach PEGI 12,
+  für den vollen Start das CrazyGames-SDK und dass man direkt im Spiel landet (ohne langes Menü).
+  HOCHDRUCK ist heute weit unter diesen Grössen. Offen: SDK, Ladezeit des Geländes, Schnellstart.

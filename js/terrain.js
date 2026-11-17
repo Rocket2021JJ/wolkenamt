@@ -24,19 +24,30 @@ function plateauDist(x, z) {
 }
 // Das Tal läuft von Süden (hinten, Talschluss) nach Norden (vorne, talauswärts). Der Fluss fliesst nach Norden.
 export const VALLEY = -72;
-export const floorY = z => -70 + z * 0.022;
+export const floorY = z => -52 + z * 0.016;
 export const riverX = z => 140 + Math.sin(z * 0.011) * 13 + Math.sin(z * 0.027 + 1) * 5;
 export const roadX = z => -122 + Math.sin(z * 0.009 + 2) * 10;
 export const railX = z => -150 + Math.sin(z * 0.007) * 6;
-const ridge = (x, z) => { const r = 1 - Math.abs(fbm(x * 0.012 + 3, z * 0.012 - 2, 5) * 2 - 1); return r * r; };
+// Hügel links und rechts vom Tal: von Hand gesetzte, runde Kuppen (keine Felswände)
+const HILLS = (() => {
+  const L = []; let sd = 7; const r = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+  for (const side of [-1, 1]) {
+    for (let z = -1050; z < 450; z += 95 + r() * 40) L.push([side * (205 + r() * 60), z, 70 + r() * 35, 38 + r() * 42]);
+    for (let z = -1100; z < 500; z += 130 + r() * 60) L.push([side * (330 + r() * 90), z, 110 + r() * 50, 70 + r() * 70]);
+    for (let z = -1150; z < 550; z += 170 + r() * 80) L.push([side * (560 + r() * 160), z, 170 + r() * 80, 110 + r() * 90]);
+  }
+  for (let x = -500; x <= 500; x += 120 + r() * 50) L.push([x, 330 + r() * 120, 120 + r() * 40, 80 + r() * 70]);
+  return L;
+})();
 function baseH(x, z) {
-  let h = floorY(z) + (fbm(x * 0.015, z * 0.015) - 0.5) * 5;
+  let h = floorY(z) + (fbm(x * 0.012, z * 0.012) - 0.5) * 4;
   // Flussrinne
   const rd = Math.abs(x - riverX(z)); h -= 3.2 * (1 - sstep(3, 10, rd));
-  // Bergketten links (West) und rechts (Ost), Talschluss im Süden
-  const ax = Math.abs(x), side = sstep(185, 330, ax);
-  h += side * (110 + ridge(x, z) * 230) + sstep(320, 520, ax) * 120;
-  h += sstep(260, 470, z) * (150 + ridge(x * 1.3, z) * 160) * (1 - side * 0.5);
+  // Hügel
+  for (const [hx, hz, r, ht] of HILLS) { const dx = x - hx, dz = z - hz, d2 = (dx * dx + dz * dz) / (r * r); if (d2 < 6) h += ht * Math.exp(-d2 * 1.35); }
+  // sanfter Anstieg zu den Talflanken und zum Talschluss, kleine Wellen
+  const ax = Math.abs(x);
+  h += sstep(160, 700, ax) * 55 + sstep(260, 650, z) * 60 + (fbm(x * 0.02 + 5, z * 0.02) - 0.5) * 14 * sstep(150, 260, ax);
   return h;
 }
 export function terrainH(x, z) {
@@ -78,7 +89,8 @@ function colorAt(x, z, h, slope, d) {
     if (slope > 0.9) c.lerp(FELS, sstep(0.9, 1.6, slope));
     return c;
   }
-  // Berge: Wald unten, Alpweiden, Fels, Schnee – klar getrennte Bänder
+  // Hügel: Flickenteppich aus Wiesen, Hecken und Waldstücken
+  return patchColor(x, z, h, slope);
   const hn = h + (n - 0.5) * 28;
   c = WALD.clone().lerp(GR[2], n2 * 0.25);
   if (hn > 25) c = ALP.clone().lerp(GR[1], n2 * 0.3);
@@ -92,6 +104,30 @@ function colorAt(x, z, h, slope, d) {
   }
   if (hn > 140 && slope < 0.95) c = c.lerp(SCHNEE, sstep(140, 175, hn) * 0.9);
   if (hn > 175) c = SCHNEE.clone().lerp(FELS2, slope > 1.5 ? 0.35 : 0);
+  return c;
+}
+
+// Wiesenstücke als unregelmässige Zellen (Voronoi), jede Zelle eine Farbe; manche sind Wald
+const MEADOW = [C('#7FA055'), C('#8DAA5E'), C('#6F9450'), C('#98B266'), C('#87A35A'), C('#B9B46A')], HECKE = C('#46653A'), WALD2 = C('#3F5F36');
+export function patchCell(x, z) {
+  const S = 46, gx = Math.floor(x / S), gz = Math.floor(z / S); let b1 = 1e9, b2 = 1e9, id = 0, cx = 0, cz = 0;
+  for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+    const px = (gx + i + 0.15 + hash(gx + i, gz + j) * 0.7) * S, pz = (gz + j + 0.15 + hash(gz + j + 71, gx + i - 13) * 0.7) * S, d = Math.hypot(x - px, z - pz);
+    if (d < b1) { b2 = b1; b1 = d; id = (gx + i) * 7919 + (gz + j); cx = px; cz = pz; } else if (d < b2) b2 = d;
+  }
+  const hv = hash(id, 3), fr = fbm(cx * 0.006 + 3, cz * 0.006, 3);
+  const forest = (Math.abs(cx) > 150 || cz > 240) && (hv < 0.18 + sstep(0.45, 0.7, fr) * 0.55);
+  return { id, edge: b2 - b1, forest, tone: Math.floor(hash(id, 9) * MEADOW.length), stripes: hash(id, 5) < 0.45, ang: hash(id, 11) * 3.14 };
+}
+let edgeW = 2.2;
+function patchColor(x, z, h, slope) {
+  const P = patchCell(x, z);
+  if (P.forest) return WALD2.clone().lerp(WALD, hash(P.id, 2) * 0.6);
+  if (P.edge < edgeW && edgeW < 4) return HECKE.clone();
+  let c = MEADOW[P.tone === 5 && hash(P.id, 4) > 0.5 ? 0 : P.tone].clone();
+  if (P.stripes && edgeW < 4 && Math.floor((x * Math.cos(P.ang) + z * Math.sin(P.ang)) / 3.2) % 2) c.lerp(C('#A9C070'), 0.25);
+  if (slope > 1.3) c.lerp(FELS, sstep(1.3, 2.0, slope) * 0.45);
+  if (h > floorY(z) + 230) c.lerp(ALP, 0.5);
   return c;
 }
 
@@ -109,6 +145,18 @@ function terrainMesh(size, seg, cx, cz, hole) {
   }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   const flat = geo.toNonIndexed(); flat.computeVertexNormals();
+  // Ausserhalb des Dorfes: eine Farbe pro Dreieck aus seinem Mittelpunkt (klare Flicken statt Verläufe)
+  const FP = flat.attributes.position, FC = flat.attributes.color, FN = flat.attributes.normal;
+  // je zwei Dreiecke bilden ein Feld des Rasters: das ganze Feld bekommt eine Farbe (keine Zacken)
+  for (let t = 0; t < FP.count; t += 6) {
+    let x = 0, y = 0, z = 0; for (let k = 0; k < 6; k++) { x += FP.getX(t + k); y += FP.getY(t + k); z += FP.getZ(t + k); } x /= 6; y /= 6; z /= 6;
+    const d = plateauDist(x, z); if (d < 4) continue;
+    const ny = Math.max(0.05, (FN.getY(t) + FN.getY(t + 3)) / 2), sl = Math.sqrt(1 - ny * ny) / ny;
+    edgeW = e * 0.6;
+    const c = colorAt(x, z, y, sl, d);
+    for (let k = 0; k < 6; k++) FC.setXYZ(t + k, c.r, c.g, c.b);
+  }
+  edgeW = 2.2;
   return flat;
 }
 const terrainMat = () => new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: gradient });
@@ -143,13 +191,13 @@ function forest(w) {
     if (sl > 5.5) continue;
     spots.push([x, h, z, 1.7 + rnd() * 1.5 + d * 0.06]);
   }
-  // Bergwälder links und rechts, Bäume am Flussufer
-  for (let tries = 0; tries < 60000 && spots.length < 4600; tries++) {
-    const side = rnd() < 0.5 ? -1 : 1, x = side * (175 + rnd() * 200), z = -900 + rnd() * 1300;
-    const h = terrainH(x, z); if (h > 60 + (fbm(x * 0.03, z * 0.03) - 0.5) * 40) continue;
-    if (fbm(x * 0.018, z * 0.018) < 0.42) continue;
-    const sl = Math.abs(terrainH(x + 4, z) - h) + Math.abs(terrainH(x, z + 4) - h); if (sl > 11) continue;
-    spots.push([x, h, z, 6 + rnd() * 4]);
+  // Waldstücke auf den Hügeln (dicht, nur in Waldzellen) und einzelne Bäume an Hecken
+  for (let tries = 0; tries < 110000 && spots.length < 7400; tries++) {
+    const south = rnd() < 0.18, x = south ? (rnd() - 0.5) * 900 : (rnd() < 0.5 ? -1 : 1) * (160 + rnd() * 560), z = south ? 250 + rnd() * 380 : -1000 + rnd() * 1450;
+    if (plateauDist(x, z) < 70) continue;
+    const P = patchCell(x, z), h = terrainH(x, z);
+    if (P.forest) { if (P.edge < 1.5) continue; spots.push([x, h, z, 5 + rnd() * 3.5]); continue; }
+    if (P.edge < 3 && rnd() < 0.08) spots.push([x, h, z, 4 + rnd() * 2.5]);
   }
   for (let k = 0; k < 220; k++) { const z = -700 + rnd() * 900, x = riverX(z) + (rnd() < 0.5 ? -1 : 1) * (9 + rnd() * 5); spots.push([x, terrainH(x, z), z, 3 + rnd() * 2]); }
   const im = new THREE.InstancedMesh(geo, mat, spots.length), m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
@@ -180,14 +228,14 @@ function grassTufts(w) {
 function mountainsFar(w) {
   // Ganz hinten ein Ring aus Bergketten mit gezackten Gipfeln, Schnee oben, im Dunst bläulich.
   // Richtung Norden (Talausgang) niedriger, damit man weit hinaus sieht.
-  const CZ = -300, N = 420, rows = [[1250, 0, -140], [1480, 0.62, 0], [1640, 1, 0], [1820, 0.78, 0], [2050, 0.35, 0]];
+  const CZ = -300, N = 420, rows = [[1500, 0, -60], [1700, 0.55, 0], [1850, 1, 0], [2000, 0.75, 0], [2200, 0.3, 0]];
   const pos = [], col = [], idx = [];
   const rock = C('#8E9DAB'), rock2 = C('#7D8C9B'), snow = C('#EEF2F4'), lowc = C('#7F9384');
   const hAt = (a) => {
     const nx = Math.cos(a) * 3, nz = Math.sin(a) * 3;
     const r1 = 1 - Math.abs(fbm(nx + 11, nz + 4, 5) * 2 - 1), r2 = fbm(nx * 4 + 2, nz * 4 - 7, 3);
     const north = Math.exp(-Math.pow(Math.atan2(Math.cos(a), -Math.sin(a)) / 0.5, 2));   // a zeigt nach -z
-    return (260 + r1 * r1 * 520 + r2 * 120) * (1 - north * 0.62);
+    return (150 + r1 * r1 * 380 + r2 * 80) * (1 - north * 0.55);
   };
   for (let i = 0; i <= N; i++) {
     const a = i / N * Math.PI * 2, ph = hAt(a);
@@ -195,7 +243,7 @@ function mountainsFar(w) {
       const jag = j === 2 ? (fbm(i * 0.9, 3.3, 2) - 0.5) * 90 : (fbm(i * 0.5, j * 5.1, 2) - 0.5) * 40;
       const y = y0 + (k ? ph * k + jag * k : -120);
       pos.push(Math.cos(a) * r, y, CZ + Math.sin(a) * r);
-      const c = (y > 380 + (fbm(i * 0.4, j) - 0.5) * 120 ? snow : (j % 2 ? rock : rock2)).clone();
+      const c = (y > 300 + (fbm(i * 0.4, j) - 0.5) * 100 ? snow : (j % 2 ? rock : rock2)).clone();
       if (k < 0.5) c.lerp(lowc, 0.5);
       col.push(c.r, c.g, c.b);
     });
@@ -211,18 +259,18 @@ function mountainsFar(w) {
 function alpHuts(w) {
   let seed = 77; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   const spots = [];
-  for (let t = 0; t < 9000 && spots.length < 34; t++) {
-    const side = rnd() < 0.5 ? -1 : 1, x = side * (200 + rnd() * 230), z = -950 + rnd() * 1250, h = terrainH(x, z);
+  for (let t = 0; t < 12000 && spots.length < 46; t++) {
+    const side = rnd() < 0.5 ? -1 : 1, x = side * (185 + rnd() * 420), z = -950 + rnd() * 1300, h = terrainH(x, z);
     const sl = (Math.abs(terrainH(x + 6, z) - h) + Math.abs(terrainH(x, z + 6) - h)) / 6;
-    if (sl > 0.45 || h < floorY(z) + 25 || h > 150) continue;
-    if (spots.some(p => Math.hypot(p[0] - x, p[2] - z) < 60)) continue;
-    spots.push([x, h, z, rnd() * 6.28, 0.8 + rnd() * 0.5]);
+    if (sl > 0.35 || h < floorY(z) + 10 || patchCell(x, z).forest) continue;
+    if (spots.some(p => Math.hypot(p[0] - x, p[2] - z) < 70)) continue;
+    spots.push([x, h, z, rnd() * 6.28, 1.2 + rnd() * 0.7]);
   }
   const body = new THREE.BoxGeometry(6, 3.2, 4.6); body.translate(0, 1.6, 0);
   const shape = new THREE.Shape(); shape.moveTo(-3.9, 0); shape.lineTo(3.9, 0); shape.lineTo(0, 2.4); shape.closePath();
-  const roof = new THREE.ExtrudeGeometry(shape, { depth: 5.6, bevelEnabled: false }); roof.translate(0, 3.1, -2.8);
+  const roof = new THREE.ExtrudeGeometry(shape, { depth: 6.2, bevelEnabled: false }); roof.scale(1.15, 1.25, 1); roof.translate(0, 3.1, -3.1);
   const mk = (g, c) => { const im = new THREE.InstancedMesh(g, toon(c), spots.length); w.scene.add(im); return im; };
-  const A = mk(body, '#8A5A36'), B = mk(roof, '#5A5E62'), m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3();
+  const A = mk(body, '#E6DDC6'), B = mk(roof, '#8A4E2E'), m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3();
   spots.forEach(([x, h, z, r, k], i) => { q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), r); sc.setScalar(k); p.set(x, h - 0.4, z); m.compose(p, q, sc); A.setMatrixAt(i, m); B.setMatrixAt(i, m); });
   return [A, B];
 }
@@ -366,7 +414,7 @@ function skyDome(w) {
 export function buildLandscape(w) {
   // Nahbereich fein, Fernbereich grob (das feine Stück liegt etwas höher und deckt das grobe ab)
   const near = new THREE.Mesh(terrainMesh(300, 230, 0, -20), terrainMat()); near.receiveShadow = true; w.scene.add(near);
-  const farGeo = terrainMesh(2600, 210, 0, -300, { x: 0, z: -20, s: 300 });
+  const farGeo = terrainMesh(2600, 300, 0, -300, { x: 0, z: -20, s: 300 });
   const far = new THREE.Mesh(farGeo, terrainMat()); far.position.y = -0.6; w.scene.add(far);
   w.terrain = { near, far };
   w.forest = forest(w);
@@ -376,9 +424,8 @@ export function buildLandscape(w) {
   lake(w);
   riverAndRoads(w);
   valleyVillage(w, -80, -300, 16);
-  valleyVillage(w, 205, -150, 10, 91);
+  valleyVillage(w, 95, -170, 10, 91);
   valleyVillage(w, -95, 190, 8, 33);
-  waterfall(w);
   cableCar(w);
   train(w);
   // bewegliche Dinge nicht zusammenfassen (sonst bleibt eine Kopie am Nullpunkt stehen)

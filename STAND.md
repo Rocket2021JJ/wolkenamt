@@ -185,3 +185,8 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   der echten Türe, Rückseiten mit Fenstern, Läden und Holzbeigen. Umgebung: Felswände mit Schichtbändern,
   Rinnen, Grasbändern und Geröll, ein Ring aus Bergketten am Horizont statt der Kegel, Alphütten,
   Felsbrocken.
+- Umgebung neu (17.11.): Statt hoher Felswände sanfte Voralpen-Hügel links und rechts vom Tal (von Hand
+  gesetzte Kuppen in drei Reihen). Darauf ein Flickenteppich aus Wiesen (je Feld eine Farbe, teils mit
+  Mähstreifen), Hecken an den Feldrändern und klar abgegrenzten Waldstücken; Bauernhöfe auf den Hügeln.
+  Farben pro Rasterfeld statt Verläufe, damit es gemalt statt generiert wirkt. Die Alpen stehen nur noch
+  niedrig und dunstig am Horizont. Wasserfall entfernt (passte nicht zu Hügeln), Nachbardorf ins Tal versetzt.

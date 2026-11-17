@@ -533,3 +533,22 @@ body.mode2d #bubbles{display:none}
 .rbtns.left{justify-content:flex-start}
 .setbox select{font:inherit;border:1.5px solid var(--tinte);background:var(--blatt);padding:3px 6px;border-radius:3px}
 .setbox{max-height:92vh;overflow:auto}
+
+/* Errungenschaften: Zettel mit Stempel, fällt von oben rein */
+#achPop{position:fixed;top:14px;left:50%;transform:translateX(-50%) rotate(.8deg);z-index:40;display:flex;gap:12px;align-items:center;
+  background:var(--blatt);border:1.5px solid var(--tinte);padding:10px 16px 10px 12px;box-shadow:0 8px 18px rgba(0,0,0,.28);max-width:380px;pointer-events:none}
+#achPop.in{animation:achin .5s cubic-bezier(.2,1.4,.4,1)} #achPop.out{animation:achout .45s ease-in forwards}
+@keyframes achin{0%{transform:translateX(-50%) translateY(-90px) rotate(-4deg)}100%{transform:translateX(-50%) rotate(.8deg)}}
+@keyframes achout{100%{transform:translateX(-50%) translateY(-110px) rotate(3deg);opacity:0}}
+#achPop .achseal{width:44px;height:44px;border-radius:50%;border:2.5px solid var(--rot,#C8352B);color:var(--rot,#C8352B);display:grid;place-items:center;font-size:22px;transform:rotate(-12deg);flex:none}
+#achPop div{display:flex;flex-direction:column;gap:1px}
+#achPop .achk{font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.6}
+#achPop em{font-family:var(--serif);font-size:13px;opacity:.75}
+#achPop b{font-family:var(--serif);font-size:18px;font-weight:400}
+#achPop small:last-child{font-size:12.5px}
+#achList{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.achrow{display:flex;gap:10px;align-items:center;padding:6px 8px;border:1px dashed rgba(0,0,0,.25);opacity:.6}
+.achrow.on{opacity:1;border-style:solid;background:rgba(255,255,255,.35)}
+.achrow .achst{width:26px;height:26px;border-radius:50%;border:2px solid currentColor;display:grid;place-items:center;font-weight:700;flex:none}
+.achrow.on .achst{color:#C8352B;transform:rotate(-10deg)}
+.achrow div{display:flex;flex-direction:column} .achrow b{font-family:var(--serif);font-weight:400;font-size:16px} .achrow em{font-size:12px;opacity:.7} .achrow small{font-size:12.5px}

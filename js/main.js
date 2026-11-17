@@ -3,6 +3,7 @@ import * as LG from './lingo.js';
 import { pickMotif, drawPicture, drawWeather } from './paper.js';
 import { buildHall, HALL_SPOT } from './hall.js';
 import { FOLK, folkLine } from './folk.js';
+import { ACH, unlock } from './achievements.js';
 import { detailVillage, stepHens, partyPosters, updatePosters, setDusk, stepSmoke } from './village.js';
 import { stepLandscape } from './terrain.js';
 import { decorateRoof, buildRoessli, buildParteienhaus, buildHuberhaus, markEntrances, signpost, ROESSLI_SPOT, PARTEI_SPOT, HUBER_SPOT } from './interiors.js';
@@ -129,6 +130,34 @@ if (touchMode) document.body.classList.add('touch');
 
 function setTask(key, vars) { taskKey = key; taskVars = vars; $('hTask').textContent = key ? t(key, vars) : ''; }
 function setDay(text) { $('hDay').textContent = text || ''; }
+// Errungenschaften: Meldung oben in der Mitte, wie ein aufgeklebter Stempelzettel
+const achQ = []; let achBusy = false;
+function ach(id) {
+  if (flow !== 'single' || !unlock(save, id)) return;
+  persist(); achQ.push(id); if (!achBusy) achNext();
+}
+function achNext() {
+  const id = achQ.shift(); if (!id) { achBusy = false; return; }
+  achBusy = true; const a = ACH.find(x => x.id === id), el = $('achPop');
+  el.querySelector('em').textContent = '«' + a.lingo + '»'; el.querySelector('b').textContent = L(a.name); el.querySelector('small:last-child').textContent = L(a.desc);
+  el.classList.remove('hidden', 'out'); void el.offsetWidth; el.classList.add('in');
+  A.speak(LG.syllables(a.lingo), A.voiceFor('Gemeindeschreiber'), { interrupt: false, mood: '!', noGesture: true, gain: 0.6 }); A.stampSound();
+  setTimeout(() => { el.classList.remove('in'); el.classList.add('out'); setTimeout(() => { el.classList.add('hidden'); achNext(); }, 450); }, 3600);
+}
+function openAch() {
+  const back = [...OVER].filter(x => !$(x).classList.contains('hidden'));
+  $('achList').innerHTML = ''; const got = save.ach || {};
+  $('achCount').textContent = t('ach.count', { n: Object.keys(got).length, m: ACH.length });
+  ACH.forEach(a => {
+    const on = !!got[a.id], r = document.createElement('div'); r.className = 'achrow' + (on ? ' on' : '');
+    const st = document.createElement('span'); st.className = 'achst'; st.textContent = on ? '✓' : '?';
+    const tx = document.createElement('div'); const b = document.createElement('b'), em = document.createElement('em'), sm = document.createElement('small');
+    b.textContent = on || !a.hidden ? L(a.name) : t('ach.secret'); em.textContent = on ? '«' + a.lingo + '»' : ''; sm.textContent = on || !a.hidden ? L(a.desc) : t('ach.secretDesc');
+    tx.append(b, em, sm); r.append(st, tx); $('achList').appendChild(r);
+  });
+  $('achBox').classList.remove('hidden');
+  $('achClose').onclick = () => { $('achBox').classList.add('hidden'); back.forEach(x => $(x).classList.remove('hidden')); };
+}
 // Erster Tag: kleiner Einführungszettel, springt weiter sobald der Schritt erledigt ist
 const TUT = [
   { k: 'tut.walk', done: s => s.moved > 2.5 },
@@ -416,7 +445,7 @@ function updateAkte() {
     r.append(n, bar, v); wrap.appendChild(r);
   });
   tally($('aSusp'), P.suspicion); $('aSuspN').textContent = P.suspicion;
-  $('akte').classList.toggle('hot', P.suspicion >= 60);
+  $('akte').classList.toggle('hot', P.suspicion >= 60); if (P.suspicion >= 60) ach('hochdruck');
   $('aInf').textContent = P.influence; $('aCash').textContent = fmtCash(P.cash);
   $('aInvRow').classList.toggle('hidden', P.inv == null);
   if (P.inv != null) { tally($('aInv'), P.inv); $('aInvN').textContent = P.inv; }
@@ -535,7 +564,7 @@ function updateDesk(msg, warn) {
 $('dGo').onclick = () => {
   if (!run || $('dGo').disabled) return;
   const Dy = DAYS[run.d];
-  run.queue = Dy.cards.filter(c => !isSpecial(c) && run.dec[String(c)] === 'yes'); run.qi = -1; run.stamped = true;
+  run.queue = Dy.cards.filter(c => !isSpecial(c) && run.dec[String(c)] === 'yes'); run.qi = -1; run.stamped = true; ach('erster_stempel');
   scheduleCall();
   if (!run.queue.length) return showReport();
   enterWorld(null, 'task.platform', { n: run.queue.length });
@@ -623,6 +652,7 @@ function showResult() {
   const gain = Math.round(total * (3 + Math.random() * 4));
   save.sight = (save.sight || 0) + gain;
   if (!free) save.stars[cut.lvl] = Math.max(save.stars[cut.lvl] || 0, cut.finalStars);
+  if (!free) { ach('erste_wolke'); if (cut.finalStars >= 3) ach('drei_sterne'); }
   persist();
   $('rGain').textContent = t('res.gain', { g: num(gain), t: num(save.sight) });
   if (run && run.kind === 'day') {
@@ -698,6 +728,7 @@ function showReport() {
     if (fx) { const ch = POW.apply(P, fx); if (ch.length) sum.append(fxChips(ch)); }
   }
   if (bonus) sum.append(document.createElement('br'), span('', t('rep.bonus', { b: num(bonus) })));
+  if (Dy.end === 1) ach('kapitel1');
   if (last) sum.append(document.createElement('br'), document.createElement('br'), span('', t(Dy.end === 4 ? 'sb.repYear' : Dy.end === 3 ? 'rep.week3' : Dy.end === 2 ? 'rep.week2' : 'rep.week', { r: rankOf(totalStars()) })));
   $('pNext').textContent = last ? t('btn.central') : t('rep.next', { day: L(DAYS[d + 1].name) });
   $('pNext').onclick = last ? () => showMenu() : () => startDay(d + 1);
@@ -815,7 +846,7 @@ function hubKey(x) { return 'hub_' + x + '_' + (inSB() ? save.sb.year * 10 + sav
 function hubNoise(n) {
   const P = save.power; office.dogNoise = (office.dogNoise || 0) + (run.fog ? n * 0.5 : n);
   if (office.dogNoise < 3) return false;
-  A.sfx('tumble'); setTimeout(() => A.ui('bad'), 200);
+  A.sfx('tumble'); setTimeout(() => A.ui('bad'), 200); ach('blaess');
   const box = townPanel(t('hh.kicker'), t('hh.dogTitle'), t('hh.dogInfo'));
   const ch = POW.apply(P, { suspicion: 10, mod: { _own: -0.05 } }); box.appendChild(fxChips(ch));
   P.flags[hubKey('out')] = 1; persist(); updateAkte();
@@ -844,13 +875,14 @@ function openHuberSpot(id) {
       if (hubNoise(1)) return;
       box.innerHTML = ''; box.classList.remove('resv');
       const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('hh.safeOpen'); box.appendChild(p);
+      ach('tresor');
       actRow(box, t('hh.safeCash'), t('hh.safeCashInfo'), true, () => panelResult(box, t('hh.safeCashRes'), POW.apply(P, { cash: 1200, suspicion: 8 })));
       actRow(box, t('hh.safeDoc'), t('hh.safeDocInfo'), true, () => panelResult(box, t('hh.safeDocRes'), POW.apply(P, { mod: { huber: -0.14 }, influence: 2 })));
       A.ui('coin');
     }, t('hh.safeBtn')));
   }
   if (id === 'hportrait') actRow(box, t('hh.portDo'), t('hh.noise0'), true, () => {
-    mark(); office.huberScribble.visible = true; P.flags.scribbled = 1;
+    mark(); office.huberScribble.visible = true; P.flags.scribbled = 1; ach('schnurrbart');
     panelResult(box, t('hh.portRes'), POW.apply(P, { mod: { huber: -0.03 }, suspicion: 2 }));
   });
   if (id === 'hmodel') actRow(box, t('hh.modelDo'), t('hh.noise1'), true, () => {
@@ -878,6 +910,7 @@ const pname2 = p => L(POW.PARTIES[p].name);
 // ---------------- Parteienhaus: eigenes Büro und fremde Pulte ----------------
 function openPartyDesk(pid) {
   const P = save.power; if (!P || !run || run.kind !== 'day') return;
+  (save.desksSeen ||= {})[pid] = 1; if (Object.keys(save.desksSeen).length >= 4) ach('einbrecher');
   P.flags = P.flags || {};
   const dayKey = 'pb' + (inSB() ? save.sb.year * 10 + save.sb.day : run.d);
   if (pid === P.party) {
@@ -944,6 +977,7 @@ function openFolk(i) {
   if (P.flags[key]) return;
   actRow(box, t('folk.listen'), t('folk.listenInfo', { g: L(POW.GROUPS[f.group].name) }), true, () => {
     P.flags[key] = 1; if (f.id === 'elsbeth') P.flags.safeHint = 1;
+    (save.folkHeard ||= {})[f.id] = 1; if (FOLK.every(x => save.folkHeard[x.id])) ach('zuhoerer');
     panelResult(box, t('folk.listenRes', { n: L(f.name) }) + (f.id === 'elsbeth' ? ' ' + t('folk.elsbethHint') : ''), POW.apply(P, { trust: { [f.group]: 2 } }));
   }, t('folk.listenBtn'));
 }
@@ -1148,6 +1182,7 @@ function electionEnd(P, box) {
   if (P.flags.wyss_envelope) { const e = document.createElement('p'); e.className = 'hsub'; e.textContent = t('end3.envelope'); box.appendChild(e); }
   if (P.flags.rain_promise) { const e = document.createElement('p'); e.className = 'hsub'; e.textContent = t('end3.rain'); box.appendChild(e); }
   P.ending = E.end;
+  if (E.end === 'parking') ach('parkplatz'); else if (['clean', 'win', 'hollow'].includes(E.end)) { ach('huber_gestuerzt'); if (E.end === 'clean') ach('sauber'); }
   const n = document.createElement('p'); n.className = 'hsub'; n.textContent = t('end3.thanks'); box.appendChild(n);
 }
 
@@ -1158,7 +1193,7 @@ function verdictEnd(P, box) {
   const p = document.createElement('p'); p.className = 'lres'; p.textContent = t('end2.' + k, { p: L(POW.PARTIES[P.party].name) }); box.appendChild(p);
   if (P.flags.wyss_envelope) { const e = document.createElement('p'); e.className = 'hsub'; e.textContent = t('end2.envelope'); box.appendChild(e); }
   box.appendChild(fxChips(POW.apply(P, POW.VERDICT_FX[k])));
-  P.verdict = k;
+  P.verdict = k; ach('kapitel2');
   const n = document.createElement('p'); n.className = 'hsub'; n.textContent = t('end2.next'); box.appendChild(n);
 }
 function removedEnd(P, box) {
@@ -1650,6 +1685,7 @@ function renderSetMore() {
   io.append(ex, im); box.appendChild(io);
 }
 $('mSettings').onclick = openSettings;
+$('mAch').onclick = openAch;
 $('lDe').onclick = () => setLang('de'); $('lEn').onclick = () => setLang('en');
 addEventListener('keydown', e => {
   if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;

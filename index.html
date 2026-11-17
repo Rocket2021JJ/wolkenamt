@@ -80,7 +80,7 @@
           <button id="mMulti" data-i18n="menu.local">Zu dritt an einem Gerät</button>
           <button id="mReset" class="ghost hidden"></button>
         </div>
-        <footer class="studio"><span class="by" data-i18n="studio.by">Ein Spiel von</span><svg viewBox="14 18 72 66" aria-hidden="true"><path d="M20 70 V36 L35 50 L50 28 L65 50 L80 36 V70 Z M50 64 C43 59.5 41.5 53.5 45.5 52 C47.8 51.2 49.4 52.6 50 54 C50.6 52.6 52.2 51.2 54.5 52 C58.5 53.5 57 59.5 50 64 Z" fill="#C8A251" fill-rule="evenodd"/><rect x="20" y="74" width="60" height="7" rx="1.5" fill="#C8A251"/><circle cx="20" cy="33" r="4" fill="#C8A251"/><circle cx="50" cy="25" r="4" fill="#C8A251"/><circle cx="80" cy="33" r="4" fill="#C8A251"/></svg><span class="sw">DUCHY GAMES</span><button id="mSound" class="ghost small"></button><button id="mSettings" class="ghost small" data-i18n="set.open">Einstellungen</button></footer>
+        <footer class="studio"><span class="by" data-i18n="studio.by">Ein Spiel von</span><svg viewBox="14 18 72 66" aria-hidden="true"><path d="M20 70 V36 L35 50 L50 28 L65 50 L80 36 V70 Z M50 64 C43 59.5 41.5 53.5 45.5 52 C47.8 51.2 49.4 52.6 50 54 C50.6 52.6 52.2 51.2 54.5 52 C58.5 53.5 57 59.5 50 64 Z" fill="#C8A251" fill-rule="evenodd"/><rect x="20" y="74" width="60" height="7" rx="1.5" fill="#C8A251"/><circle cx="20" cy="33" r="4" fill="#C8A251"/><circle cx="50" cy="25" r="4" fill="#C8A251"/><circle cx="80" cy="33" r="4" fill="#C8A251"/></svg><span class="sw">DUCHY GAMES</span><button id="mSound" class="ghost small"></button><button id="mAch" class="ghost small" data-i18n="ach.open">Errungenschaften</button><button id="mSettings" class="ghost small" data-i18n="set.open">Einstellungen</button></footer>
       </section>
     </div>
 
@@ -268,6 +268,16 @@
       </div>
     </div>
 
+    <div id="achPop" class="hidden"><span class="achseal">★</span><div><small class="achk" data-i18n="ach.new">Errungenschaft</small><em></em><b></b><small></small></div></div>
+    <div id="achBox" class="overlay dim hidden">
+      <div class="sheet setbox">
+        <div class="kicker" data-i18n="ach.kicker">Zentrale · Personalakte</div>
+        <h2 data-i18n="ach.title">Errungenschaften</h2>
+        <p class="hsub" id="achCount"></p>
+        <div id="achList"></div>
+        <div class="rbtns"><button id="achClose" class="prim" data-i18n="btn.close">Schliessen</button></div>
+      </div>
+    </div>
     <div id="settings" class="overlay dim hidden">
       <div class="sheet setbox">
         <div class="kicker" data-i18n="set.kicker">Zentrale · Einstellungen</div>

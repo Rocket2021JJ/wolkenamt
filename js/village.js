@@ -37,6 +37,21 @@ function decorateHouse(w, g, i) {
       }
     }
   }
+  // Rückseite: Fenster mit Rahmen und Läden (vom Dorfplatz aus sieht man oft die Rückseiten)
+  { const shc = [PAL.matte, PAL.rot, '#3E5A3A', PAL.tinte][i % 4];
+    for (let k = 0; k < nw; k++) {
+      const fx = -W / 2 + (k + 0.5) * W / nw;
+      for (const fy of H > 3.3 ? [1.35, H - 0.55] : [1.35]) {
+        if (r() < 0.2) continue;
+        B(0.5, 0.58, 0.04, PAL.tinte, fx, fy - 0.3, bz - 0.02, { cast: false });
+        B(0.6, 0.05, 0.07, PAL.schnee, fx, fy - 0.36, bz - 0.04, { cast: false }); B(0.6, 0.05, 0.07, PAL.schnee, fx, fy + 0.29, bz - 0.04, { cast: false });
+        B(0.03, 0.58, 0.05, PAL.schnee, fx, fy - 0.3, bz - 0.045, { cast: false });
+        for (const sd of [-1, 1]) { B(0.2, 0.62, 0.04, shc, fx + sd * 0.37, fy - 0.32, bz - 0.03, { cast: false }); B(0.16, 0.02, 0.02, PAL.schnee, fx + sd * 0.37, fy - 0.05, bz - 0.06, { cast: false }); }
+      }
+    }
+    // Holzbeige an der Rückwand
+    if (r() < 0.6) for (let y = 0; y < 0.9; y += 0.18) B(W * 0.5, 0.17, 0.35, y % 0.36 < 0.18 ? HOLZHELL : PAL.nuss, (r() - 0.5) * W * 0.3, y, bz - 0.2, { cast: false });
+  }
   // Seitenfenster
   for (const sx of [-1, 1]) if (r() < 0.7) { B(0.06, 0.6, 0.55, PAL.tinte, sx * (W / 2 + 0.02), 1.1, w.jit(D * 0.2), { cast: false }); B(0.08, 0.05, 0.65, PAL.schnee, sx * (W / 2 + 0.04), 1.05, 0, { cast: false }); }
   // Holzbalkon im oberen Stock
@@ -70,6 +85,42 @@ function decorateHouse(w, g, i) {
     m.rotation.z = -s * ang; m.position.x += s * 0.0;
   }
   for (const s of [-1, 1]) { const bb = B(slope + 0.05, 0.06, 0.06, HOLZHELL, s * rw / 4, H + roofH / 2 - 0.03, D / 2 + 0.36, { cast: false }); bb.rotation.z = -s * ang; }
+  // Zierbrett mit Laubsäge-Zacken unter den Dachkanten vorne (typisch Chalet)
+  const zcol = wood ? PAL.schnee : HOLZHELL;
+  const tri = new THREE.Shape(); tri.moveTo(-0.07, 0); tri.lineTo(0.07, 0); tri.lineTo(0, -0.13); tri.closePath();
+  const triGeo = new THREE.ShapeGeometry(tri);
+  for (const fs of [1, -1]) for (const sd of [-1, 1]) {
+    const nz = Math.floor(slope / 0.17), zf = fs * (D / 2 + 0.38);
+    for (let k = 1; k < nz; k++) {
+      const u = k / nz, x = sd * (rw / 2) * (1 - u), y = H + roofH * u - 0.1;
+      const m = new THREE.Mesh(triGeo, toon(zcol)); m.position.set(x, y, zf); m.rotation.z = -sd * ang; if (fs < 0) m.rotation.y = Math.PI; g.add(m);
+    }
+  }
+  // Pfettenköpfe: Balkenenden, die unter dem Dach vorne herausschauen
+  for (const [x, y] of [[0, H + roofH - 0.28], [-rw / 4 - 0.05, H + roofH / 2 - 0.22], [rw / 4 + 0.05, H + roofH / 2 - 0.22], [-W / 2 - 0.05, H - 0.02], [W / 2 + 0.05, H - 0.02]]) {
+    for (const fs of [1, -1]) B(0.17, 0.17, 0.5, PAL.nuss, x, y - 0.085, fs * (D / 2 + 0.12), { cast: false });
+  }
+  // Firstbrett und Schneefang
+  B(0.2, 0.1, D + 0.78, PAL.tinte, 0, H + roofH - 0.04, 0, { cast: false });
+  for (const sd of [-1, 1]) { const sf = B(0.05, 0.05, D + 0.6, BLECH, sd * rw * 0.36, H + roofH * 0.28 + 0.07, 0, { cast: false }); sf.rotation.z = -sd * ang; }
+  if (!wood) {
+    // Gemauerte Häuser: gemalte Eckquader und ein Sgraffito-Fries mit Rauten unter dem Holzstock
+    const QC = '#B9B2A2';
+    for (const sx of [-1, 1]) for (let y = 0.4, k = 0; y < H - 1.1; y += 0.3, k++) {
+      const wq = k % 2 ? 0.22 : 0.38;
+      B(wq, 0.24, 0.02, QC, sx * (W / 2 - wq / 2 + 0.005), y, D / 2 + 0.012, { cast: false });
+      B(0.02, 0.24, wq, QC, sx * (W / 2 + 0.012), y, D / 2 - wq / 2 + 0.005, { cast: false });
+    }
+    const fy = H - 1.05;
+    B(W - 0.1, 0.03, 0.015, '#5E5A52', 0, fy + 0.2, D / 2 + 0.012, { cast: false }); B(W - 0.1, 0.03, 0.015, '#5E5A52', 0, fy - 0.08, D / 2 + 0.012, { cast: false });
+    for (let x = -W / 2 + 0.25; x < W / 2 - 0.15; x += 0.26) { const d = B(0.09, 0.09, 0.015, '#5E5A52', x, fy + 0.02, D / 2 + 0.013, { cast: false }); d.rotation.z = Math.PI / 4; }
+  } else {
+    // Holzhäuser: Bundbalken zwischen den Stockwerken mit Inschrift-Brett
+    if (H > 3.2) { B(W + 0.06, 0.12, 0.05, PAL.nuss, 0, 2.55, D / 2 + 0.02, { cast: false }); B(W * 0.5, 0.16, 0.02, '#D9C9A3', 0, 2.72, D / 2 + 0.03, { cast: false }); }
+  }
+  // Vordach über der Türe auf zwei Bügen
+  if (g.userData.doorX != null) { const dx = g.userData.doorX, vy = 1.95; const vd = B(1.2, 0.06, 0.62, PAL.nuss, dx, vy, D / 2 + 0.31); vd.rotation.x = 0.22;
+    for (const sd of [-1, 1]) { const bg = B(0.05, 0.4, 0.05, PAL.nuss, dx + sd * 0.5, vy - 0.4, D / 2 + 0.18, { cast: false }); bg.rotation.x = -0.6; } }
   // Haustür-Details: Treppe, Nummer, Briefkasten
   B(1.0, 0.12, 0.45, STEIN, 0.15, 0, fz + 0.22);
   const mb = B(0.24, 0.3, 0.14, [PAL.ocker, PAL.rot, PAL.gletscher][i % 3], W / 2 - 0.35, 0.9, fz + 0.08, { line: 0.008 });

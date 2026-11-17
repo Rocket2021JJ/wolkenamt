@@ -176,3 +176,12 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   hängt von Verdacht und Umfrage ab; einmal am Tag zuhören gibt +2 Vertrauen bei ihrer Gruppe.
   Einstellungen: drei Spielstand-Plätze, Export/Import als JSON-Datei, Schatten an/aus, Bildschärfe.
   Kamera springt nach einem Teleport mit, statt quer durch Dächer zu fliegen.
+- Aufräumen, Villa Huber, Erfolge, Optik (17.11.): Das alte «Ansehen» ist weg. Die Punkte der Amtsführung
+  im Tagesbericht wirken jetzt aufs Machtsystem (gute Arbeit = Einfluss, Pfusch = Umfrage runter, viel
+  Pfusch = Verdacht). Villa Huber (Haus 4) ist begehbar: Schreibtisch (Druckmittel), Tresor (Code 1973,
+  Hinweis von Grosi Elsbeth), Porträt (Schnurrbart), Seilbahn-Modell; jede Aktion macht Lärm, bei 3 wacht
+  Bläss auf. 14 Errungenschaften mit Meldung und Übersicht im Menü (pro Spielstand). Optik: Häuser mit
+  Laubsäge-Zierbrettern, Balkenköpfen, Firstbrett, Schneefang, Eckquadern, Sgraffito-Fries, Vordach über
+  der echten Türe, Rückseiten mit Fenstern, Läden und Holzbeigen. Umgebung: Felswände mit Schichtbändern,
+  Rinnen, Grasbändern und Geröll, ein Ring aus Bergketten am Horizont statt der Kegel, Alphütten,
+  Felsbrocken.

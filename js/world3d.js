@@ -302,12 +302,12 @@ export class World {
         if (h > 3.3 && r() < 0.8) this.box(fw * 0.8, 0.5, 0.05, PAL.tinte, fx, h - 0.75, d / 2 + 0.02, { parent: g, cast: false });
       }
       // Tür
-      if (r() < 0.8) this.box(0.75, 1.55, 0.06, PAL.tinte, w * (r() - 0.5) * 0.5, 0, d / 2 + 0.02, { parent: g, cast: false });
+      let doorX = null; if (r() < 0.8) { doorX = w * (r() - 0.5) * 0.5; this.box(0.75, 1.55, 0.06, PAL.tinte, doorX, 0, d / 2 + 0.02, { parent: g, cast: false }); }
       // Kollision als achsenparallele Box (grob)
       const c = Math.abs(Math.cos(g.rotation.y)), s = Math.abs(Math.sin(g.rotation.y));
       const hw = (w * c + d * s) / 2, hd = (w * s + d * c) / 2;
       this.addCollider(x - hw, 0, z - hd, x + hw, h + 1.5, z + hd);
-      g.userData = { w, d, h, wood, roofH: rh, roofCol: roofC }; this.houses.push(g);
+      g.userData = { w, d, h, wood, roofH: rh, roofCol: roofC, doorX }; this.houses.push(g);
     });
 
     // Tannen

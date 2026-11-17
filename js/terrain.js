@@ -52,7 +52,7 @@ export function terrainH(x, z) {
 // ---------------- Farben ----------------
 const C = s => new THREE.Color(s);
 const GR = [C('#6F8F4E'), C('#7E9C55'), C('#62824A'), C('#86A25C')], WALD = C('#4C6B3C'), ALP = C('#8AA45E'), FELS = C('#868276'), FELS2 = C('#7C8E9C'),
-  SCHNEE = C(PAL.schnee), WASSER = C('#6F9BB8'), ACKER = [C('#C9B26A'), C('#8DAA5E'), C('#9C7B4E'), C('#A9B963'), C('#7E9C55')], WEG = C('#B7A98A'), STRASSE = C('#8B8A84'), SCHOTTER = C('#7A6A58');
+  SCHNEE = C(PAL.schnee), WASSER = C('#6F9BB8'), ACKER = [C('#C9B26A'), C('#8DAA5E'), C('#9C7B4E'), C('#A9B963'), C('#7E9C55')], WEG = C('#B7A98A'), STRASSE = C('#8B8A84'), SCHOTTER = C('#7A6A58'), FELS3 = C('#5E6870'), GEROELL = C('#A8A598'), ROCK_L = C('#A39C8E'), ROCK_M = C('#878A86'), ROCK_D = C('#5C6670'), LEDGE = C('#6E8A4C');
 function colorAt(x, z, h, slope, d) {
   const n = fbm(x * 0.15, z * 0.15), n2 = vnoise(x * 0.6, z * 0.6);
   let c = GR[0].clone().lerp(GR[1], sstep(0.45, 0.7, n)).lerp(GR[2], sstep(0.55, 0.8, 1 - n) * 0.8);
@@ -82,8 +82,16 @@ function colorAt(x, z, h, slope, d) {
   const hn = h + (n - 0.5) * 28;
   c = WALD.clone().lerp(GR[2], n2 * 0.25);
   if (hn > 25) c = ALP.clone().lerp(GR[1], n2 * 0.3);
-  if (hn > 80 || slope > 1.25) c = FELS2.clone().lerp(FELS, n2 * 0.35);
-  if (hn > 175) c = SCHNEE.clone();
+  if (hn > 80 || slope > 1.25) {
+    // Fels mit Schichtbändern, senkrechten Rinnen, Grasbändern auf Absätzen und hellem Geröll am Fuss
+    const band = Math.sin(h * 0.09 + n * 5) * 0.5 + 0.5, streak = fbm(x * 0.045 + z * 0.03, z * 0.045 - x * 0.03, 3);
+    c = ROCK_L.clone().lerp(ROCK_M, sstep(0.3, 0.7, band)).lerp(ROCK_D, sstep(0.52, 0.72, streak) * 0.85);
+    if (sstep(0.62, 0.78, fbm(x * 0.02 + 9, h * 0.05, 3)) > 0.5 && hn < 210) c.lerp(LEDGE, 0.75);
+    if (slope < 1.45 && hn > 60 && hn < 150) c.lerp(ALP, 0.6 * sstep(1.45, 0.95, slope));
+    if (hn < 115 && slope < 1.05) c.lerp(GEROELL, 0.45 * sstep(1.05, 0.7, slope));
+  }
+  if (hn > 140 && slope < 0.95) c = c.lerp(SCHNEE, sstep(140, 175, hn) * 0.9);
+  if (hn > 175) c = SCHNEE.clone().lerp(FELS2, slope > 1.5 ? 0.35 : 0);
   return c;
 }
 
@@ -170,19 +178,66 @@ function grassTufts(w) {
   return [im, fl, fy];
 }
 function mountainsFar(w) {
-  // ganz hinten: hohe Gipfel hinter den Bergketten und über dem Talausgang
-  const peaks = [];
-  for (let i = 0; i < 18; i++) {
-    const side = i % 2 ? 1 : -1, z = -1100 + (i >> 1) * 170 + (i % 3) * 30;
-    peaks.push([side * (560 + (i % 4) * 60), z, 380 + ((i * 37) % 5) * 60, 200 + (i % 4) * 35]);
+  // Ganz hinten ein Ring aus Bergketten mit gezackten Gipfeln, Schnee oben, im Dunst bläulich.
+  // Richtung Norden (Talausgang) niedriger, damit man weit hinaus sieht.
+  const CZ = -300, N = 420, rows = [[1250, 0, -140], [1480, 0.62, 0], [1640, 1, 0], [1820, 0.78, 0], [2050, 0.35, 0]];
+  const pos = [], col = [], idx = [];
+  const rock = C('#8E9DAB'), rock2 = C('#7D8C9B'), snow = C('#EEF2F4'), lowc = C('#7F9384');
+  const hAt = (a) => {
+    const nx = Math.cos(a) * 3, nz = Math.sin(a) * 3;
+    const r1 = 1 - Math.abs(fbm(nx + 11, nz + 4, 5) * 2 - 1), r2 = fbm(nx * 4 + 2, nz * 4 - 7, 3);
+    const north = Math.exp(-Math.pow(Math.atan2(Math.cos(a), -Math.sin(a)) / 0.5, 2));   // a zeigt nach -z
+    return (260 + r1 * r1 * 520 + r2 * 120) * (1 - north * 0.62);
+  };
+  for (let i = 0; i <= N; i++) {
+    const a = i / N * Math.PI * 2, ph = hAt(a);
+    rows.forEach(([r, k, y0], j) => {
+      const jag = j === 2 ? (fbm(i * 0.9, 3.3, 2) - 0.5) * 90 : (fbm(i * 0.5, j * 5.1, 2) - 0.5) * 40;
+      const y = y0 + (k ? ph * k + jag * k : -120);
+      pos.push(Math.cos(a) * r, y, CZ + Math.sin(a) * r);
+      const c = (y > 380 + (fbm(i * 0.4, j) - 0.5) * 120 ? snow : (j % 2 ? rock : rock2)).clone();
+      if (k < 0.5) c.lerp(lowc, 0.5);
+      col.push(c.r, c.g, c.b);
+    });
   }
-  for (let i = 0; i < 5; i++) peaks.push([-260 + i * 130, -1500, 300 + (i % 3) * 70, 240]);
-  for (let i = 0; i < 5; i++) peaks.push([-300 + i * 150, 760, 420 + (i % 2) * 80, 230]);
-  for (const [x, z, h, r] of peaks) {
-    const seg = 5 + (Math.abs(x + z) | 0) % 3, rot = x * 0.01;
-    const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, seg, 1), toon(PAL.gletscher)); m.position.set(x, -60 + h / 2, z); m.rotation.y = rot; w.scene.add(m);
-    const sh = 0.38, cap = new THREE.Mesh(new THREE.ConeGeometry(r * sh * 1.02, h * sh, seg, 1), toon(PAL.schnee)); cap.position.set(x, -60 + h - h * sh / 2 + 0.2, z); cap.rotation.y = rot; w.scene.add(cap);
+  const R = rows.length;
+  for (let i = 0; i < N; i++) for (let j = 0; j < R - 1; j++) { const a = i * R + j, b = a + R; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+  let geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setIndex(idx);
+  geo = geo.toNonIndexed(); geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: gradient, side: THREE.DoubleSide }));
+  w.scene.add(m); return m;
+}
+// Alphütten auf den Weiden an den Bergflanken
+function alpHuts(w) {
+  let seed = 77; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const spots = [];
+  for (let t = 0; t < 9000 && spots.length < 34; t++) {
+    const side = rnd() < 0.5 ? -1 : 1, x = side * (200 + rnd() * 230), z = -950 + rnd() * 1250, h = terrainH(x, z);
+    const sl = (Math.abs(terrainH(x + 6, z) - h) + Math.abs(terrainH(x, z + 6) - h)) / 6;
+    if (sl > 0.45 || h < floorY(z) + 25 || h > 150) continue;
+    if (spots.some(p => Math.hypot(p[0] - x, p[2] - z) < 60)) continue;
+    spots.push([x, h, z, rnd() * 6.28, 0.8 + rnd() * 0.5]);
   }
+  const body = new THREE.BoxGeometry(6, 3.2, 4.6); body.translate(0, 1.6, 0);
+  const shape = new THREE.Shape(); shape.moveTo(-3.9, 0); shape.lineTo(3.9, 0); shape.lineTo(0, 2.4); shape.closePath();
+  const roof = new THREE.ExtrudeGeometry(shape, { depth: 5.6, bevelEnabled: false }); roof.translate(0, 3.1, -2.8);
+  const mk = (g, c) => { const im = new THREE.InstancedMesh(g, toon(c), spots.length); w.scene.add(im); return im; };
+  const A = mk(body, '#8A5A36'), B = mk(roof, '#5A5E62'), m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3();
+  spots.forEach(([x, h, z, r, k], i) => { q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), r); sc.setScalar(k); p.set(x, h - 0.4, z); m.compose(p, q, sc); A.setMatrixAt(i, m); B.setMatrixAt(i, m); });
+  return [A, B];
+}
+// Felsbrocken am Rand der Kuppe und auf den Weiden
+function boulders(w) {
+  let seed = 31; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const geo = new THREE.DodecahedronGeometry(1, 0), im = new THREE.InstancedMesh(geo, toon('#8F8B80'), 140);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(); let k = 0;
+  for (let t = 0; t < 6000 && k < 140; t++) {
+    const a = rnd() * 6.28, rr = 28 + rnd() * 70, x = Math.cos(a) * rr * 1.1, z = Math.sin(a) * rr * 1.25;
+    const d = plateauDist(x, z); if (d < 1 || d > 40) continue;
+    const h = terrainH(x, z), sc = 0.4 + rnd() * rnd() * 2.6;
+    q.setFromEuler(new THREE.Euler(rnd() * 3, rnd() * 3, rnd() * 3)); s.set(sc * (1 + rnd() * 0.5), sc * 0.7, sc); p.set(x, h + sc * 0.2, z); m.compose(p, q, s); im.setMatrixAt(k++, m);
+  }
+  im.count = k; im.receiveShadow = true; w.scene.add(im); return im;
 }
 // Band entlang einer Kurve x = f(z) (Fluss, Strasse), leicht über dem Gelände
 function ribbon(w, fx, z0, z1, width, color, lift, step = 6) {
@@ -317,7 +372,7 @@ export function buildLandscape(w) {
   w.forest = forest(w);
   const tufts = grassTufts(w);
   w.landscape = [near, far, w.forest, ...tufts];
-  mountainsFar(w);
+  w.landscape.push(mountainsFar(w), ...alpHuts(w), boulders(w));
   lake(w);
   riverAndRoads(w);
   valleyVillage(w, -80, -300, 16);

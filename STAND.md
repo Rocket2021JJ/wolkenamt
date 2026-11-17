@@ -114,3 +114,10 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
     Telefon anzapfen, Druckmittel einsetzen. Wer erwischt wird, steht am nächsten Morgen in der Zeitung.
     Nebel halbiert das Risiko). Code: js/interiors.js
   - Häuser, die zwischen Kamera und Beamtli stehen, werden ausgeblendet (Sicht auf dem Dorfplatz frei).
+- Dorf detaillierter (17.11.): Jedes Haus hat jetzt Steinsockel, Eckbalken, Fensterrahmen mit Sprossen,
+  Blumenkisten mit Geranien, schiefe Kamine, Antennen oder Satellitenschüsseln, Ziegelreihen, Holzbalkone
+  mit Wäsche, Briefkästen, Holzbeigen, Gartenzwerge, Regentonnen, Velos. Neu im Dorf: Kirche mit Turmuhr
+  und Friedhof, Maibaum mit Zunftschildern, Wegkreuz mit Blumen, Strassenlaternen, Holzmasten mit
+  Leitungen, Heuballen und Heustadel, Misthaufen, Traktor, pickende Hühner, Gemüsegarten mit
+  Vogelscheuche, Pfützen, Pflastersteine, Festbank. Code: js/village.js. Alle Häuser und das
+  Gemeindehaus werden ausgeblendet, wenn sie die Sicht verdecken (vorher sah man manchmal nur ein Dach).

@@ -289,7 +289,8 @@ export class World {
       this.box(w, h, d, wood ? PAL.chalet : PAL.schnee, 0, 0, 0, { parent: g, line: 0 });
       if (!wood) this.box(w + 0.04, 0.9, d + 0.04, PAL.chalet, 0, h - 0.9, 0, { parent: g });
       const roofC = r() < 0.25 ? PAL.rot : PAL.chalet;
-      const rf = this.gable(w + 0.9, 1.3 + r() * 0.8, d + 0.7, roofC === PAL.chalet && wood ? PAL.tinte : roofC, 0, h, 0, 0, g);
+      const rh = 1.3 + r() * 0.8;
+      const rf = this.gable(w + 0.9, rh, d + 0.7, roofC === PAL.chalet && wood ? PAL.tinte : roofC, 0, h, 0, 0, g);
       rf.rotation.z = this.jit(0.02);
       // Fenster: verschieden gross, mit Läden in Matte
       const nw = Math.max(1, Math.floor(w / 1.3));
@@ -305,7 +306,7 @@ export class World {
       const c = Math.abs(Math.cos(g.rotation.y)), s = Math.abs(Math.sin(g.rotation.y));
       const hw = (w * c + d * s) / 2, hd = (w * s + d * c) / 2;
       this.addCollider(x - hw, 0, z - hd, x + hw, h + 1.5, z + hd);
-      g.userData = { w, d, h }; this.houses.push(g);
+      g.userData = { w, d, h, wood, roofH: rh, roofCol: roofC }; this.houses.push(g);
     });
 
     // Tannen
@@ -554,14 +555,20 @@ export class World {
   // Häuser, die zwischen Kamera und Beamtli stehen (oder in denen die Kamera steckt), ausblenden
   fadeOccluders(look) {
     if (!this.fadeList) return;
-    const cam = this.camera.position, d = cam.clone().sub(look), ray = new THREE.Ray(look, d.clone().normalize()), len = d.length(), hit = new THREE.Vector3();
+    const cam = this.camera.position, len = cam.distanceTo(look), hit = new THREE.Vector3();
     for (const f of this.fadeList) {
-      const block = !this.inside && (f.box.containsPoint(cam) || (ray.intersectBox(f.box, hit) && hit.distanceTo(look) < len));
+      // Direkt am eigenen Haus (Türe, Balkon darüber): nicht ausblenden
+      let near;
+      if (f.ud) { const lp = f.g.worldToLocal(look.clone()); near = Math.abs(lp.x) < f.ud.w / 2 + 0.25 && lp.z > -f.ud.d / 2 - 0.25 && lp.z < f.ud.d / 2 + 0.95; }
+      else near = f.inner.containsPoint(look);
+      // Strahl von der Kamera zum Beamtli: trifft er das Haus vorher, steht es im Weg
+      const back = new THREE.Ray(cam, look.clone().sub(cam).normalize());
+      const block = !this.inside && !near && (f.box.containsPoint(cam) || (back.intersectBox(f.box, hit) && hit.distanceTo(cam) < len - 0.05));
       f.g.visible = !block;
     }
   }
-  setFadeHouses(idx) {
-    this.fadeList = idx.map(i => { const g = this.houses[i]; const box = new THREE.Box3().setFromObject(g); box.expandByScalar(0.15); return { g, box }; });
+  setFadeHouses(idx, extra = []) {
+    this.fadeList = idx.map(i => this.houses[i]).concat(extra).map(g => { const box = new THREE.Box3().setFromObject(g); box.expandByScalar(0.15); const inner = box.clone().expandByScalar(-1.4); return { g, box, inner, ud: g.userData && g.userData.w ? g.userData : null }; });
   }
 
 
@@ -569,9 +576,9 @@ export class World {
   // ---------------- Leistung: Unbewegliches zusammenfassen ----------------
   // Alle statischen Meshes mit gleichem Material werden zu einem Mesh verschmolzen
   // (pro Sichtbarkeitsgruppe getrennt, damit das Ausblenden der Wände weiter geht).
-  bake(dynamic = []) {
+  bake(dynamic = [], extra = []) {
     const dyn = new Set(dynamic), scene = this.scene;
-    const groups = new Set([...Object.values(this.groups), this.sockel]);
+    const groups = new Set([...Object.values(this.groups), this.sockel, ...extra]);
     scene.updateMatrixWorld(true);
     const buckets = new Map(), victims = [];
     scene.traverse(o => {
@@ -588,7 +595,8 @@ export class World {
     const vset = new Set(victims);
     const nm = new THREE.Matrix3(), v = new THREE.Vector3();
     for (const b of buckets.values()) {
-      const geos = b.list.map(o => { const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry; return { g, mw: o.matrixWorld }; });
+      const inv = b.target === scene ? null : new THREE.Matrix4().copy(b.target.matrixWorld).invert();
+      const geos = b.list.map(o => { const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry; return { g, mw: inv ? new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld) : o.matrixWorld }; });
       const n = geos.reduce((a, x) => a + x.g.attributes.position.count, 0);
       const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3);
       let off = 0;

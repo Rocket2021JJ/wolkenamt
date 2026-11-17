@@ -346,7 +346,7 @@ body.online #bar{right:264px}
 .powrep{margin-top:12px;border-top:1.5px solid var(--tinte);padding-top:8px}
 .powrep h3{font-family:var(--serif);font-weight:400;font-size:17px;margin:0 0 6px}
 .powrep .prow2{grid-template-columns:150px 1fr 90px}
-@media (max-width:700px){.pcards{grid-template-columns:1fr}#hud .akte{display:none}}
+@media (max-width:700px){.pcards{grid-template-columns:1fr}}
 #hud .akte{display:block}
 #hud .akte.hidden{display:none}
 .prow2 .bar{display:block}
@@ -400,3 +400,14 @@ body.online #bar{right:264px}
 #side .prow.vin .av{box-shadow:0 0 0 2px var(--tanne)}
 #side .prow.talk .av{box-shadow:0 0 0 3px var(--tanne),0 0 10px var(--tanne)}
 #side .prow.talk .ps{color:var(--tanne);font-weight:600}
+
+/* Handy: Akte kompakt, Umfrage per Antippen */
+@media (max-width:700px){
+  #hud .task{max-width:calc(100% - 190px)}
+  #hud .akte{width:160px;right:8px;top:52px;padding:6px 8px;font-size:11.5px;cursor:pointer}
+  #hud .akte:not(.open) #aPolls{display:none}
+  #hud .akte .ah::after{content:'▾';margin-left:4px}
+  #hud .akte.open .ah::after{content:'▴'}
+  #hud .akte .arow:last-child{flex-wrap:wrap}
+  .sheet .akte{grid-template-columns:1fr 1fr}
+}

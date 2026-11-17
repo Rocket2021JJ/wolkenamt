@@ -197,7 +197,7 @@ add({
   'akte.stars': ['Sterne', 'Stars'],
   'akte.sight': ['Sichtungen', 'Sightings'],
   'akte.rep': ['Ansehen', 'Reputation'],
-  'menu.week': ['Kampagne · Kapitel 1: Der Neue im Amt', 'Campaign · Chapter 1: The new guy at the office'],
+  'menu.week': ['Kampagne · drei Kapitel bis zur Gemeindewahl', 'Campaign · three chapters to the election'],
   'menu.online': ['Online spielen', 'Play online'],
   'menu.free': ['Freie Wolke formen', 'Shape a free cloud'],
   'menu.local': ['Zu dritt an einem Gerät', 'Three on one device'],

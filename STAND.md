@@ -90,3 +90,6 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   In der Spielerliste: grüner Ring = im Sprachkanal, leuchtet beim Sprechen, «stumm» wird angezeigt.
   Konnte hier nicht mit echten Mikrofonen getestet werden (kein Internet im Testsystem). Bitte zu zweit
   auf zwei Geräten ausprobieren. Hinweis: Manche Netze (Schule, Firma) blockieren WebRTC.
+- Verbesserungen: Automatischer Durchlauf aller 18 Story-Tage ohne Fehler. Auf dem Handy ist die Akte
+  jetzt kompakt (Umfrage per Antippen aufklappen) statt ganz versteckt, die Menü-Werte stehen in 2 Spalten.
+  Kampagnentitel im Menü passt zu den drei Kapiteln.

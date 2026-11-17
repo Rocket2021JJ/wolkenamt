@@ -241,6 +241,7 @@ function showMorning(list, d, done, call) {
   };
   next();
 }
+$('akte').addEventListener('click', () => $('akte').classList.toggle('open'));
 function updateAkte() {
   const P = save.power, box = $('akte');
   if (!P || flow !== 'single') { box.classList.add('hidden'); return; }

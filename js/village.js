@@ -29,6 +29,7 @@ function decorateHouse(w, g, i) {
       B(0.66, 0.05, 0.08, wood ? PAL.schnee : PAL.chalet, fx, fy + 0.34, fz + 0.04, { cast: false });
       B(0.03, 0.66, 0.06, PAL.schnee, fx, fy - 0.33, fz + 0.05, { cast: false });
       B(0.6, 0.03, 0.06, PAL.schnee, fx, fy - 0.02, fz + 0.05, { cast: false });
+      winGlow(g, fx, fy - 0.01, fz + 0.025, r());
       if (r() < 0.6) {
         B(0.7, 0.16, 0.2, PAL.chalet, fx, fy - 0.52, fz + 0.12);
         for (let f = 0; f < 5; f++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.06 + r() * 0.025, 6, 5), toon(f % 2 ? GERANIE : PAL.rot)); m.position.set(fx - 0.28 + f * 0.14, fy - 0.3 + r() * 0.05, fz + 0.14 + r() * 0.04); g.add(m); }
@@ -53,6 +54,7 @@ function decorateHouse(w, g, i) {
   const cx = (r() - 0.5) * W * 0.5;
   const ch = B(0.36, roofH * 0.8 + 0.6, 0.36, r() < 0.5 ? PAL.papier : STEIN, cx, H + roofH * 0.25, (r() - 0.5) * D * 0.4, { tilt: w.jit(0.06), line: 0.01 });
   B(0.48, 0.06, 0.48, PAL.tinte, cx, H + roofH * 1.05 + 0.6, ch.position.z);
+  (w.chimneys ||= []).push({ g, x: cx, y: H + roofH * 1.05 + 0.7, z: ch.position.z, ph: r() * 10, on: r() < 0.75 });
   if (r() < 0.45) {
     const ax = -cx * 0.6, ay = H + roofH * 0.7;
     B(0.03, 1.0, 0.03, BLECH, ax, ay, 0, { cast: false });
@@ -99,12 +101,52 @@ function decorateHouse(w, g, i) {
   }
 }
 
+// ---------------- Abendlicht und Kaminrauch ----------------
+// Fenster leuchten am Abend warm auf (zufällig, nicht alle), Laternen glühen, Kamine rauchen.
+const GLOW = [0, 1, 2].map(k => new THREE.MeshBasicMaterial({ color: ['#FFD27A', '#FFC266', '#FFE3A3'][k], transparent: true, opacity: 0, depthWrite: false }));
+const BULB = new THREE.MeshBasicMaterial({ color: '#E8D49A' });
+const HALO = new THREE.MeshBasicMaterial({ color: '#FFD98A', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+function winGlow(g, x, y, z, rr) {
+  if (rr < 0.3) return;   // manche Leute sind nicht zuhause
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(0.58, 0.62), GLOW[Math.floor(rr * 10) % 3]); m.position.set(x, y, z); m.renderOrder = 2; g.add(m);
+}
+let duskK = 0;
+export function setDusk(w, k) {
+  duskK = k; const lit = Math.max(0, Math.min(1, (k - 0.45) / 0.4));
+  GLOW.forEach((m, i) => { m.opacity = lit * (0.92 - i * 0.06); });
+  BULB.color.set(lit > 0.2 ? '#FFE9A8' : '#E8D49A'); HALO.opacity = lit * 0.35;
+}
+export function buildSmoke(w) {
+  const list = (w.chimneys || []).filter(c => c.on); w.scene.updateMatrixWorld(true);
+  const N = 7, geo = new THREE.IcosahedronGeometry(0.22, 0);
+  const mat = new THREE.MeshBasicMaterial({ color: '#EDEAE2', transparent: true, opacity: 0.55, depthWrite: false });
+  const im = new THREE.InstancedMesh(geo, mat, list.length * N); im.frustumCulled = false;
+  const v = new THREE.Vector3();
+  w.smoke = { im, N, src: list.map(c => { c.g.updateMatrixWorld(true); v.set(c.x, c.y, c.z); c.g.localToWorld(v); return { p: v.clone(), ph: c.ph }; }), m: new THREE.Matrix4(), q: new THREE.Quaternion(), s: new THREE.Vector3(), t: new THREE.Vector3() };
+  w.scene.add(im); return im;
+}
+export function stepSmoke(w, t) {
+  const S = w.smoke; if (!S) return;
+  const wind = 0.35;
+  S.src.forEach((c, i) => {
+    for (let k = 0; k < S.N; k++) {
+      const a = ((t * 0.18 + k / S.N + c.ph) % 1), h = a * 3.2;
+      S.t.set(c.p.x + h * wind + Math.sin(t * 0.9 + k + c.ph) * 0.12 * a, c.p.y + h, c.p.z - h * 0.15);
+      const sc = (0.35 + a * 1.6) * (a < 0.08 ? a / 0.08 : 1) * (1 - Math.pow(a, 3));
+      S.s.setScalar(sc * (0.85 + duskK * 0.15)); S.q.setFromEuler(new THREE.Euler(k, t * 0.2 + k, 0));
+      S.m.compose(S.t, S.q, S.s); S.im.setMatrixAt(i * S.N + k, S.m);
+    }
+  });
+  S.im.instanceMatrix.needsUpdate = true;
+}
+
 // ---------------- Dorfumgebung ----------------
 function lamp(w, x, z) {
   w.cyl(0.05, 0.07, 3.0, PAL.tinte, x, 0, z, { seg: 6, solid: true });
   w.box(0.5, 0.04, 0.04, PAL.tinte, x + 0.22, 2.95, z);
   const sh = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.18, 8, 1, true), toon(PAL.tinte, { side: THREE.DoubleSide })); sh.position.set(x + 0.42, 2.85, z); w.scene.add(sh);
-  const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), toon('#F1D98A')); bulb.position.set(x + 0.42, 2.77, z); w.scene.add(bulb);
+  const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), BULB);
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), HALO); halo.position.copy(bulb.position); w.scene.add(halo); bulb.position.set(x + 0.42, 2.77, z); w.scene.add(bulb);
 }
 function church(w, x, z, rot) {
   const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot; w.scene.add(g);
@@ -257,6 +299,7 @@ export function detailVillage(w) {
   puddles(w);
   cobbles(w);
   benchTable(w, -6.8, 8.2, 0.1);
+  buildSmoke(w);
   const henCols = [PAL.schnee, PAL.chalet, PAL.schnee, PAL.ocker, PAL.schnee];
   w.hens = [[15.2, 10.3], [14.6, 11.4], [16.1, 11.1], [17.0, 10.0], [15.6, 12.2]].map(([x, z], i) => hen(w, x, z, i * 1.3, henCols[i]));
 }

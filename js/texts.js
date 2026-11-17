@@ -330,6 +330,11 @@ add({
   'touch.jump': ['Hüpfen', 'Jump'],
   'touch.use': ['Benutzen', 'Use'],
 
+  'tut.walk': ['Laufen mit WASD oder den Pfeiltasten, springen mit Leertaste. Probier mal ein paar Schritte.', 'Walk with WASD or the arrow keys, jump with Space. Try a few steps.'],
+  'tut.akte': ['Oben rechts liegt deine Akte: Umfrage deiner Partei, Verdacht und Kasse. Behalt sie im Auge.', 'Your file is at the top right: your party’s polls, suspicion and cash. Keep an eye on it.'],
+  'tut.desk': ['Jetzt ans Pult (der Zettel oben links sagt dir immer, was ansteht). Dort drückst du E.', 'Now go to the desk (the note at the top left always says what’s next). Press E there.'],
+  'tut.roof': ['Bewilligte Wolken formst du selbst: Treppe hoch aufs Dach, an der Kurbel E.', 'You shape approved clouds yourself: up the stairs to the roof, E at the crank.'],
+  'tut.town': ['Das Dorf läuft nicht weg. Draussen warten Rössli, Parteienhaus und Rathaus. Leuchtende Türen kannst du betreten.', 'The village isn’t going anywhere. Outside are the Rössli, the party house and the town hall. Glowing doors can be entered.'],
   'task.desk': ['Am Pult liegen neue Anträge. Hingehen und mit E stempeln.', 'New requests on the desk. Go there and press E to stamp them.'],
   'task.free': ['Feierabend. Treppe hoch zur Wolkenplattform und mit E kurbeln.', 'Office hours are over. Take the stairs to the cloud platform and press E to crank.'],
   'task.platform': ['{n} Wolke(n) bewilligt. Treppe hoch zur Wolkenplattform.', '{n} cloud(s) approved. Take the stairs up to the cloud platform.'],

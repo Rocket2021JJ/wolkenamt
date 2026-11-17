@@ -691,6 +691,16 @@ export class World {
     this.amb.color.set(T && T.bg3d === PAL.blau ? PAL.gletscher : PAL.himmel);
     this.syncSky();
   }
+  // Tageslauf im Dorf: 0 = Vormittag, 0.3 = goldener Nachmittag, 1 = Abend mit Lichtern
+  setDusk(k) {
+    this.dusk = k; const c = new THREE.Color(PAL.himmel);
+    if (k > 0) { c.lerp(new THREE.Color('#E8B48A'), Math.min(1, k / 0.5)); if (k > 0.5) c.lerp(new THREE.Color('#4A5480'), (k - 0.5) / 0.5); }
+    this.scene.background = c;
+    this.sun.color.set(0xfff0d8).lerp(new THREE.Color('#FF9A5A'), Math.min(1, k * 1.3));
+    this.sun.intensity = 2.1 * (1 - k * 0.62); this.amb.intensity = 1.15 * (1 - k * 0.5);
+    this.amb.color.set(PAL.himmel).lerp(new THREE.Color('#6C7FB0'), Math.max(0, (k - 0.3) / 0.7));
+    this.syncSky(); if (this.onDusk) this.onDusk(k);
+  }
   // Himmelskuppel und Dunst passen sich der Hintergrundfarbe an
   syncSky() {
     const bg = this.scene.background;

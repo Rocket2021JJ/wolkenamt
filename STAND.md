@@ -166,3 +166,8 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   einen kleinen Bonus («ehrliche Haut»); Simulation zeigt: ehrlich und sorgfältig gespielt gewinnt man die
   Wahl. Sichtbar im Dorf: Wahlplakate der führenden Partei an Häusern und am Amtshaus (wechseln mit der
   Umfrage), bei Verdacht ab 55 bleiben Bewohner stehen und starren dich an und tuscheln.
+- Einführung und Tageslauf (17.11.): Am ersten Tag führt ein gelber Notizzettel unten durch die ersten
+  Schritte (laufen, Akte, Dorf, Pult, Dach) und springt weiter, sobald man es gemacht hat; nur einmal pro
+  Spielstand. Das Dorf hat jetzt einen Tageslauf: Vormittag normal, beim Wolkenformen goldener
+  Nachmittag, beim Feierabend Abendstimmung mit leuchtenden Fenstern und glühenden Laternen.
+  Aus den meisten Kaminen steigt Rauch, der leicht im Wind abdriftet.

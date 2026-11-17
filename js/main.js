@@ -2,7 +2,7 @@
 import * as LG from './lingo.js';
 import { pickMotif, drawPicture, drawWeather } from './paper.js';
 import { buildHall, HALL_SPOT } from './hall.js';
-import { detailVillage, stepHens, partyPosters, updatePosters } from './village.js';
+import { detailVillage, stepHens, partyPosters, updatePosters, setDusk, stepSmoke } from './village.js';
 import { stepLandscape } from './terrain.js';
 import { decorateRoof, buildRoessli, buildParteienhaus, markEntrances, signpost, ROESSLI_SPOT, PARTEI_SPOT } from './interiors.js';
 import * as THREE from 'three';
@@ -44,9 +44,9 @@ const world = new World($('c3d'));
 const office = world.office = furnish(world);
 buildHall(world, office);
 decorateRoof(world, office); buildRoessli(world, office); buildParteienhaus(world, office, POW.PARTIES); markEntrances(world, office); signpost(world);
-detailVillage(world);
+detailVillage(world); world.onDusk = k => setDusk(world, k);
 partyPosters(world);
-{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepLandscape(world, dt); soundTick(dt); }; }
+{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepSmoke(world, tm); stepLandscape(world, dt); soundTick(dt); tutTick(dt); }; }
 // Musik und Umgebung je nach Ort und Lage
 // Wolkwilisch sprechen (mit Sprechblase im Fenster-Titel nicht nötig)
 function sayLingo(line, who, mood = '') { A.speak(LG.syllables(line), A.voiceFor(who), { interrupt: true, mood }); }
@@ -118,6 +118,29 @@ if (touchMode) document.body.classList.add('touch');
 
 function setTask(key, vars) { taskKey = key; taskVars = vars; $('hTask').textContent = key ? t(key, vars) : ''; }
 function setDay(text) { $('hDay').textContent = text || ''; }
+// Erster Tag: kleiner Einführungszettel, springt weiter sobald der Schritt erledigt ist
+const TUT = [
+  { k: 'tut.walk', done: s => s.moved > 2.5 },
+  { k: 'tut.akte', done: s => s.t > 7 },
+  { k: 'tut.town', done: s => s.t > 9 || mode === 'desk' },
+  { k: 'tut.desk', done: () => mode === 'desk' },
+  { k: 'tut.roof', done: () => mode === 'cut' || /platformNext/.test(taskKey || ''), when: () => mode === 'world' && /task\.platform/.test(taskKey || '') },
+];
+const tut = { i: -1, t: 0, moved: 0, last: null };
+function tutStart() { if (save.tutDone || flow !== 'single') return; tut.i = 0; tut.t = 0; tut.moved = 0; tut.last = null; }
+function tutTick(dt) {
+  const el = $('tut'); if (!el) return;
+  if (tut.i < 0 || tut.i >= TUT.length || flow !== 'single') { el.classList.add('hidden'); return; }
+  const st = TUT[tut.i], show = mode === 'world' && (!st.when || st.when());
+  if (show) {
+    tut.t += dt; const p = world.player.pos;
+    if (tut.last) tut.moved += Math.hypot(p.x - tut.last.x, p.z - tut.last.z); tut.last = { x: p.x, z: p.z };
+    const txt = t(st.k); if (el.dataset.k !== st.k) { el.dataset.k = st.k; el.querySelector('span').textContent = txt; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+  }
+  el.classList.toggle('hidden', !show);
+  if (mode === 'report') { tut.i = TUT.length; save.tutDone = 1; persist(); el.classList.add('hidden'); return; }
+  if (st.done(tut)) { tut.i++; tut.t = 0; if (tut.i >= TUT.length) { save.tutDone = 1; persist(); } }
+}
 function hud(on) { $('hud').classList.toggle('hidden', !on); $('touch').classList.toggle('hidden', !on || !touchMode); }
 
 // In die begehbare Welt
@@ -128,6 +151,7 @@ function enterWorld(spot, task, vars) {
   if (spot) world.teleport(...SPOT[spot]);
   mode = 'world'; only(flow === 'online' && net.phase === 'lobby' ? 'onLobby' : null);
   hud(true); setTask(task, vars); updateAkte();
+  world.setDusk(task === 'task.free' || task === 'task.wait' ? 1 : /^task\.platform/.test(task || '') ? 0.3 : 0);
   world.setWeather(flow === 'single' && run && run.wx && !(office.hall && office.hall.visible) ? run.wx : null);
   world.resize();
 }
@@ -209,7 +233,7 @@ function startDay(d) {
   const P = save.power;
   const ords = DAYS[d].cards.filter(c => !isSpecial(c));
   run = { kind: 'day', d, forged: d >= 1 ? ords[(d * 5) % ords.length] : -1, fkind: forgeryKind(d * 13 + 7), dec: {}, queue: [], qi: -1, res: {}, stamped: false, shred: false, before: { polls: POW.polls(P), suspicion: P.suspicion, cash: P.cash, influence: P.influence } };
-  const go = () => { enterWorld('door', 'task.desk'); setDay(inSB() ? t('sb.hud', { day: L(DAYS[d].name), y: save.sb.year }) : t('hud.day', { day: L(DAYS[d].name), n: dayNo(d) })); updateAkte(); };
+  const go = () => { if (d === 0) tutStart(); enterWorld('door', 'task.desk'); setDay(inSB() ? t('sb.hud', { day: L(DAYS[d].name), y: save.sb.year }) : t('hud.day', { day: L(DAYS[d].name), n: dayNo(d) })); updateAkte(); };
   if (chOf(d) === 2 && P.inv != null && P.inv >= 100) return showRemoved(P);
   const ev = POW.due(P, d);
   if (P.rivalNext) { ev.push(POW.rivalEvent(P.rivalNext, P)); P.rivalNext = null; }

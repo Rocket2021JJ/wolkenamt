@@ -171,3 +171,8 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   Spielstand. Das Dorf hat jetzt einen Tageslauf: Vormittag normal, beim Wolkenformen goldener
   Nachmittag, beim Feierabend Abendstimmung mit leuchtenden Fenstern und glühenden Laternen.
   Aus den meisten Kaminen steigt Rauch, der leicht im Wind abdriftet.
+- Leute mit Namen, Spielstände, Grafik (17.11.): Bäcker Gerber, Bauer Moser, Lehrerin Zbinden und Grosi
+  Elsbeth laufen auf dem Dorfplatz herum und lassen sich mit E ansprechen (js/folk.js). Was sie sagen,
+  hängt von Verdacht und Umfrage ab; einmal am Tag zuhören gibt +2 Vertrauen bei ihrer Gruppe.
+  Einstellungen: drei Spielstand-Plätze, Export/Import als JSON-Datei, Schatten an/aus, Bildschärfe.
+  Kamera springt nach einem Teleport mit, statt quer durch Dächer zu fliegen.

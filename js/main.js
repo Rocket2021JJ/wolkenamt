@@ -2,6 +2,7 @@
 import * as LG from './lingo.js';
 import { pickMotif, drawPicture, drawWeather } from './paper.js';
 import { buildHall, HALL_SPOT } from './hall.js';
+import { FOLK, folkLine } from './folk.js';
 import { detailVillage, stepHens, partyPosters, updatePosters, setDusk, stepSmoke } from './village.js';
 import { stepLandscape } from './terrain.js';
 import { decorateRoof, buildRoessli, buildParteienhaus, markEntrances, signpost, ROESSLI_SPOT, PARTEI_SPOT } from './interiors.js';
@@ -54,7 +55,7 @@ buildHall(world, office);
 decorateRoof(world, office); buildRoessli(world, office); buildParteienhaus(world, office, POW.PARTIES); markEntrances(world, office); signpost(world);
 detailVillage(world); world.onDusk = k => setDusk(world, k);
 partyPosters(world);
-{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepSmoke(world, tm); stepLandscape(world, dt); soundTick(dt); tutTick(dt); }; }
+{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepSmoke(world, tm); folkIts.forEach((it, i) => { it.pos.copy(world.villagers[i].pos); it.enabled = !world.inside && flow === 'single'; }); stepLandscape(world, dt); soundTick(dt); tutTick(dt); }; }
 // Musik und Umgebung je nach Ort und Lage
 // Wolkwilisch sprechen (mit Sprechblase im Fenster-Titel nicht nötig)
 function sayLingo(line, who, mood = '') { A.speak(LG.syllables(line), A.voiceFor(who), { interrupt: true, mood }); }
@@ -101,6 +102,8 @@ addEventListener('click', e => { if (e.target.closest && e.target.closest('butto
 world.setFadeHouses(world.houses.map((_, i) => i), [office.thSign.parent]);
 world.bake([...world.hens, ...world.valleyClouds, world.skyDome, ...world.landscape, office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank, office.hall, office.roessli, office.partei, office.windsock, ...office.laundry], world.fadeList.map(f => f.g));
 world.spawnVillagers(11);
+// Die ersten vier Dorfleute haben Namen und lassen sich ansprechen
+const folkIts = FOLK.map((f, i) => world.addInteractable('folk_' + i, world.villagers[i].pos, 1.5, t('folk.talk', { n: L(f.name) })));
 world.sfx = A.sfx;
 window.__world = world;
 window.__THREE = THREE; window.__A = A;
@@ -427,6 +430,7 @@ function startFree() {
 
 world.onUse = (id) => {
   if (mode !== 'world') return;
+  if (id.startsWith('folk_')) return openFolk(+id.slice(5));
   if (id === 'phone') return answerPhone();
   if (id === 'archive') return openArchive();
   if (id === 'shredder') return useShredder();
@@ -877,6 +881,21 @@ function openStammtisch() {
   rivals(P).forEach(p => actRow(box, t('roessli.rumor', { p: POW.PARTIES[p].short }), t('roessli.rumorInfo'), !firstDay(), () => {
     P.flags[key] = 1; panelResult(box, t('roessli.rumorRes', { p: pname2(p) }), POW.apply(P, { mod: { [p]: -0.07 }, suspicion: 3 }));
   }));
+}
+function openFolk(i) {
+  const f = FOLK[i], v = world.villagers[i], P = save.power;
+  v.target = null; v.wait = 6; v.vel.set(0, 0, 0); v.b.yaw = Math.atan2(world.player.pos.x - v.pos.x, world.player.pos.z - v.pos.z);
+  sayLingo(f.lingo, f.id, f.lingo.includes('?') ? '?' : '');
+  const d = run && run.d || 0;
+  if (P) { const now = POW.polls(P); P.lead = Object.keys(now).sort((a, b) => now[b] - now[a])[0] === P.party; }
+  const box = townPanel(t('folk.kicker'), L(f.name), '«' + f.lingo + '»');
+  const p = document.createElement('p'); p.className = 'hsub'; p.textContent = L(folkLine(f, P, d)); box.appendChild(p);
+  if (!P || !run || run.kind !== 'day') return;
+  P.flags = P.flags || {}; const key = 'folk' + i + '_' + (inSB() ? save.sb.year * 10 + save.sb.day : d);
+  if (P.flags[key]) return;
+  actRow(box, t('folk.listen'), t('folk.listenInfo', { g: L(POW.GROUPS[f.group].name) }), true, () => {
+    P.flags[key] = 1; panelResult(box, t('folk.listenRes', { n: L(f.name) }), POW.apply(P, { trust: { [f.group]: 2 } }));
+  }, t('folk.listenBtn'));
 }
 function openWirt() {
   const P = save.power; if (!P || !run || run.kind !== 'day') return;
@@ -1589,7 +1608,7 @@ addEventListener('keydown', e => {
 
 // Sprache wechseln: alles neu beschriften
 onLang(() => {
-  applyDom(); office.relabel(); soundLabels();
+  applyDom(); office.relabel(); soundLabels(); folkIts.forEach((it, i) => { it.label = t('folk.talk', { n: L(FOLK[i].name) }); });
   if (mode === 'menu') showMenu();
   if (taskKey) setTask(taskKey, taskVars);
   document.title = t('doc.title');

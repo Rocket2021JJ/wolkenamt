@@ -5,7 +5,7 @@ import { buildHall, HALL_SPOT } from './hall.js';
 import { FOLK, folkLine } from './folk.js';
 import { detailVillage, stepHens, partyPosters, updatePosters, setDusk, stepSmoke } from './village.js';
 import { stepLandscape } from './terrain.js';
-import { decorateRoof, buildRoessli, buildParteienhaus, markEntrances, signpost, ROESSLI_SPOT, PARTEI_SPOT } from './interiors.js';
+import { decorateRoof, buildRoessli, buildParteienhaus, buildHuberhaus, markEntrances, signpost, ROESSLI_SPOT, PARTEI_SPOT, HUBER_SPOT } from './interiors.js';
 import * as THREE from 'three';
 import { World, ROOM } from './world3d.js';
 import { furnish } from './office.js';
@@ -30,17 +30,17 @@ const stars = n => '★'.repeat(n) + '☆'.repeat(3 - n);
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
 // ---------------- Speicher ----------------
-let save = { stars: [], sight: 0, rep: 50, day: 0, power: null };
+let save = { stars: [], sight: 0, day: 0, power: null };
 Object.assign(NAMES, { 'Hotel Bergblick': ['Hotel Bergblick', 'Hotel Bergblick'], 'Redaktorin Imboden': ['Redaktorin Imboden', 'Editor Imboden'] });
 // Drei Spielstände: Platz 1 ist der alte Schlüssel, damit bestehende Spielstände bleiben
-const FRESH = () => ({ stars: [], sight: 0, rep: 50, day: 0, power: null });
+const FRESH = () => ({ stars: [], sight: 0, day: 0, power: null });
 const slotKey = n => n === 1 ? 'wolkenamt' : 'wolkenamt.' + n;
 let slot = 1; try { slot = +localStorage.getItem('wolkenamt.slot') || 1; } catch (e) {}
 function loadSlot(n) {
   let d = FRESH(); try { const s = JSON.parse(localStorage.getItem(slotKey(n))); if (s && Array.isArray(s.stars)) d = Object.assign(d, s); } catch (e) {}
   return d;
 }
-save = loadSlot(slot);
+save = loadSlot(slot); delete save.rep;
 const persist = () => { try { localStorage.setItem(slotKey(slot), JSON.stringify(save)); localStorage.setItem('wolkenamt.slot', slot); } catch (e) {} };
 const chOf = d => (DAYS[d] && DAYS[d].ch) || 1;
 const inSB = () => !!save.sbActive;
@@ -52,7 +52,7 @@ const totalStars = () => save.stars.reduce((a, b) => a + (b || 0), 0);
 const world = new World($('c3d'));
 const office = world.office = furnish(world);
 buildHall(world, office);
-decorateRoof(world, office); buildRoessli(world, office); buildParteienhaus(world, office, POW.PARTIES); markEntrances(world, office); signpost(world);
+decorateRoof(world, office); buildRoessli(world, office); buildParteienhaus(world, office, POW.PARTIES); buildHuberhaus(world, office); markEntrances(world, office); signpost(world);
 detailVillage(world); world.onDusk = k => setDusk(world, k);
 partyPosters(world);
 { const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepSmoke(world, tm); folkIts.forEach((it, i) => { it.pos.copy(world.villagers[i].pos); it.enabled = !world.inside && flow === 'single'; }); stepLandscape(world, dt); soundTick(dt); tutTick(dt); }; }
@@ -100,7 +100,7 @@ function soundTick(dt) {
 addEventListener('pointerdown', () => A.ensureAudio(), { capture: true });
 addEventListener('click', e => { if (e.target.closest && e.target.closest('button')) A.ui('click'); }, { capture: true });
 world.setFadeHouses(world.houses.map((_, i) => i), [office.thSign.parent]);
-world.bake([...world.hens, ...world.valleyClouds, world.skyDome, ...world.landscape, office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank, office.hall, office.roessli, office.partei, office.windsock, ...office.laundry], world.fadeList.map(f => f.g));
+world.bake([...world.hens, ...world.valleyClouds, world.skyDome, ...world.landscape, office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank, office.hall, office.roessli, office.partei, office.huber, office.windsock, ...office.laundry], world.fadeList.map(f => f.g));
 world.spawnVillagers(11);
 // Die ersten vier Dorfleute haben Namen und lassen sich ansprechen
 const folkIts = FOLK.map((f, i) => world.addInteractable('folk_' + i, world.villagers[i].pos, 1.5, t('folk.talk', { n: L(f.name) })));
@@ -209,7 +209,7 @@ function showMenu() {
   $('mRank').textContent = rankOf(total);
   $('mStars').innerHTML = `<b>${total}</b> ${t('of')} 36`;
   $('mSight').textContent = num(save.sight || 0);
-  $('mRep').innerHTML = `<b>${save.rep}</b> ${t('of')} 100`;
+  $('mRep').innerHTML = save.power ? `<b>${save.power.influence}</b>` : '–';
   const list = $('orders'); list.innerHTML = '';
   if (save.sbActive) { save.sb.P = save.power; save.power = save.stash || null; save.stash = null; save.sbActive = false; persist(); }
   $('mSandbox').textContent = save.sb && !save.sb.over ? t('menu.sbGo', { y: save.sb.year, p: POW.PARTIES[save.sb.P.party].short }) : t('menu.sb');
@@ -233,7 +233,7 @@ function showMenu() {
   $('mReset').classList.toggle('hidden', !save.power);
   if (save.power) $('mReset').textContent = t('menu.newcampaign', { p: POW.PARTIES[save.power.party].short });
 }
-$('mReset').onclick = () => { save.power = null; save.day = 0; save.rep = 50; persist(); openParty(() => showMenu()); };
+$('mReset').onclick = () => { save.power = null; save.day = 0; persist(); openParty(() => showMenu()); };
 
 // ---------------- Arbeitstag (allein) ----------------
 const isSpecial = c => typeof c === 'string';
@@ -441,6 +441,9 @@ world.onUse = (id) => {
   if (id === 'parteiexit') return leaveRoom('partei');
   if (id === 'roesslidoor') return enterRoom(ROESSLI_SPOT, 'task.roessli');
   if (id === 'parteidoor') return enterRoom(PARTEI_SPOT, 'task.partei');
+  if (id === 'huberdoor') { office.dogNoise = 0; return enterRoom(HUBER_SPOT, 'task.huber'); }
+  if (id === 'huberexit') return leaveRoom('huber');
+  if (/^h(desk|safe|portrait|model)$/.test(id)) return openHuberSpot(id);
   if (id === 'stammtisch') return openStammtisch();
   if (id === 'wirt') return openWirt();
   if (id === 'imboden') return openImboden();
@@ -524,7 +527,7 @@ function decide(key, v, el, quiet) {
 function updateDesk(msg, warn) {
   const Dy = DAYS[run.d], open = Dy.cards.filter(c => !run.dec[String(c)]).length, used = usedSlots();
   $('dSlots').textContent = `${Dy.slots - used} ${t('of')} ${Dy.slots}`;
-  $('dRep').textContent = save.rep; $('dRepBar').style.width = save.rep + '%';
+  { const P = save.power, v = P ? POW.polls(P)[P.party] : 0; $('dRep').textContent = v.toFixed(1).replace('.', L([',', '.'])) + '%'; $('dRepBar').style.width = Math.min(100, v * 2) + '%'; }
   const h = $('dHint'); h.classList.toggle('warn', !!warn);
   h.textContent = msg || (open ? t(open === 1 ? 'desk.open1' : 'desk.open', { n: open }) : used === 0 ? t('desk.allno') : t('desk.done'));
   $('dGo').disabled = open > 0;
@@ -681,26 +684,23 @@ function showReport() {
       }
     }
   });
-  const before = save.rep;
-  save.rep = Math.max(0, Math.min(100, before + delta));
+  // Amtsführung: die Punkte des Tages fliessen ins Machtsystem (früher eigenes «Ansehen»)
   save.sight = (save.sight || 0) + bonus;
   $('pTitle').textContent = t('rep.title', { day: L(Dy.name) });
   const sum = $('pSum'); sum.innerHTML = '';
   const last = !!Dy.end || run.d >= DAYS.length - 1;
   const span = (cls, txt) => { const s = document.createElement('span'); if (cls) s.className = cls; s.textContent = txt; return s; };
-  const d = run.d;
-  if (save.rep <= 0) {
-    sum.append(span('neg', t('rep.zero', { b: before })), document.createElement('br'), span('', t('rep.fog')));
-    save.rep = 50;
-    $('pNext').textContent = t('rep.again'); $('pNext').onclick = () => startDay(d);
-  } else {
-    if (!inSB()) save.day = Math.max(save.day || 0, d + 1);
-    sum.append(span('', t('rep.rep', { b: before }) + ' '), span(delta >= 0 ? 'pos' : 'neg', `${save.rep}`), span('', ` (${delta >= 0 ? '+' : ''}${delta})`));
-    if (bonus) sum.append(document.createElement('br'), span('', t('rep.bonus', { b: num(bonus) })));
-    if (last) sum.append(document.createElement('br'), document.createElement('br'), span('', t(Dy.end === 4 ? 'sb.repYear' : Dy.end === 3 ? 'rep.week3' : Dy.end === 2 ? 'rep.week2' : 'rep.week', { r: rankOf(totalStars()) })));
-    $('pNext').textContent = last ? t('btn.central') : t('rep.next', { day: L(DAYS[d + 1].name) });
-    $('pNext').onclick = last ? () => showMenu() : () => startDay(d + 1);
+  const d = run.d, P = save.power;
+  if (!inSB()) save.day = Math.max(save.day || 0, d + 1);
+  sum.append(span('', t('rep.work') + ' '), span(delta >= 0 ? 'pos' : 'neg', `${delta >= 0 ? '+' : ''}${delta}`), span('', ' · ' + t(delta >= 8 ? 'rep.workGood' : delta >= 0 ? 'rep.workOk' : delta > -15 ? 'rep.workBad' : 'rep.workAwful')));
+  if (P) {
+    const fx = delta > 0 ? { influence: Math.ceil(delta / 4) } : delta < 0 ? { mod: { _own: -0.01 * Math.ceil(-delta / 5) }, suspicion: delta <= -15 ? 3 : 0 } : null;
+    if (fx) { const ch = POW.apply(P, fx); if (ch.length) sum.append(fxChips(ch)); }
   }
+  if (bonus) sum.append(document.createElement('br'), span('', t('rep.bonus', { b: num(bonus) })));
+  if (last) sum.append(document.createElement('br'), document.createElement('br'), span('', t(Dy.end === 4 ? 'sb.repYear' : Dy.end === 3 ? 'rep.week3' : Dy.end === 2 ? 'rep.week2' : 'rep.week', { r: rankOf(totalStars()) })));
+  $('pNext').textContent = last ? t('btn.central') : t('rep.next', { day: L(DAYS[d + 1].name) });
+  $('pNext').onclick = last ? () => showMenu() : () => startDay(d + 1);
   powerReport(Dy, sum);
   if (inSB()) sbAfterReport();
   persist();
@@ -802,7 +802,7 @@ function enterHall() {
 // Weitere begehbare Häuser
 function enterRoom(spot, task) {
   if (flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.townClosed'));
-  if (!/^task\.(hall|roessli|partei)$/.test(taskKey)) run.hallPrev = [taskKey, taskVars];
+  if (!/^task\.(hall|roessli|partei|huber)$/.test(taskKey)) run.hallPrev = [taskKey, taskVars];
   A.ui('door'); world.teleport(...spot); world.camYawT = 0.28; world.setWeather(null); setTask(task);
 }
 function leaveRoom(id) {
@@ -810,6 +810,55 @@ function leaveRoom(id) {
   world.teleport(e.pos.x, 0, e.pos.z, e.yaw); world.setWeather(run && run.wx ? run.wx : null);
   const pv = run && run.hallPrev; setTask(pv ? pv[0] : 'task.desk', pv ? pv[1] : undefined);
 }
+// Villa Huber: jede Aktion macht etwas Lärm. Bei 3 wacht Bläss auf, dann fliegt man raus.
+function hubKey(x) { return 'hub_' + x + '_' + (inSB() ? save.sb.year * 10 + save.sb.day : run.d); }
+function hubNoise(n) {
+  const P = save.power; office.dogNoise = (office.dogNoise || 0) + (run.fog ? n * 0.5 : n);
+  if (office.dogNoise < 3) return false;
+  A.sfx('tumble'); setTimeout(() => A.ui('bad'), 200);
+  const box = townPanel(t('hh.kicker'), t('hh.dogTitle'), t('hh.dogInfo'));
+  const ch = POW.apply(P, { suspicion: 10, mod: { _own: -0.05 } }); box.appendChild(fxChips(ch));
+  P.flags[hubKey('out')] = 1; persist(); updateAkte();
+  $('tnClose').onclick = () => { $('tnClose').onclick = closeTown; leaveRoom('huber'); closeTown(); A.ui('door'); };
+  return true;
+}
+function openHuberSpot(id) {
+  const P = save.power; if (!P || !run || run.kind !== 'day') return;
+  P.flags = P.flags || {};
+  if (P.flags[hubKey('out')]) return toast(t('hh.banned'));
+  const box = townPanel(t('hh.kicker'), t('hh.' + id), t('hh.' + id + 'Info'));
+  const done = P.flags[hubKey(id)];
+  if (done) { const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('hh.done'); box.appendChild(p); return; }
+  const mark = () => { P.flags[hubKey(id)] = 1; P.history.push({ day: run.d, ev: 'huberhaus_' + id }); };
+  if (id === 'hdesk') actRow(box, t('hh.deskDo'), t('hh.noise1'), true, () => {
+    mark(); if (hubNoise(1)) return;
+    const has = P.lev && P.lev.huber;
+    panelResult(box, t(has ? 'hh.deskMore' : 'hh.deskFound'), POW.apply(P, has ? { influence: 2 } : { lev: 'huber' }));
+  });
+  if (id === 'hsafe') {
+    const hint = P.flags.safeHint, codes = ['1973', '1984', '1966'], right = '1973';
+    if (hint) { const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('hh.safeHint'); box.appendChild(p); }
+    [...codes].sort(() => (run.d % 3) - 1).forEach(c => actRow(box, t('hh.safeTry', { c }), t('hh.noise2'), true, () => {
+      mark();
+      if (c !== right) { if (hubNoise(2)) return; return panelResult(box, t('hh.safeWrong')); }
+      if (hubNoise(1)) return;
+      box.innerHTML = ''; box.classList.remove('resv');
+      const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('hh.safeOpen'); box.appendChild(p);
+      actRow(box, t('hh.safeCash'), t('hh.safeCashInfo'), true, () => panelResult(box, t('hh.safeCashRes'), POW.apply(P, { cash: 1200, suspicion: 8 })));
+      actRow(box, t('hh.safeDoc'), t('hh.safeDocInfo'), true, () => panelResult(box, t('hh.safeDocRes'), POW.apply(P, { mod: { huber: -0.14 }, influence: 2 })));
+      A.ui('coin');
+    }, t('hh.safeBtn')));
+  }
+  if (id === 'hportrait') actRow(box, t('hh.portDo'), t('hh.noise0'), true, () => {
+    mark(); office.huberScribble.visible = true; P.flags.scribbled = 1;
+    panelResult(box, t('hh.portRes'), POW.apply(P, { mod: { huber: -0.03 }, suspicion: 2 }));
+  });
+  if (id === 'hmodel') actRow(box, t('hh.modelDo'), t('hh.noise1'), true, () => {
+    mark(); if (hubNoise(1)) return;
+    panelResult(box, t('hh.modelRes'), POW.apply(P, { influence: 1, trust: { gewerbe: -1 } }));
+  });
+}
+
 // Kleine Helfer für Aktionslisten in Panels
 function actRow(box, label, info, ok, onDo, btnText) {
   const el = document.createElement('div'); el.className = 'dos';
@@ -894,7 +943,8 @@ function openFolk(i) {
   P.flags = P.flags || {}; const key = 'folk' + i + '_' + (inSB() ? save.sb.year * 10 + save.sb.day : d);
   if (P.flags[key]) return;
   actRow(box, t('folk.listen'), t('folk.listenInfo', { g: L(POW.GROUPS[f.group].name) }), true, () => {
-    P.flags[key] = 1; panelResult(box, t('folk.listenRes', { n: L(f.name) }), POW.apply(P, { trust: { [f.group]: 2 } }));
+    P.flags[key] = 1; if (f.id === 'elsbeth') P.flags.safeHint = 1;
+    panelResult(box, t('folk.listenRes', { n: L(f.name) }) + (f.id === 'elsbeth' ? ' ' + t('folk.elsbethHint') : ''), POW.apply(P, { trust: { [f.group]: 2 } }));
   }, t('folk.listenBtn'));
 }
 function openWirt() {
@@ -1021,7 +1071,8 @@ function openBakery() {
     bt.appendChild(x); el.appendChild(bt); box.appendChild(el);
   });
 }
-$('tnClose').onclick = () => enterWorld(null, taskKey, taskVars);
+function closeTown() { enterWorld(null, taskKey, taskVars); }
+$('tnClose').onclick = closeTown;
 // Ende von Kapitel 1
 function chapterEnd(P, box) {
   const now = POW.polls(P), lead = Object.keys(now).sort((a, b) => now[b] - now[a])[0];

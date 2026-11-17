@@ -231,9 +231,78 @@ export function buildParteienhaus(w, o, PARTIES) {
   o.partei = S.g; o.parteiUpdate = S.update;
 }
 
+// ---------------- Villa Huber: Hubers Wohnhaus (zum Schnüffeln) ----------------
+// Täfer, Teppich, ein riesiges Porträt von Huber, Tresor, Schreibtisch, das Modell der Seilbahn seines
+// Schwagers und Bläss, der Hund. Bläss schläft. Noch.
+export const HUBER = { x: 28, z: -34, w: 9, d: 7, h: 3.2 };
+export const HUBER_SPOT = [HUBER.x, 0, HUBER.z + HUBER.d / 2 - 1.0, Math.PI];
+export function buildHuberhaus(w, o) {
+  const S = shell(w, HUBER, 0xC9A97A, 0x6B3F2A), { b, col, P } = S;
+  // Täfer mit Leisten, Tapete oben mit Streifen
+  for (let k = 0; k < 18; k++) b(0.03, 1.9, 0.02, 0xB89464, S.x0 + 0.25 + k * 0.5, 1.0, S.z0 + 0.03, { parent: S.back, cast: false });
+  // Teppich (rot mit Rand)
+  b(4.2, 0.02, 2.8, 0x8E2E2A, 0, 0.04, 0.4, { cast: false }); b(3.8, 0.025, 2.4, 0xB8423A, 0, 0.045, 0.4, { cast: false });
+  // Riesiges Porträt in Goldrahmen
+  b(1.9, 2.1, 0.08, 0xC9A23A, 0, 0.75, S.z0 + 0.06, { parent: S.back, line: 0.012 });
+  b(1.65, 1.85, 0.03, 0x3E4F3A, 0, 0.88, S.z0 + 0.11, { parent: S.back, cast: false });
+  const face = new THREE.Mesh(new THREE.CircleGeometry(0.42, 24), toon(0xE7C3A0)); face.position.set(0, 1.95, S.z0 + 0.14); S.back.add(face);
+  const body = new THREE.Mesh(new THREE.CircleGeometry(0.75, 24, 0, Math.PI), toon(PAL.tinte)); body.position.set(0, 0.9, S.z0 + 0.13); S.back.add(body);
+  const stache = new THREE.Mesh(new THREE.CircleGeometry(0.22, 16, 0, Math.PI), toon(0x4A3020)); stache.scale.set(1.3, 0.5, 1); stache.rotation.z = Math.PI; stache.position.set(0, 1.86, S.z0 + 0.15); S.back.add(stache);
+  for (const sx of [-0.15, 0.15]) { const e = new THREE.Mesh(new THREE.CircleGeometry(0.045, 10), toon(PAL.tinte)); e.position.set(sx, 2.04, S.z0 + 0.15); S.back.add(e); }
+  const scrib = new THREE.Mesh(new THREE.CircleGeometry(0.3, 16, 0, Math.PI), toon(PAL.tinte)); scrib.scale.set(1.5, 0.45, 1); scrib.rotation.z = Math.PI; scrib.position.set(0, 1.83, S.z0 + 0.16); scrib.visible = false; S.back.add(scrib); o.huberScribble = scrib;
+  const plate = textPlane('G. HUBER · PRÄSIDENT', 1.0, 0.14, 0xC9A23A, PAL.tinte, 'serif'); plate.position.set(0, 0.62, S.z0 + 0.12); S.back.add(plate);
+  // Schreibtisch links mit Lampe, Akten, Telefon und Sessel
+  b(1.8, 0.07, 0.85, 0x5A3320, -2.7, 0.74, -1.6, { line: 0.01 }); b(0.5, 0.74, 0.8, 0x5A3320, -3.4, 0, -1.6); b(0.5, 0.74, 0.8, 0x5A3320, -2.0, 0, -1.6);
+  for (let k = 0; k < 4; k++) b(0.32, 0.03, 0.4, k % 2 ? PAL.papier : 0xD8C77A, -2.9 + k * 0.03, 0.81 + k * 0.03, -1.55, { cast: false });
+  w.cyl(0.02, 0.02, 0.45, 0xC9A23A, -2.05, 0.78, -1.85, { parent: S.g, seg: 6 }); w.cyl(0.05, 0.16, 0.14, 0x2F5E3E, -2.05, 1.18, -1.85, { parent: S.g, seg: 10 });
+  b(0.75, 0.9, 0.7, 0x7A2A22, -2.7, 0, -2.55, { line: 0.01 }); b(0.75, 0.75, 0.15, 0x7A2A22, -2.7, 0.9, -2.85);
+  col(-3.65, -2.05, -1.75, -1.15, 0.8); col(-3.1, -2.95, -2.3, -2.2, 1.6);
+  // Tresor rechts hinten
+  b(0.9, 1.1, 0.75, 0x4E5458, 3.4, 0, -2.85, { line: 0.014 }); b(0.82, 1.02, 0.03, 0x5E656A, 3.4, 0.04, -2.46, { cast: false });
+  w.cyl(0.13, 0.13, 0.05, 0xC9A23A, 3.4, 0.6, -2.43, { parent: S.g, seg: 16 }).rotation.x = Math.PI / 2;
+  b(0.06, 0.25, 0.06, 0xC9A23A, 3.68, 0.45, -2.42, { cast: false });
+  col(2.95, -3.25, 3.85, -2.45, 1.2);
+  // Pokalvitrine mit Wolkenpokalen
+  b(1.1, 1.8, 0.45, 0x5A3320, 1.5, 0, -3.15, { line: 0.01 }); b(1.0, 1.6, 0.02, PAL.himmel, 1.5, 0.12, -2.92, { cast: false });
+  for (let r = 0; r < 3; r++) { b(1.0, 0.03, 0.4, 0x5A3320, 1.5, 0.5 + r * 0.5, -3.15, { cast: false }); for (let k = 0; k < 3; k++) w.cyl(0.04 + (k % 2) * 0.02, 0.05, 0.16 + (k % 2) * 0.06, 0xC9A23A, 1.2 + k * 0.3, 0.53 + r * 0.5, -3.15, { parent: S.g, seg: 8 }); }
+  col(0.95, -3.4, 2.05, -2.9, 1.9);
+  // Modell der Seilbahn «Schwager AG» auf einem Tischchen
+  b(1.3, 0.05, 0.7, PAL.nuss, 2.6, 0.7, 1.2); b(0.1, 0.7, 0.1, PAL.nuss, 2.6, 0, 1.2);
+  b(0.4, 0.3, 0.3, PAL.schnee, 2.1, 0.75, 1.2); b(0.3, 0.55, 0.3, PAL.schnee, 3.1, 0.75, 1.2);
+  const rope = b(1.05, 0.01, 0.01, PAL.tinte, 2.6, 1.15, 1.2, { cast: false }); rope.rotation.z = 0.25;
+  b(0.12, 0.1, 0.08, PAL.rot, 2.55, 0.98, 1.2);
+  const mt = textPlane('SCHWAGER AG', 0.5, 0.09, PAL.schnee, PAL.rot, 'sans'); mt.position.set(2.6, 0.83, 1.56); S.g.add(mt);
+  col(1.9, 0.8, 3.3, 1.6, 0.8);
+  // Bläss, der Hund, schläft auf dem Teppich
+  const dog = new THREE.Group(); dog.position.set(-1.0, 0.05, 1.3); dog.rotation.y = 0.6; S.g.add(dog);
+  const dm = (geo, c, x, y, z, sx = 1, sy = 1, sz = 1) => { const m = new THREE.Mesh(geo, toon(c)); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.castShadow = true; dog.add(m); outline(m, 0.01); return m; };
+  const torso = dm(new THREE.SphereGeometry(0.3, 12, 10), 0xC08A4A, 0, 0.2, 0, 1.5, 0.75, 0.95);
+  dm(new THREE.SphereGeometry(0.17, 10, 8), 0xC08A4A, 0.5, 0.14, 0.05);
+  dm(new THREE.SphereGeometry(0.08, 8, 6), PAL.schnee, 0.64, 0.1, 0.06, 1.2, 0.8, 1);
+  dm(new THREE.SphereGeometry(0.03, 6, 5), PAL.tinte, 0.72, 0.12, 0.06);
+  for (const sz of [-0.12, 0.14]) dm(new THREE.SphereGeometry(0.08, 6, 5), 0x7A4A22, 0.46, 0.24, 0.06 + sz, 0.6, 1.2, 0.7);
+  dm(new THREE.SphereGeometry(0.06, 6, 5), PAL.schnee, -0.45, 0.12, 0.15, 1.6, 0.6, 0.6);
+  const zzz = textPlane('z Z z', 0.4, 0.14, 0xC9A97A, PAL.tinte, 'serif'); zzz.position.set(-0.4, 1.0, 1.4); S.g.add(zzz);
+  col(-1.6, 0.85, -0.4, 1.75, 0.5);
+  // Garderobe mit Hut und Mantel neben der Türe
+  b(0.08, 1.8, 0.08, PAL.nuss, -3.6, 0, 2.9); w.cyl(0.22, 0.24, 0.08, PAL.tinte, -3.6, 1.75, 2.9, { parent: S.g, seg: 12 }); w.cyl(0.13, 0.13, 0.16, PAL.tinte, -3.6, 1.8, 2.9, { parent: S.g, seg: 12 });
+  b(0.4, 0.8, 0.12, 0x3E4F5E, -3.6, 0.85, 2.82, { cast: false });
+  window4(S, -3.3, PAL.himmel);
+  const it = (id, x, z, r = 0.9) => w.addInteractable(id, P(x, z), r, t('use.' + id));
+  it('hdesk', -2.7, -0.8, 0.9); it('hsafe', 3.4, -1.75, 0.9); it('hportrait', 0, -2.4, 0.9); it('hmodel', 2.6, 2.1, 0.8); it('huberexit', 0, S.z1 - 0.2, 0.9);
+  o.huber = S.g;
+  o.huberUpdate = (dt) => {
+    const inside = S.update(dt); if (!inside) return;
+    const tm = performance.now() / 1000, k = o.dogNoise || 0;
+    torso.scale.y = 0.75 * (1 + Math.sin(tm * (2 + k)) * 0.05);
+    zzz.position.y = 1.0 + Math.sin(tm * 1.3) * 0.08; zzz.visible = k < 3; zzz.material.opacity = 1;
+    dog.rotation.z = k >= 2 ? Math.sin(tm * 9) * 0.05 : 0;
+  };
+}
+
 // ---------------- Eingänge im Dorf: Türe, Schild, Laterne ----------------
 // Rössli = Haus 3 (hinter dem Platz, Mitte), Parteienhaus = Haus 2 (hinten links). Türen zeigen zur Kamera (Süden).
-export const ENTRANCES = [{ house: 3, id: 'roessli', key: 'roessli.sign', bg: '#E8D9A8', fg: PAL.tinte }, { house: 2, id: 'partei', key: 'partei.signShort', bg: PAL.blau, fg: PAL.schnee }];
+export const ENTRANCES = [{ house: 3, id: 'roessli', key: 'roessli.sign', bg: '#E8D9A8', fg: PAL.tinte }, { house: 2, id: 'partei', key: 'partei.signShort', bg: PAL.blau, fg: PAL.schnee }, { house: 4, id: 'huber', key: 'huber.sign', bg: '#C9A23A', fg: PAL.tinte }];
 export function markEntrances(w, o) {
   o.entrance = {};
   for (const E of ENTRANCES) {

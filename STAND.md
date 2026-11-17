@@ -215,3 +215,20 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   hat jeden Tag einen Wetterwunsch; wer ihn am Wetterpult erfüllt und sie danach anspricht, bekommt
   +4 Vertrauen der Gruppe und +1 Einfluss (Erfolg «Wunschkonzert» nach fünf). Geräusche: Kuhglocken bei der
   Weide, Bienen beim Bienenhaus, Kinder auf dem Spielplatz (nicht bei Regen), Kirchenglocke alle zwei Minuten.
+- Alle Punkte der Liste (17.11. abends):
+  - Dorfplan auf M oder K (js/map.js): Papierkarte mit Wegen, Häusern, Parteihäusern in Parteifarbe, Orten,
+    den vier Leuten mit Namen, gefundenen Zetteln und eigener Position (Pfeil), aktualisiert sich live.
+  - Innenräume (js/interiors2.js): Bäckerei Gerber (Gipfeli fürs Amt, Runde für den Platz, Bestellbuch im
+    Hinterzimmer mit Risiko), Schulhaus Klasse 3b (Vortrag, bei hohem Verdacht peinliche Frage; Zeichnungen),
+    Kirche St. Niklaus (Beichten alle drei Tage senkt Verdacht, Pfarrer fragen, Opferstock, Glockenseil innen).
+  - Dorfgeschehen (power.js villageEvent): 8 neue Ereignisse an den Orten (Kühe auf dem Platz, Schülerzeitung,
+    Orgel, Torte, Feuerwehrübung, Bienen bei Huber, Seilbahn steckt fest, Wolkwilisch-Kolumne), je einmal pro
+    Spiel, an etwa jedem zweiten normalen Tag. 7 neue Inserate. Zeitungsarchiv im Büro-Archiv (alte Titelseiten).
+  - Ladezeit: Gelände rechnet die Neigung aus Nachbarpunkten (statt dreifach), Hügel-Schnelltest. JS-Aufbau
+    ca. 2 s; der Rest beim Start ist das erste Rendern (ohne Grafikkarte im Test ca. 9 s, mit GPU deutlich weniger).
+  - Englische Texte geprüft (697 Einträge, keine deutschen Reste), Einzelkorrekturen.
+  - Video-Fabrik rechnet Szenen einzeln (--szenen a-b) und setzt zusammen (--zusammen).
+  - Mehrspieler: Parteibüros online betretbar; eigenes Büro «Plakate drucken», fremdes «Plakate klauen» (einmal
+    pro Runde); ist jemand der Besitzerpartei im Raum, wird man erwischt (Meldung an alle). Wiedereinstieg nach
+    Verbindungsabbruch: automatisch bis 3 Versuche, gleicher Name bekommt Platz, Partei und Punkte zurück,
+    mitten in einer Runde wird man mit dem aktuellen Stand versorgt (Abstimmung, Resultate).

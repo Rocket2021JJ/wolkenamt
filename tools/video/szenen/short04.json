@@ -1,0 +1,112 @@
+{
+ "titel": "Short 4 – Zieh nicht am Glockenseil",
+ "format": "short",
+ "fps": 30,
+ "scenes": [
+  {
+   "dur": 4,
+   "cam": {
+    "from": [
+     -10,
+     3.6,
+     -3,
+     -15.7,
+     2.2,
+     -10.2
+    ],
+    "to": [
+     -12.5,
+     3.0,
+     -6.5,
+     -15.9,
+     2.0,
+     -10.6
+    ]
+   },
+   "js": "__world.teleport(-15.4, 0, -8.6, 2.9);",
+   "audio": [
+    {
+     "say": "Hmmpfli?",
+     "who": "Gemeindeschreiber",
+     "mood": "?",
+     "at": 0.8
+    }
+   ],
+   "subs": [
+    {
+     "from": 0.6,
+     "to": 4,
+     "lingo": "Hmmpfli?",
+     "text": "What does this rope do?",
+     "small": "Was macht dieses Seil?"
+    }
+   ]
+  },
+  {
+   "dur": 6,
+   "cam": {
+    "from": [
+     -6,
+     4,
+     0,
+     -16.5,
+     11,
+     -14
+    ],
+    "to": [
+     -8,
+     3,
+     4,
+     -17,
+     13,
+     -14
+    ]
+   },
+   "js": "__world.bellT = 6; __world.watch(true, __world.churchBell.getWorldPosition(new __THREE.Vector3()));",
+   "audio": [
+    {
+     "bells": 6,
+     "at": 0.2
+    }
+   ]
+  },
+  {
+   "dur": 4,
+   "cam": {
+    "from": [
+     -5,
+     4.4,
+     19,
+     0,
+     1.8,
+     6
+    ],
+    "to": [
+     -3.5,
+     3.9,
+     16.5,
+     0,
+     1.6,
+     5
+    ]
+   },
+   "js": "__world.watch(false);",
+   "audio": [
+    {
+     "say": "Mmh. Nüpfnüpf.",
+     "who": "moser",
+     "at": 0.4
+    }
+   ],
+   "subs": [
+    {
+     "from": 0.3,
+     "to": 4,
+     "lingo": "Mmh. Nüpfnüpf.",
+     "text": "Mmh. Bad idea.",
+     "small": "Mmh. Schlechte Idee."
+    }
+   ]
+  }
+ ]
+}

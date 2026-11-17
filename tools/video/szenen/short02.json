@@ -1,0 +1,224 @@
+{
+ "titel": "Short 2 – Der Tresor des Präsidenten",
+ "format": "short",
+ "fps": 30,
+ "music": "hochdruck_spannung",
+ "music_gain": 0.4,
+ "scenes": [
+  {
+   "dur": 4,
+   "cam": {
+    "from": [
+     11,
+     3.2,
+     31,
+     6.5,
+     2.2,
+     22.8
+    ],
+    "to": [
+     9,
+     2.6,
+     27.5,
+     6.5,
+     2.0,
+     22.8
+    ]
+   },
+   "js": "__world.teleport(6.5, 0, 26, Math.PI);",
+   "audio": [
+    {
+     "say": "Wüürzli …",
+     "who": "Gemeindeschreiber",
+     "at": 0.5,
+     "gain": 0.8
+    }
+   ],
+   "subs": [
+    {
+     "from": 0.4,
+     "to": 4,
+     "lingo": "Wüürzli …",
+     "text": "The mayor isn't home.",
+     "small": "Der Präsident ist nicht da."
+    }
+   ]
+  },
+  {
+   "dur": 4,
+   "cam": {
+    "from": [
+     17.5,
+     3.4,
+     -635.5,
+     15.2,
+     0.5,
+     -638.4
+    ],
+    "to": [
+     16.8,
+     2.6,
+     -636.5,
+     15.0,
+     0.4,
+     -638.6
+    ]
+   },
+   "js": "__world.teleport(17.5, 0, -637.6, 2.5); __world.office.dogNoise = 0;",
+   "audio": [
+    {
+     "say": "Pssst.",
+     "who": "Gemeindeschreiber",
+     "at": 0.6,
+     "gain": 0.8
+    }
+   ],
+   "subs": [
+    {
+     "from": 0.5,
+     "to": 4,
+     "lingo": "Pssst.",
+     "text": "His dog is.",
+     "small": "Sein Hund schon."
+    }
+   ]
+  },
+  {
+   "dur": 5,
+   "cam": {
+    "from": [
+     17.4,
+     2.3,
+     -640.3,
+     19.4,
+     0.6,
+     -642.8
+    ],
+    "to": [
+     17.9,
+     1.9,
+     -641.0,
+     19.4,
+     0.6,
+     -642.8
+    ]
+   },
+   "js": "__world.teleport(20.6, 0, -641.2, 1.9);",
+   "audio": [
+    {
+     "say": "Hmmpfli?",
+     "who": "Gemeindeschreiber",
+     "mood": "?",
+     "at": 0.4
+    },
+    {
+     "say": "Chläpf!",
+     "who": "Gemeindeschreiber",
+     "mood": "!",
+     "at": 3.0
+    }
+   ],
+   "subs": [
+    {
+     "from": 0.3,
+     "to": 2.8,
+     "lingo": "Hmmpfli?",
+     "text": "Four digits. Which ones?",
+     "small": "Vier Ziffern. Welche?"
+    },
+    {
+     "from": 2.8,
+     "to": 5,
+     "lingo": "Chläpf!",
+     "text": "Wrong. The dog moves.",
+     "small": "Falsch. Der Hund bewegt sich."
+    }
+   ]
+  },
+  {
+   "dur": 4,
+   "cam": {
+    "from": [
+     -5,
+     4.4,
+     19,
+     0,
+     1.8,
+     6
+    ],
+    "to": [
+     -3.5,
+     3.9,
+     16.5,
+     0,
+     1.6,
+     5
+    ]
+   },
+   "js": "__world.teleport(3.5, 0, 12, 2.4);",
+   "audio": [
+    {
+     "say": "Ach jöö, Büebli … nüünzäh-drüüesibezg!",
+     "who": "Grosi Elsbeth",
+     "at": 0.3
+    }
+   ],
+   "subs": [
+    {
+     "from": 0.2,
+     "to": 4,
+     "lingo": "Ach jöö, Büebli …",
+     "text": "Granny knows things.",
+     "small": "Das Grosi weiss Dinge."
+    }
+   ]
+  },
+  {
+   "dur": 4,
+   "cam": {
+    "from": [
+     17.4,
+     2.3,
+     -640.3,
+     19.4,
+     0.6,
+     -642.8
+    ],
+    "to": [
+     17.9,
+     1.9,
+     -641.0,
+     19.4,
+     0.6,
+     -642.8
+    ]
+   },
+   "js": "__world.teleport(20.6, 0, -641.2, 1.9);",
+   "audio": [
+    {
+     "say": "Bombümpf!",
+     "who": "Gemeindeschreiber",
+     "mood": "!",
+     "at": 0.4
+    }
+   ],
+   "subs": [
+    {
+     "from": 0.3,
+     "to": 4,
+     "lingo": "Bombümpf!",
+     "text": "Money… or the contract?",
+     "small": "Geld … oder der Vertrag?"
+    }
+   ]
+  },
+  {
+   "dur": 3,
+   "card": {
+    "title": "HOCHDRUCK",
+    "line": "What would you take?",
+    "small": "COMMENT BELOW · FREE BROWSER GAME"
+   }
+  }
+ ]
+}

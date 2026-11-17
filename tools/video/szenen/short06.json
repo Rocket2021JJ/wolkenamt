@@ -1,0 +1,15 @@
+{
+  "titel": "Short 6 – Abends in Wolkenwil",
+  "format": "short", "fps": 30, "music": "abendbericht", "music_gain": 0.5,
+  "scenes": [
+    { "dur": 4, "dusk": 0, "cam": { "from": [-4, 4.2, 18.5, 1, 2, 1], "to": [-3, 4.0, 17, 1, 2, 1] },
+      "audio": [ { "say": "Gmüetwölkli …", "who": "Gemeindeschreiber", "at": 0.5 } ],
+      "subs": [ { "from": 0.4, "to": 4, "lingo": "Gmüetwölkli …", "text": "After work…", "small": "Nach Feierabend …" } ] },
+    { "dur": 5, "dusk": 1, "cam": { "from": [-3, 4.0, 17, 1, 2, 1], "to": [-2, 3.6, 15, 1, 2, 1] },
+      "audio": [ { "say": "Blüemli-blüemli.", "who": "Gemeindeschreiber", "at": 0.6 } ],
+      "subs": [ { "from": 0.5, "to": 5, "lingo": "Blüemli-blüemli.", "text": "…the lights come on.", "small": "… gehen die Lichter an." } ] },
+    { "dur": 5, "dusk": 1, "cam": { "from": [-2, 6, 22, 0, 2, 4], "to": [-14, 50, 96, 0, 0, 5] },
+      "audio": [ { "say": "Tschüüdeli!", "who": "Gemeindeschreiber", "at": 1.0 }, { "gesture": "laugh", "who": "Gemeindepräsident Huber", "at": 3.4 } ],
+      "subs": [ { "from": 0.8, "to": 5, "lingo": "Tschüüdeli!", "text": "Wolkenwil sleeps. Huber doesn't.", "small": "Wolkenwil schläft. Huber nicht." } ] }
+  ]
+}

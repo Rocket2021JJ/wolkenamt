@@ -1730,7 +1730,11 @@ onLang(() => {
 
 // ---------------- Hauptschleife ----------------
 let last = performance.now();
+// Video-Fabrik: Bild für Bild mit festem Zeitschritt rendern (window.__offline = true, dann __frame(dt))
+window.__frame = dt => { world.update(dt); world.render(); stepTownExtra(dt); };
+function stepTownExtra(dt) { if (office.crankT > 0) { office.crankT -= dt; office.crank.rotation.x -= dt * 9; } }
 function loop(now) {
+  if (window.__offline) { last = now; requestAnimationFrame(loop); return; }
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (!cut.active) {
     world.update(dt); world.render();

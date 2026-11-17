@@ -6,7 +6,8 @@ import { FOLK, folkLine } from './folk.js';
 import { ACH, unlock } from './achievements.js';
 import { detailVillage, stepHens, partyPosters, updatePosters, setDusk, stepSmoke } from './village.js';
 import { stepLandscape } from './terrain.js';
-import { decorateRoof, buildRoessli, buildParteienhaus, buildHuberhaus, markEntrances, signpost, ROESSLI_SPOT, PARTEI_SPOT, HUBER_SPOT } from './interiors.js';
+import { decorateRoof, buildRoessli, buildHuberhaus, markEntrances, signpost, ROESSLI_SPOT, HUBER_SPOT } from './interiors.js';
+import { buildTown, stepTown, relabelTown, clampToVillage, PSPOT, NOTES } from './town.js';
 import * as THREE from 'three';
 import { World, ROOM } from './world3d.js';
 import { furnish } from './office.js';
@@ -53,10 +54,11 @@ const totalStars = () => save.stars.reduce((a, b) => a + (b || 0), 0);
 const world = new World($('c3d'));
 const office = world.office = furnish(world);
 buildHall(world, office);
-decorateRoof(world, office); buildRoessli(world, office); buildParteienhaus(world, office, POW.PARTIES); buildHuberhaus(world, office); markEntrances(world, office); signpost(world);
+decorateRoof(world, office); buildRoessli(world, office); buildHuberhaus(world, office); markEntrances(world, office); signpost(world);
+buildTown(world, office, POW.PARTIES); world.bound = clampToVillage;
 detailVillage(world); world.onDusk = k => setDusk(world, k);
 partyPosters(world);
-{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepSmoke(world, tm); folkIts.forEach((it, i) => { it.pos.copy(world.villagers[i].pos); it.enabled = !world.inside && flow === 'single'; }); stepLandscape(world, dt); soundTick(dt); tutTick(dt); }; }
+{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepSmoke(world, tm); folkIts.forEach((it, i) => { it.pos.copy(world.villagers[i].pos); it.enabled = !world.inside && flow === 'single'; }); stepLandscape(world, dt); stepTown(world, office, dt, tm); soundTick(dt); tutTick(dt); }; }
 // Musik und Umgebung je nach Ort und Lage
 // Wolkwilisch sprechen (mit Sprechblase im Fenster-Titel nicht nötig)
 function sayLingo(line, who, mood = '') { A.speak(LG.syllables(line), A.voiceFor(who), { interrupt: true, mood }); }
@@ -101,7 +103,7 @@ function soundTick(dt) {
 addEventListener('pointerdown', () => A.ensureAudio(), { capture: true });
 addEventListener('click', e => { if (e.target.closest && e.target.closest('button')) A.ui('click'); }, { capture: true });
 world.setFadeHouses(world.houses.map((_, i) => i), [office.thSign.parent]);
-world.bake([...world.hens, ...world.valleyClouds, world.skyDome, ...world.landscape, office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank, office.hall, office.roessli, office.partei, office.huber, office.windsock, ...office.laundry], world.fadeList.map(f => f.g));
+world.bake([...world.hens, ...world.valleyClouds, world.skyDome, ...world.landscape, office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank, office.hall, office.roessli, office.huber, ...office.townDyn, office.windsock, ...office.laundry], world.fadeList.map(f => f.g));
 world.spawnVillagers(11);
 // Die ersten vier Dorfleute haben Namen und lassen sich ansprechen
 const folkIts = FOLK.map((f, i) => world.addInteractable('folk_' + i, world.villagers[i].pos, 1.5, t('folk.talk', { n: L(f.name) })));
@@ -467,9 +469,11 @@ world.onUse = (id) => {
   if (id === 'townhall') return enterHall();
   if (id === 'hallexit') return leaveHall();
   if (id === 'roessliexit') return leaveRoom('roessli');
-  if (id === 'parteiexit') return leaveRoom('partei');
   if (id === 'roesslidoor') return enterRoom(ROESSLI_SPOT, 'task.roessli');
-  if (id === 'parteidoor') return enterRoom(PARTEI_SPOT, 'task.partei');
+  if (id.startsWith('pdoor_')) { const pid = id.slice(6); return enterRoom(PSPOT(pid), 'task.pbuero', { p: POW.PARTIES[pid].short }); }
+  if (id.startsWith('pexit_')) return leaveRoom('p_' + id.slice(6));
+  if (id.startsWith('note_')) return openNote(+id.slice(5));
+  if (id === 'fernrohr') return lookThrough();
   if (id === 'huberdoor') { office.dogNoise = 0; return enterRoom(HUBER_SPOT, 'task.huber'); }
   if (id === 'huberexit') return leaveRoom('huber');
   if (/^h(desk|safe|portrait|model)$/.test(id)) return openHuberSpot(id);
@@ -831,10 +835,10 @@ function enterHall() {
   setTask('task.hall');
 }
 // Weitere begehbare Häuser
-function enterRoom(spot, task) {
+function enterRoom(spot, task, vars) {
   if (flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.townClosed'));
-  if (!/^task\.(hall|roessli|partei|huber)$/.test(taskKey)) run.hallPrev = [taskKey, taskVars];
-  A.ui('door'); world.teleport(...spot); world.camYawT = 0.28; world.setWeather(null); setTask(task);
+  if (!/^task\.(hall|roessli|partei|huber|pbuero)$/.test(taskKey)) run.hallPrev = [taskKey, taskVars];
+  A.ui('door'); world.teleport(...spot); world.camYawT = 0.28; world.setWeather(null); setTask(task, vars);
 }
 function leaveRoom(id) {
   const e = office.entrance[id]; A.ui('door');
@@ -889,6 +893,27 @@ function openHuberSpot(id) {
     mark(); if (hubNoise(1)) return;
     panelResult(box, t('hh.modelRes'), POW.apply(P, { influence: 1, trust: { gewerbe: -1 } }));
   });
+}
+
+// Zettel mit Wolkwilisch-Wörtern, im ganzen Dorf versteckt
+function openNote(i) {
+  const word = office.noteWords[i], tr = LG.WORDS[word];
+  save.words = save.words || {}; const isNew = !save.words[i]; save.words[i] = 1; persist();
+  const n = Object.keys(save.words).length;
+  const box = townPanel(t('note.kicker', { n, m: NOTES.length }), word, '«' + L(tr) + '»');
+  const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t(n >= NOTES.length ? 'note.all' : isNew ? 'note.new' : 'note.old'); box.appendChild(p);
+  sayLingo(word, 'Gemeindeschreiber', word.includes('!') ? '!' : '');
+  if (isNew) A.ui('paper');
+  if (n >= NOTES.length) ach('wortschatz');
+}
+// Fernrohr am Aussichtspunkt: kurzer Blick über das ganze Tal
+function lookThrough() {
+  mode = 'view'; world.enabled = false; hud(false);
+  const back = [taskKey, taskVars];
+  world.flyTo(V(0, 9, -56), V(0, -30, -460), 1.6, () => {
+    toast(t('view.toast'));
+    setTimeout(() => { world.flyTo(V(-40, 9, -50), V(220, -20, -300), 2.6, () => setTimeout(() => enterWorld(null, back[0], back[1]), 1200), false); }, 2600);
+  }, false);
 }
 
 // Kleine Helfer für Aktionslisten in Panels
@@ -1695,7 +1720,7 @@ addEventListener('keydown', e => {
 
 // Sprache wechseln: alles neu beschriften
 onLang(() => {
-  applyDom(); office.relabel(); soundLabels(); folkIts.forEach((it, i) => { it.label = t('folk.talk', { n: L(FOLK[i].name) }); });
+  applyDom(); office.relabel(); relabelTown(office); soundLabels(); folkIts.forEach((it, i) => { it.label = t('folk.talk', { n: L(FOLK[i].name) }); });
   if (mode === 'menu') showMenu();
   if (taskKey) setTask(taskKey, taskVars);
   document.title = t('doc.title');

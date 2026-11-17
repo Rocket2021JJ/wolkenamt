@@ -7,7 +7,8 @@ import { toon } from './toon.js';
 import { t } from './i18n.js';
 import { textPlane } from './office.js';
 
-export const HALL = { x: 0, z: -34, w: 10, d: 8, h: 3.4 };
+export const RZ = -640;
+export const HALL = { x: 0, z: RZ, w: 10, d: 8, h: 3.4 };
 export const HALL_SPOT = [HALL.x, 0, HALL.z + HALL.d / 2 - 1.0, Math.PI];
 
 export function buildHall(w, o) {

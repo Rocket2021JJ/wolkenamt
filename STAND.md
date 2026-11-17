@@ -190,3 +190,13 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   Mähstreifen), Hecken an den Feldrändern und klar abgegrenzten Waldstücken; Bauernhöfe auf den Hügeln.
   Farben pro Rasterfeld statt Verläufe, damit es gemalt statt generiert wirkt. Die Alpen stehen nur noch
   niedrig und dunstig am Horizont. Wasserfall entfernt (passte nicht zu Hügeln), Nachbardorf ins Tal versetzt.
+- Grösseres Dorf (17.11.): Plateau etwa doppelt so gross mit Holzzaun rundherum (das Beamtli bleibt im Dorf,
+  js/town.js clampToVillage). Kieswege (js/paths.js) verbinden Platz, Parteigasse (Westen), Schulgasse
+  (Osten), Kirche/Weide/Aussicht (Norden) und Oberdorf (Süden). Jede Partei hat ein eigenes Haus mit Fahne,
+  Schild und Plakatwand in der Parteigasse, alle begehbar (eigenes Büro bzw. Schnüffeln bei den anderen,
+  gleiche Aktionen wie vorher im gemeinsamen Parteienhaus, das es nicht mehr gibt). Neu: Schulhaus mit
+  Glockentürmchen und Spielplatz, Feuerwehr, Bäckerei Gerber, Dorfladen, Friedhof, Kuhweide mit vier Kühen,
+  Bienenhaus, Aussichtspunkt mit Fernrohr (Kameraflug übers Tal), elf weitere Wohnhäuser, Gemüsegärten,
+  rund 95 Bäume, Wäscheleinen, Heuballen, Laternen, Bänkli, Wegweiser. Zwölf Wolkwilisch-Zettel im Dorf
+  versteckt (alle gefunden = Erfolg). Seilbahn-Bergstation an den Südostrand verlegt. Alle Innenräume
+  liegen jetzt weit weg (z = -640) auf einer Wiese, die nur sichtbar ist, wenn man drin ist.

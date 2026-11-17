@@ -16,6 +16,7 @@ export const ACH = [
   { id: 'schnurrbart', lingo: 'Schnäuzli', name: ['Kunst am Bau', 'Public art'], desc: ['Hubers Porträt verschönert.', 'Improved Huber’s portrait.'], hidden: true },
   { id: 'blaess', lingo: 'Wuff-wuff-plimm', name: ['Bläss ist wach', 'Bläss is awake'], desc: ['Hubers Hund geweckt.', 'Woke up Huber’s dog.'], hidden: true },
   { id: 'einbrecher', lingo: 'Schliichli', name: ['Hausbesuch', 'House call'], desc: ['In alle vier Parteibüros geschlichen.', 'Snuck into all four party offices.'] },
+  { id: 'wortschatz', lingo: 'Bombümpf Wolkwilisch', name: ['Wolkwilisch gelernt', 'Learned Wolkwilish'], desc: ['Alle zwölf Zettel im Dorf gefunden.', 'Found all twelve notes in the village.'] },
 ];
 export function unlock(save, id) {
   save.ach = save.ach || {};

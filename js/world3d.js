@@ -89,6 +89,34 @@ export class World {
   }
   addCollider(x0, y0, z0, x1, y1, z1, trip) { const c = { min: new THREE.Vector3(x0, y0, z0), max: new THREE.Vector3(x1, y1, z1), trip: !!trip }; this.colliders.push(c); return c; }
   // Satteldach als dreiseitiges Prisma
+  // Ein Haus im Dorfstil (zufällig, ausser was o vorgibt). Wird später von village.js ausgeschmückt.
+  addHouse(x, z, rot, o = {}) {
+    const r = this.r;
+      const w = o.w ?? 3.4 + r() * 1.8, d = o.d ?? 3 + r() * 1.4, h = o.h ?? 2.6 + r() * 1.6;
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot + this.jit(0.08); this.scene.add(g);
+    const wood = o.wood ?? r() < 0.55;
+    this.box(w, h, d, o.wall ?? (wood ? PAL.chalet : PAL.schnee), 0, 0, 0, { parent: g, line: 0 });
+    if (!wood) this.box(w + 0.04, 0.9, d + 0.04, PAL.chalet, 0, h - 0.9, 0, { parent: g });
+    const roofC = o.roofCol ?? (r() < 0.25 ? PAL.rot : PAL.chalet);
+    const rh = 1.3 + r() * 0.8;
+    const rf = this.gable(w + 0.9, rh, d + 0.7, roofC === PAL.chalet && wood ? PAL.tinte : roofC, 0, h, 0, 0, g);
+    rf.rotation.z = this.jit(0.02);
+    // Fenster: verschieden gross, mit Läden in Matte
+    const nw = Math.max(1, Math.floor(w / 1.3));
+    for (let k = 0; k < nw; k++) {
+      const fx = -w / 2 + (k + 0.5) * w / nw + this.jit(0.12), fy = 1.1 + r() * 0.5, fw = 0.45 + r() * 0.25;
+      this.box(fw, 0.6 + r() * 0.2, 0.05, PAL.tinte, fx, fy, d / 2 + 0.02, { parent: g, cast: false });
+      if (r() < 0.7) for (const s of [-1, 1]) this.box(0.18, 0.66, 0.04, PAL.matte, fx + s * (fw / 2 + 0.11), fy - 0.03, d / 2 + 0.03, { parent: g, cast: false });
+      if (h > 3.3 && r() < 0.8) this.box(fw * 0.8, 0.5, 0.05, PAL.tinte, fx, h - 0.75, d / 2 + 0.02, { parent: g, cast: false });
+    }
+    // Tür
+    let doorX = null; if (o.door !== false && (o.door || r() < 0.8)) { doorX = o.door ? 0 : w * (r() - 0.5) * 0.5; this.box(0.75, 1.55, 0.06, PAL.tinte, doorX, 0, d / 2 + 0.02, { parent: g, cast: false }); }
+    // Kollision als achsenparallele Box (grob)
+    const c = Math.abs(Math.cos(g.rotation.y)), s = Math.abs(Math.sin(g.rotation.y));
+    const hw = (w * c + d * s) / 2, hd = (w * s + d * c) / 2;
+    this.addCollider(x - hw, 0, z - hd, x + hw, h + 1.5, z + hd);
+    g.userData = { w, d, h, wood, roofH: rh, roofCol: roofC, doorX, ...(o.data || {}) }; this.houses.push(g); return g;
+  }
   gable(w, h, d, color, x, y, z, rot = 0, parent) {
     const shape = new THREE.Shape(); shape.moveTo(-w / 2, 0); shape.lineTo(w / 2, 0); shape.lineTo(0, h); shape.closePath();
     const geo = new THREE.ExtrudeGeometry(shape, { depth: d, bevelEnabled: false }); geo.translate(0, 0, -d / 2);
@@ -283,32 +311,7 @@ export class World {
       [11.6, 18.5, -1.5], [12.2, 12.5, -1.6], [11.5, 6.8, -0.4], [-17, 27, 0.3], [16, 27, -0.2], [-18, 4, 1.2], [18, 3, -1.1],
     ];
     this.houses = [];
-    spots.forEach(([x, z, rot], i) => {
-      const w = 3.4 + r() * 1.8, d = 3 + r() * 1.4, h = 2.6 + r() * 1.6;
-      const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot + this.jit(0.08); this.scene.add(g);
-      const wood = r() < 0.55;
-      this.box(w, h, d, wood ? PAL.chalet : PAL.schnee, 0, 0, 0, { parent: g, line: 0 });
-      if (!wood) this.box(w + 0.04, 0.9, d + 0.04, PAL.chalet, 0, h - 0.9, 0, { parent: g });
-      const roofC = r() < 0.25 ? PAL.rot : PAL.chalet;
-      const rh = 1.3 + r() * 0.8;
-      const rf = this.gable(w + 0.9, rh, d + 0.7, roofC === PAL.chalet && wood ? PAL.tinte : roofC, 0, h, 0, 0, g);
-      rf.rotation.z = this.jit(0.02);
-      // Fenster: verschieden gross, mit Läden in Matte
-      const nw = Math.max(1, Math.floor(w / 1.3));
-      for (let k = 0; k < nw; k++) {
-        const fx = -w / 2 + (k + 0.5) * w / nw + this.jit(0.12), fy = 1.1 + r() * 0.5, fw = 0.45 + r() * 0.25;
-        this.box(fw, 0.6 + r() * 0.2, 0.05, PAL.tinte, fx, fy, d / 2 + 0.02, { parent: g, cast: false });
-        if (r() < 0.7) for (const s of [-1, 1]) this.box(0.18, 0.66, 0.04, PAL.matte, fx + s * (fw / 2 + 0.11), fy - 0.03, d / 2 + 0.03, { parent: g, cast: false });
-        if (h > 3.3 && r() < 0.8) this.box(fw * 0.8, 0.5, 0.05, PAL.tinte, fx, h - 0.75, d / 2 + 0.02, { parent: g, cast: false });
-      }
-      // Tür
-      let doorX = null; if (r() < 0.8) { doorX = w * (r() - 0.5) * 0.5; this.box(0.75, 1.55, 0.06, PAL.tinte, doorX, 0, d / 2 + 0.02, { parent: g, cast: false }); }
-      // Kollision als achsenparallele Box (grob)
-      const c = Math.abs(Math.cos(g.rotation.y)), s = Math.abs(Math.sin(g.rotation.y));
-      const hw = (w * c + d * s) / 2, hd = (w * s + d * c) / 2;
-      this.addCollider(x - hw, 0, z - hd, x + hw, h + 1.5, z + hd);
-      g.userData = { w, d, h, wood, roofH: rh, roofCol: roofC, doorX }; this.houses.push(g);
-    });
+    spots.forEach(([x, z, rot]) => this.addHouse(x, z, rot));
 
     // Tannen
     const firs = [[-8, 3], [-9.5, 4.5], [8.5, 3.5], [9, 1.5], [-16.5, 6.5], [14.5, 9.5], [-16.5, 19], [15, 15], [-3, 26], [3.5, 27], [-20, 14], [20, 20], [-10, -2], [10, -3], [-16, -6], [16, -6], [-7, -8], [7.5, -9]];
@@ -444,6 +447,7 @@ export class World {
         if (m === 0) pos.x = c.min.x - P.r; else if (m === 1) pos.x = c.max.x + P.r; else if (m === 2) pos.z = c.min.z - P.r; else pos.z = c.max.z + P.r;
       }
     }
+    if (this.bound) this.bound(pos);
     // Boden finden
     let ground = 0, groundC = null; const gr = P.r * 0.55;
     for (const c of this.colliders) {

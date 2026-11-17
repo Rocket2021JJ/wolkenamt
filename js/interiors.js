@@ -7,9 +7,10 @@ import { t } from './i18n.js';
 import { textPlane } from './office.js';
 import { Beamtli } from './beamtli.js';
 import { ROOM } from './world3d.js';
+import { RZ } from './hall.js';
 
 // Kleine Wolke aus Kugeln
-function puff(parent, x, y, z, s = 1, col = PAL.schnee) {
+export function puff(parent, x, y, z, s = 1, col = PAL.schnee) {
   const g = new THREE.Group(); g.position.set(x, y, z); g.scale.setScalar(s); parent.add(g);
   for (const [bx, by, bz, r] of [[-0.16, 0, 0, 0.14], [0, 0.06, 0.02, 0.18], [0.17, 0, -0.02, 0.13], [0.05, -0.04, 0.1, 0.12]]) {
     const m = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), toon(col)); m.position.set(bx, by, bz); m.castShadow = true; g.add(m); outline(m, 0.012);
@@ -109,7 +110,7 @@ export function decorateRoof(w, o) {
 }
 
 // ---------------- Raumschale für Innenräume ----------------
-function shell(w, H, wallCol, floorCol) {
+export function shell(w, H, wallCol, floorCol) {
   const g = new THREE.Group(); g.position.set(H.x, 0, H.z); w.scene.add(g);
   const back = new THREE.Group(); g.add(back);
   const x0 = -H.w / 2, x1 = H.w / 2, z0 = -H.d / 2, z1 = H.d / 2, T = 0.2;
@@ -141,7 +142,7 @@ function shell(w, H, wallCol, floorCol) {
   };
   return { g, back, b, col, P, npc, update, x0, x1, z0, z1 };
 }
-const window4 = (S, x, col = PAL.himmel) => {
+export const window4 = (S, x, col = PAL.himmel) => {
   S.b(0.9, 1.3, 0.05, col, x, 1.0, S.z0 + 0.03, { parent: S.back, cast: false });
   S.b(0.05, 1.3, 0.06, PAL.chalet, x, 1.0, S.z0 + 0.06, { parent: S.back, cast: false });
   S.b(0.9, 0.05, 0.06, PAL.chalet, x, 1.63, S.z0 + 0.06, { parent: S.back, cast: false });
@@ -149,7 +150,7 @@ const window4 = (S, x, col = PAL.himmel) => {
 };
 
 // ---------------- Gasthaus Rössli ----------------
-export const ROESSLI = { x: -14, z: -34, w: 10, d: 8, h: 3.2 };
+export const ROESSLI = { x: -16, z: RZ, w: 10, d: 8, h: 3.2 };
 export const ROESSLI_SPOT = [ROESSLI.x, 0, ROESSLI.z + ROESSLI.d / 2 - 1.0, Math.PI];
 export function buildRoessli(w, o) {
   const S = shell(w, ROESSLI, 0xD9C9A3, PAL.nuss), { b, col, P } = S;
@@ -194,7 +195,7 @@ export function buildRoessli(w, o) {
 }
 
 // ---------------- Parteienhaus: vier Parteibüros in einem Haus ----------------
-export const PARTEI = { x: 14, z: -34, w: 11, d: 8, h: 3.2 };
+export const PARTEI = { x: 70, z: RZ, w: 11, d: 8, h: 3.2 };
 export const PARTEI_SPOT = [PARTEI.x, 0, PARTEI.z + PARTEI.d / 2 - 1.0, Math.PI];
 export const PARTEI_ORDER = ['wvb', 'fww', 'pkh', 'huber'];
 export function buildParteienhaus(w, o, PARTIES) {
@@ -234,7 +235,7 @@ export function buildParteienhaus(w, o, PARTIES) {
 // ---------------- Villa Huber: Hubers Wohnhaus (zum Schnüffeln) ----------------
 // Täfer, Teppich, ein riesiges Porträt von Huber, Tresor, Schreibtisch, das Modell der Seilbahn seines
 // Schwagers und Bläss, der Hund. Bläss schläft. Noch.
-export const HUBER = { x: 28, z: -34, w: 9, d: 7, h: 3.2 };
+export const HUBER = { x: 16, z: RZ, w: 9, d: 7, h: 3.2 };
 export const HUBER_SPOT = [HUBER.x, 0, HUBER.z + HUBER.d / 2 - 1.0, Math.PI];
 export function buildHuberhaus(w, o) {
   const S = shell(w, HUBER, 0xC9A97A, 0x6B3F2A), { b, col, P } = S;
@@ -302,7 +303,7 @@ export function buildHuberhaus(w, o) {
 
 // ---------------- Eingänge im Dorf: Türe, Schild, Laterne ----------------
 // Rössli = Haus 3 (hinter dem Platz, Mitte), Parteienhaus = Haus 2 (hinten links). Türen zeigen zur Kamera (Süden).
-export const ENTRANCES = [{ house: 3, id: 'roessli', key: 'roessli.sign', bg: '#E8D9A8', fg: PAL.tinte }, { house: 2, id: 'partei', key: 'partei.signShort', bg: PAL.blau, fg: PAL.schnee }, { house: 4, id: 'huber', key: 'huber.sign', bg: '#C9A23A', fg: PAL.tinte }];
+export const ENTRANCES = [{ house: 3, id: 'roessli', key: 'roessli.sign', bg: '#E8D9A8', fg: PAL.tinte }, { house: 4, id: 'huber', key: 'huber.sign', bg: '#C9A23A', fg: PAL.tinte }];
 export function markEntrances(w, o) {
   o.entrance = {};
   for (const E of ENTRANCES) {
@@ -325,7 +326,7 @@ export function markEntrances(w, o) {
 export function signpost(w) {
   const g = new THREE.Group(); g.position.set(-3.2, 0, 18.6); g.rotation.y = 0.15; w.scene.add(g);
   w.box(0.1, 2.0, 0.1, PAL.chalet, 0, 0, 0, { parent: g });
-  [[t('roessli.sign'), 0.25, 1.65, 0.4], [t('partei.signShort'), -0.2, 1.3, -0.3]].forEach(([txt, dx, y, rot]) => {
+  [[t('roessli.sign'), 0.25, 1.65, 0.4], [t('town.signParty'), -0.2, 1.3, -0.3]].forEach(([txt, dx, y, rot]) => {
     const a = new THREE.Group(); a.position.set(dx, y, 0.06); a.rotation.y = rot; g.add(a);
     const shape = new THREE.Shape(); shape.moveTo(-0.55, -0.12); shape.lineTo(0.45, -0.12); shape.lineTo(0.62, 0); shape.lineTo(0.45, 0.12); shape.lineTo(-0.55, 0.12); shape.closePath();
     const m = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 0.04, bevelEnabled: false }), toon(PAL.schnee)); m.castShadow = true; a.add(m); outline(m, 0.01);

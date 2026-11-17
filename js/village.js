@@ -192,7 +192,7 @@ export function stepSmoke(w, t) {
 }
 
 // ---------------- Dorfumgebung ----------------
-function lamp(w, x, z) {
+export function lamp(w, x, z) {
   w.cyl(0.05, 0.07, 3.0, PAL.tinte, x, 0, z, { seg: 6, solid: true });
   w.box(0.5, 0.04, 0.04, PAL.tinte, x + 0.22, 2.95, z);
   const sh = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.18, 8, 1, true), toon(PAL.tinte, { side: THREE.DoubleSide })); sh.position.set(x + 0.42, 2.85, z); w.scene.add(sh);
@@ -325,7 +325,7 @@ function cobbles(w) {
     const s = w.box(0.28 + r() * 0.12, 0.03, 0.22 + r() * 0.1, r() < 0.5 ? '#DCD8CC' : '#CFCABB', x, 0.03, z, { cast: false }); s.rotation.y = r() * 0.4;
   }
 }
-function benchTable(w, x, z, rot) {
+export function benchTable(w, x, z, rot) {
   const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot; w.scene.add(g);
   w.box(1.8, 0.05, 0.6, HOLZHELL, 0, 0.72, 0, { parent: g });
   for (const s of [-0.75, 0.75]) { const a = w.box(0.05, 0.75, 0.6, PAL.nuss, s, 0, 0, { parent: g }); }

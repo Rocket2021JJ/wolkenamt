@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { PAL } from './palette.js';
 import { toon, gradient } from './toon.js';
+import { pathDist } from './paths.js';
 
 // ---------------- Rauschen ----------------
 function hash(x, z) { let h = (x * 374761393 + z * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -17,8 +18,8 @@ function fbm(x, z, o = 4) { let s = 0, a = 0.5, f = 1; for (let i = 0; i < o; i+
 const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 // Abstand ausserhalb der flachen Kuppe (abgerundetes Rechteck um das Dorf)
-const PL = { cx: 0, cz: 1, hx: 31, hz: 42, r: 10 };
-function plateauDist(x, z) {
+export const PL = { cx: 0, cz: 6, hx: 56, hz: 62, r: 14 };
+export function plateauDist(x, z) {
   const qx = Math.abs(x - PL.cx) - (PL.hx - PL.r), qz = Math.abs(z - PL.cz) - (PL.hz - PL.r);
   return Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0) - PL.r;
 }
@@ -69,7 +70,7 @@ function colorAt(x, z, h, slope, d) {
   let c = GR[0].clone().lerp(GR[1], sstep(0.45, 0.7, n)).lerp(GR[2], sstep(0.55, 0.8, 1 - n) * 0.8);
   if (d <= 0) {
     c.lerp(GR[3], sstep(0.6, 0.9, n2) * 0.6);
-    if (Math.abs(x) < 1.2 && z > 4 && z < 6.5) c.lerp(WEG, 0.7);
+    
     return c;
   }
   const fy = floorY(z), onFloor = h < fy + 7;
@@ -179,7 +180,7 @@ function forest(w) {
   let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   // dichter Wald am Kuppenrand und an den Hängen
   for (let tries = 0; tries < 26000 && spots.length < 1900; tries++) {
-    const a = rnd() * Math.PI * 2, rr = 30 + rnd() * 110, x = Math.cos(a) * rr * 1.1, z = Math.sin(a) * rr * 1.25 - 1;
+    const a = rnd() * Math.PI * 2, rr = 50 + rnd() * 120, x = Math.cos(a) * rr * 1.1, z = Math.sin(a) * rr * 1.25 + 6;
     const d = plateauDist(x, z);
     if (d < 3 || d > 70) continue;
     // Richtung Norden (Blickrichtung) lichter, damit man ins Tal sieht
@@ -208,18 +209,18 @@ function forest(w) {
 function grassTufts(w) {
   // Grasbüschel und Blümchen auf der Dorfwiese (nicht auf Platz, Wegen, Häusern)
   const tuft = new THREE.ConeGeometry(0.07, 0.28, 3); tuft.translate(0, 0.14, 0);
-  const n = 900, im = new THREE.InstancedMesh(tuft, toon('#5A7A40'), n), fl = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 5, 4), toon(PAL.schnee), 260), fy = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 5, 4), toon('#E6C64A'), 200);
+  const n = 2600, im = new THREE.InstancedMesh(tuft, toon('#5A7A40'), n), fl = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 5, 4), toon(PAL.schnee), 700), fy = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 5, 4), toon('#E6C64A'), 500);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
   let seed = 5; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-  const free = (x, z) => !(Math.abs(x) < 9.6 && z > 5.3 && z < 19.6) && !(Math.abs(x) < 7 && z > -5.5 && z < 5.6) && !(x < -9.5 && x > -16.5 && z > 9 && z < 17) && !(w.houses || []).some(g => Math.hypot(g.position.x - x, g.position.z - z) < 3.2);
+  const free = (x, z) => !(Math.abs(x) < 9.6 && z > 5.3 && z < 19.6) && !(Math.abs(x) < 7 && z > -5.5 && z < 5.6) && !(x < -9.5 && x > -16.5 && z > 9 && z < 17) && !(w.houses || []).some(g => Math.hypot(g.position.x - x, g.position.z - z) < 3.2) && pathDist(x, z) > 1.3 && plateauDist(x, z) < -3;
   let k = 0, kf = 0, ky = 0;
-  for (let t = 0; t < 8000 && k < n; t++) {
-    const x = (rnd() - 0.5) * 50, z = -14 + rnd() * 52;
+  for (let t = 0; t < 26000 && k < n; t++) {
+    const x = (rnd() - 0.5) * 108, z = -52 + rnd() * 118;
     if (!free(x, z)) continue;
     const cl = fbm(x * 0.3, z * 0.3); if (rnd() > cl * 1.4) continue;
     for (let j = 0; j < 3 && k < n; j++) { q.setFromEuler(new THREE.Euler((rnd() - 0.5) * 0.5, rnd() * 6, (rnd() - 0.5) * 0.5)); const sc = 0.7 + rnd() * 0.8; s.set(sc, sc, sc); p.set(x + (rnd() - 0.5) * 0.3, 0, z + (rnd() - 0.5) * 0.3); m.compose(p, q, s); im.setMatrixAt(k++, m); }
-    if (rnd() < 0.3 && kf < 260) { p.set(x + 0.3, 0.12, z); s.set(1, 1, 1); q.identity(); m.compose(p, q, s); fl.setMatrixAt(kf++, m); }
-    else if (rnd() < 0.25 && ky < 200) { p.set(x - 0.3, 0.1, z + 0.2); s.set(1, 1, 1); q.identity(); m.compose(p, q, s); fy.setMatrixAt(ky++, m); }
+    if (rnd() < 0.3 && kf < 700) { p.set(x + 0.3, 0.12, z); s.set(1, 1, 1); q.identity(); m.compose(p, q, s); fl.setMatrixAt(kf++, m); }
+    else if (rnd() < 0.25 && ky < 500) { p.set(x - 0.3, 0.1, z + 0.2); s.set(1, 1, 1); q.identity(); m.compose(p, q, s); fy.setMatrixAt(ky++, m); }
   }
   im.count = k; fl.count = kf; fy.count = ky;
   for (const o of [im, fl, fy]) { o.receiveShadow = true; w.scene.add(o); }
@@ -280,7 +281,7 @@ function boulders(w) {
   const geo = new THREE.DodecahedronGeometry(1, 0), im = new THREE.InstancedMesh(geo, toon('#8F8B80'), 140);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(); let k = 0;
   for (let t = 0; t < 6000 && k < 140; t++) {
-    const a = rnd() * 6.28, rr = 28 + rnd() * 70, x = Math.cos(a) * rr * 1.1, z = Math.sin(a) * rr * 1.25;
+    const a = rnd() * 6.28, rr = 50 + rnd() * 70, x = Math.cos(a) * rr * 1.1, z = Math.sin(a) * rr * 1.25 + 6;
     const d = plateauDist(x, z); if (d < 1 || d > 40) continue;
     const h = terrainH(x, z), sc = 0.4 + rnd() * rnd() * 2.6;
     q.setFromEuler(new THREE.Euler(rnd() * 3, rnd() * 3, rnd() * 3)); s.set(sc * (1 + rnd() * 0.5), sc * 0.7, sc); p.set(x, h + sc * 0.2, z); m.compose(p, q, s); im.setMatrixAt(k++, m);
@@ -363,7 +364,8 @@ function waterfall(w) {
 }
 function cableCar(w) {
   // Seilbahn vom Talboden hinauf zur Kuppe (Bergstation östlich vom Dorf, ausserhalb des Zauns)
-  const top = new THREE.Vector3(34, 0, 18), bot = new THREE.Vector3(118, floorY(46), 46);
+  const top = new THREE.Vector3(49.5, 0, 47), bot = new THREE.Vector3(132, floorY(80), 80);
+  w.addCollider(47.2, 0, 44.7, 51.8, 3.4, 49.3);
   bot.y = terrainH(bot.x, bot.z);
   for (const [p, rot] of [[top, -1.2], [bot, -1.2]]) {
     const g = new THREE.Group(); g.position.copy(p); g.rotation.y = rot; w.scene.add(g);

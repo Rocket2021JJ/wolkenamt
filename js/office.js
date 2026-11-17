@@ -319,7 +319,7 @@ export function furnish(w) {
       for (const k of ['stammtisch', 'wirt', 'imboden', 'roessliexit', 'parteiexit', 'roesslidoor', 'parteidoor']) { const f = it.find(i => i.id === k); if (f) f.label = t('use.' + k); }
       for (const f of it.filter(i => i.id.startsWith('pdesk_'))) f.label = t('use.pdesk', { p: f.id.slice(6) === 'huber' ? 'HUB' : f.id.slice(6).toUpperCase() });
       o.roessliSign.redraw(t('roessli.sign')); o.stammSign.redraw(t('roessli.stamm')); o.parteiSign.redraw(t('partei.sign')); o.shedSign.redraw(t('roof.shed'));
-      o.roessliDoor.redraw(t('roessli.sign')); o.parteiDoor.redraw(t('partei.signShort')); if (o.huberDoor) o.huberDoor.redraw(t('huber.sign'));
+      o.roessliDoor.redraw(t('roessli.sign')); if (o.parteiDoor) o.parteiDoor.redraw(t('partei.signShort')); if (o.huberDoor) o.huberDoor.redraw(t('huber.sign'));
     }
     if (o.hall) { for (const k of ['podium', 'urn', 'huberdesk', 'hallexit']) it.find(i => i.id === k).label = t('use.' + k); o.hallSign.redraw(t('hall.sign')); o.urnSign.redraw(t('hall.urn')); }
   };

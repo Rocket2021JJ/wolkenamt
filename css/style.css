@@ -526,3 +526,10 @@ body.mode2d #bubbles{display:none}
 #tut b { font-size: 18px; color: #a8452c; }
 #tut.pop { animation: tutpop .45s ease-out; }
 @keyframes tutpop { 0% { transform: translateX(-50%) translateY(14px) rotate(2deg); opacity: 0 } 100% { transform: translateX(-50%) rotate(-1.2deg); opacity: 1 } }
+
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 8px}
+.slots button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
+.slots small{font-size:12px;opacity:.75}
+.rbtns.left{justify-content:flex-start}
+.setbox select{font:inherit;border:1.5px solid var(--tinte);background:var(--blatt);padding:3px 6px;border-radius:3px}
+.setbox{max-height:92vh;overflow:auto}

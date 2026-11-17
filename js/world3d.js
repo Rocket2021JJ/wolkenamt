@@ -501,6 +501,7 @@ export class World {
   // ---------------- Kamera ----------------
   // Kamerafahrt zu einer festen Ansicht (z. B. aufs Pult), danach Rückruf
   flyTo(pos, look, dur, done, inside = this.inside) {
+    this.camSnap = false;
     this.holdInside = inside; this.orbitOn = false;
     const a = this.camAnim = { from: this.camera.position.clone(), fromLook: (this.lookNow || pos).clone(), to: pos.clone(), look: look.clone(), t: 0, dur, done };
     // Sicherung: falls der Tab im Hintergrund keine Bilder rendert, trotzdem weitermachen
@@ -532,7 +533,7 @@ export class World {
     const off = new THREE.Vector3(Math.sin(this.camYaw) * dist, height, Math.cos(this.camYaw) * dist);
     const want = p.clone().add(off);
     const look = p.clone().add(new THREE.Vector3(0, onRoof ? 1.6 : 0.9, 0));
-    const k = 1 - Math.exp(-dt * 5);
+    const k = this.camSnap ? 1 : 1 - Math.exp(-dt * 5); this.camSnap = false;
     cam.position.lerp(want, k);
     this.lookNow.lerp(look, k);
     cam.lookAt(this.lookNow);
@@ -752,6 +753,7 @@ export class World {
     const p = this.player; p.pos.set(x, y, z); p.vel.set(0, 0, 0); p.grounded = true;
     if (yaw !== undefined) p.b.yaw = yaw;
     p.b.root.position.copy(p.pos); p.b.downT = -1;
+    this.camSnap = true;   // Kamera springt mit, statt quer durchs Dorf (und durch Dächer) zu fliegen
   }
 
   // ---------------- Hauptschleife ----------------

@@ -31,8 +31,16 @@ const V = (x, y, z) => new THREE.Vector3(x, y, z);
 // ---------------- Speicher ----------------
 let save = { stars: [], sight: 0, rep: 50, day: 0, power: null };
 Object.assign(NAMES, { 'Hotel Bergblick': ['Hotel Bergblick', 'Hotel Bergblick'], 'Redaktorin Imboden': ['Redaktorin Imboden', 'Editor Imboden'] });
-try { const s = JSON.parse(localStorage.getItem('wolkenamt')); if (s && Array.isArray(s.stars)) save = Object.assign(save, s); } catch (e) {}
-const persist = () => { try { localStorage.setItem('wolkenamt', JSON.stringify(save)); } catch (e) {} };
+// Drei Spielstände: Platz 1 ist der alte Schlüssel, damit bestehende Spielstände bleiben
+const FRESH = () => ({ stars: [], sight: 0, rep: 50, day: 0, power: null });
+const slotKey = n => n === 1 ? 'wolkenamt' : 'wolkenamt.' + n;
+let slot = 1; try { slot = +localStorage.getItem('wolkenamt.slot') || 1; } catch (e) {}
+function loadSlot(n) {
+  let d = FRESH(); try { const s = JSON.parse(localStorage.getItem(slotKey(n))); if (s && Array.isArray(s.stars)) d = Object.assign(d, s); } catch (e) {}
+  return d;
+}
+save = loadSlot(slot);
+const persist = () => { try { localStorage.setItem(slotKey(slot), JSON.stringify(save)); localStorage.setItem('wolkenamt.slot', slot); } catch (e) {} };
 const chOf = d => (DAYS[d] && DAYS[d].ch) || 1;
 const inSB = () => !!save.sbActive;
 const dayNo = d => d - DAYS.findIndex(x => (x.ch || 1) === chOf(d)) + 1;
@@ -1530,7 +1538,46 @@ function openSettings() {
   $('settings').classList.remove('hidden');
   for (const [id, k] of [['vMusic', 'music'], ['vSfx', 'sfx'], ['vAmb', 'amb'], ['vVoice', 'voice']]) { $(id).value = A.volume[k]; $(id).oninput = () => A.setVolume(k, +$(id).value); }
   $('vMute').checked = A.sound.muted; $('vMute').onchange = () => { A.setMuted($('vMute').checked); soundLabels(); };
-  $('setClose').onclick = () => { $('settings').classList.add('hidden'); back.forEach(x => $(x).classList.remove('hidden')); };
+  renderSetMore();
+  $('setClose').onclick = () => { $('settings').classList.add('hidden'); back.forEach(x => $(x).classList.remove('hidden')); if (mode === 'menu') showMenu(); };
+}
+// Grafik und Spielstände
+const GFX = Object.assign({ shadows: true, res: 'high' }, (() => { try { return JSON.parse(localStorage.getItem('wolkenamt.gfx')) || {}; } catch (e) { return {}; } })());
+function applyGfx() {
+  const r = world.renderer; r.shadowMap.enabled = GFX.shadows; world.scene.traverse(o => { if (o.material && o.isMesh) o.material.needsUpdate = true; });
+  r.setPixelRatio(Math.min(window.devicePixelRatio || 1, { high: 1.5, mid: 1, low: 0.7 }[GFX.res] || 1)); world.resize();
+  try { localStorage.setItem('wolkenamt.gfx', JSON.stringify(GFX)); } catch (e) {}
+}
+if (!GFX.shadows || GFX.res !== 'high') applyGfx();
+function slotLabel(n) {
+  const d = n === slot ? save : loadSlot(n);
+  if (!d.power) return t('set.slotEmpty');
+  return `${POW.PARTIES[d.power.party].short} · ${t('set.dayN', { n: d.day + 1 })}`;
+}
+function setMsg(txt) { const p = document.createElement('p'); p.className = 'hsub'; p.textContent = txt; $('setMore').appendChild(p); }
+function renderSetMore() {
+  const box = $('setMore'); box.innerHTML = '';
+  const h = (txt) => { const e = document.createElement('h3'); e.textContent = txt; box.appendChild(e); };
+  h(t('set.gfx'));
+  const row = (label, el) => { const l = document.createElement('label'); l.className = 'srow' + (el.type === 'checkbox' ? ' chk' : ''); const sp = document.createElement('span'); sp.textContent = label; if (el.type === 'checkbox') l.append(el, sp); else l.append(sp, el); box.appendChild(l); };
+  const sh = Object.assign(document.createElement('input'), { type: 'checkbox', checked: GFX.shadows }); sh.onchange = () => { GFX.shadows = sh.checked; applyGfx(); }; row(t('set.shadows'), sh);
+  const rs = document.createElement('select'); for (const k of ['high', 'mid', 'low']) rs.add(new Option(t('set.res.' + k), k)); rs.value = GFX.res; rs.onchange = () => { GFX.res = rs.value; applyGfx(); }; row(t('set.res'), rs);
+  h(t('set.saves'));
+  const sl = document.createElement('div'); sl.className = 'slots';
+  for (const n of [1, 2, 3]) {
+    const b = document.createElement('button'); b.className = n === slot ? 'prim' : ''; b.innerHTML = `<b>${t('set.slot', { n })}</b><small></small>`; b.querySelector('small').textContent = slotLabel(n);
+    b.onclick = () => { if (n === slot) return; persist(); slot = n; save = loadSlot(n); persist(); A.stampSound(); renderSetMore(); };
+    sl.appendChild(b);
+  }
+  box.appendChild(sl);
+  const io = document.createElement('div'); io.className = 'rbtns left';
+  const ex = document.createElement('button'); ex.textContent = t('set.export');
+  ex.onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ hochdruck: 1, save }, null, 1)], { type: 'application/json' })); a.download = `hochdruck-spielstand-${slot}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); };
+  const im = document.createElement('button'); im.textContent = t('set.import');
+  im.onclick = () => { const f = Object.assign(document.createElement('input'), { type: 'file', accept: '.json,application/json' }); f.onchange = async () => {
+    try { const j = JSON.parse(await f.files[0].text()); const d = j && j.save; if (!d || !Array.isArray(d.stars)) throw 0; save = Object.assign(FRESH(), d); persist(); renderSetMore(); setMsg(t('set.imported')); } catch (e) { setMsg(t('set.importBad')); }
+  }; f.click(); };
+  io.append(ex, im); box.appendChild(io);
 }
 $('mSettings').onclick = openSettings;
 $('lDe').onclick = () => setLang('de'); $('lEn').onclick = () => setLang('en');

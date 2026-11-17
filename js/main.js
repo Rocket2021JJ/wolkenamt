@@ -8,7 +8,8 @@ import { ACH, unlock } from './achievements.js';
 import { detailVillage, stepHens, partyPosters, updatePosters, setDusk, stepSmoke } from './village.js';
 import { stepLandscape } from './terrain.js';
 import { decorateRoof, buildRoessli, buildHuberhaus, markEntrances, signpost, ROESSLI_SPOT, HUBER_SPOT } from './interiors.js';
-import { buildTown, stepTown, relabelTown, clampToVillage, PSPOT, NOTES } from './town.js';
+import { buildTown, stepTown, relabelTown, clampToVillage, PSPOT, NOTES, PHOUSES } from './town.js';
+import { drawMap } from './map.js';
 import * as THREE from 'three';
 import { World, ROOM } from './world3d.js';
 import { furnish } from './office.js';
@@ -60,7 +61,7 @@ buildTown(world, office, POW.PARTIES); world.bound = clampToVillage;
 world.onWeather = k => weatherFX(world, k);
 detailVillage(world); world.onDusk = k => setDusk(world, k);
 partyPosters(world);
-{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepSmoke(world, tm); folkIts.forEach((it, i) => { it.pos.copy(world.villagers[i].pos); it.enabled = !world.inside && flow === 'single'; }); stepLandscape(world, dt); stepTown(world, office, dt, tm); stepWeatherFX(world, dt, tm); soundTick(dt); tutTick(dt); }; }
+{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepSmoke(world, tm); folkIts.forEach((it, i) => { it.pos.copy(world.villagers[i].pos); it.enabled = !world.inside && flow === 'single'; }); stepLandscape(world, dt); stepTown(world, office, dt, tm); stepWeatherFX(world, dt, tm); if (mapOpen()) { if (mode !== 'world') toggleMap(false); else if ((mapT -= dt) < 0) { mapT = 0.25; renderMap(); } } soundTick(dt); tutTick(dt); }; }
 // Musik und Umgebung je nach Ort und Lage
 // Wolkwilisch sprechen (mit Sprechblase im Fenster-Titel nicht nötig)
 function sayLingo(line, who, mood = '') { A.speak(LG.syllables(line), A.voiceFor(who), { interrupt: true, mood }); }
@@ -1744,8 +1745,23 @@ function renderSetMore() {
 $('mSettings').onclick = openSettings;
 $('mAch').onclick = openAch;
 $('lDe').onclick = () => setLang('de'); $('lEn').onclick = () => setLang('en');
+// Dorfplan
+let mapT = 0;
+function mapOpen() { return !$('mapBox').classList.contains('hidden'); }
+function toggleMap(on = !mapOpen()) {
+  if (on && (mode !== 'world' || world.player.pos.z < -300)) return;
+  $('mapBox').classList.toggle('hidden', !on); if (on) { A.ui('paper'); renderMap(); }
+}
+function renderMap() {
+  drawMap($('mapCv'), { world, t, L, save, parties: POW.PARTIES, partyHouses: Object.fromEntries(Object.entries(PHOUSES).map(([k, v]) => [k, v])),
+    folk: FOLK.map((f, i) => [L(f.name), world.villagers[i].pos]) });
+  $('mapHint').textContent = t('map.hint');
+}
+$('mapBox').onclick = () => toggleMap(false);
 addEventListener('keydown', e => {
   if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  if (e.key === 'k' || e.key === 'K' || ((e.key === 'm' || e.key === 'M') && !voice.on)) toggleMap();
+  if (e.key === 'Escape' && mapOpen()) { toggleMap(false); return; }
   if (e.key === 'Escape' && flow !== 'online' && mode !== 'menu') showMenu();
   if (e.key === 'Enter') { if (mode === 'brief') $('bGo').click(); else if (mode === 'desk' && !$('desk').classList.contains('hidden')) $('dGo').click(); else if (mode === 'local' && !$('handoff').classList.contains('hidden')) mpPlay(); }
 });

@@ -109,7 +109,7 @@ function cow(w, x, z, rot) {
 }
 
 // ---------------- Parteigasse: ein Haus pro Partei ----------------
-const PHOUSES = { wvb: [-44, 2, Math.PI / 2], fww: [-44, 27, Math.PI / 2], pkh: [-32, 31, -Math.PI / 2], huber: [-32, -4, -Math.PI / 2] };
+export const PHOUSES = { wvb: [-44, 2, Math.PI / 2], fww: [-44, 27, Math.PI / 2], pkh: [-32, 31, -Math.PI / 2], huber: [-32, -4, -Math.PI / 2] };
 const POFF = { wvb: -48, fww: -32, pkh: 32, huber: 48 };
 export const PSPOT = id => [POFF[id], 0, RZ + 3.25 - 1.0, Math.PI];
 function partyHouse(w, o, id, pa) {

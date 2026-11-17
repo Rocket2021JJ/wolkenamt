@@ -126,3 +126,9 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   Norden lichter, damit man hinunter sieht), dann geht es steil ins Tal (Felder als Flickenteppich,
   Fluss, See, zwei Nachbardörfer). Gegenüber Berge mit Wald, Fels und Schnee, ganz hinten hohe Gipfel.
   Unter dem Dorf ziehen Wolken durchs Tal. Himmel mit Verlauf und Dunst in der Ferne.
+- Bergtal neu (17.11. Nachmittag): Das Tal läuft jetzt von Süden (Talschluss mit hohen Bergen hinter dem
+  Dorf) nach Norden (talauswärts, Blickrichtung). Links und rechts hohe Bergketten mit Wald, Alpweiden,
+  Fels und Schnee (kantig). Das Dorf steht in der Mitte auf seiner Kuppe. Unten: Fluss nach Norden in
+  einen See (mit Steg und Booten), Felder, Strasse mit gelbem Bus, Bahnlinie mit Fahrleitung und rotem
+  Zug, Seitenstrasse mit Steinbrücke ins Dorf am Osthang, Nachbardörfer, Wasserfall am Osthang,
+  Seilbahn vom Talboden zur Bergstation östlich vom Dorf. Wolken ziehen unter dem Dorf talauswärts.

@@ -50,6 +50,7 @@ world.bake([...world.hens, ...world.valleyClouds, world.skyDome, ...world.landsc
 world.spawnVillagers(11);
 world.sfx = A.sfx;
 window.__world = world;
+window.__THREE = THREE;
 window.__dbg = { save: () => save, run: () => run, startDay: d => startDay(d), report: () => showReport() };
 const D = world.deskPos, PLAT = office.platform;
 const SPOT = {

@@ -45,7 +45,7 @@ function baseH(x, z) {
   // Flussrinne
   const rd = Math.abs(x - riverX(z)); h -= 3.2 * (1 - sstep(3, 10, rd));
   // Hügel
-  for (const [hx, hz, r, ht] of HILLS) { const dx = x - hx, dz = z - hz, d2 = (dx * dx + dz * dz) / (r * r); if (d2 < 6) h += ht * Math.exp(-d2 * 1.35); }
+  for (const [hx, hz, r, ht] of HILLS) { const dx = x - hx; if (dx > r * 2.45 || dx < -r * 2.45) continue; const dz = z - hz, d2 = (dx * dx + dz * dz) / (r * r); if (d2 < 6) h += ht * Math.exp(-d2 * 1.35); }
   // sanfter Anstieg zu den Talflanken und zum Talschluss, kleine Wellen
   const ax = Math.abs(x);
   h += sstep(160, 700, ax) * 55 + sstep(260, 650, z) * 60 + (fbm(x * 0.02 + 5, z * 0.02) - 0.5) * 14 * sstep(150, 260, ax);
@@ -116,13 +116,16 @@ function patchColor(x, z, h, slope) {
 // ---------------- Gelände bauen ----------------
 function terrainMesh(size, seg, cx, cz, hole) {
   const geo = new THREE.PlaneGeometry(size, size, seg, seg); geo.rotateX(-Math.PI / 2);
-  const P = geo.attributes.position, col = new Float32Array(P.count * 3), e = size / seg;
+  const P = geo.attributes.position, col = new Float32Array(P.count * 3), e = size / seg, row = seg + 1, H = new Float32Array(P.count);
+  // zuerst alle Höhen, dann die Neigung aus den Nachbarpunkten (spart zwei Drittel der Höhenberechnungen)
+  for (let i = 0; i < P.count; i++) H[i] = terrainH(P.getX(i) + cx, P.getZ(i) + cz);
   for (let i = 0; i < P.count; i++) {
-    const x = P.getX(i) + cx, z = P.getZ(i) + cz, h = terrainH(x, z);
+    const x = P.getX(i) + cx, z = P.getZ(i) + cz, h = H[i];
     // Wo das feine Stück liegt, das grobe weit absenken (sonst schaut es an Hangfüssen durch)
     const sink = hole && Math.abs(x - hole.x) < hole.s / 2 - 12 && Math.abs(z - hole.z) < hole.s / 2 - 12 ? 40 : 0;
     P.setXYZ(i, x, h - sink, z);
-    const sl = Math.hypot(terrainH(x + e, z) - h, terrainH(x, z + e) - h) / e;
+    const cxI = i % row, nx = cxI < seg ? H[i + 1] - h : h - H[i - 1], nz = i + row < P.count ? H[i + row] - h : h - H[i - row];
+    const sl = Math.hypot(nx, nz) / e;
     const c = colorAt(x, z, h, sl, plateauDist(x, z)); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
   }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));

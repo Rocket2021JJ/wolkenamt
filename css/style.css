@@ -458,3 +458,46 @@ html[lang=en] .dossier.hot .dsheet::after{content:'CONFIDENTIAL'}
   .sheet .akte{grid-template-columns:1fr 1fr}
 }
 #hud .task #hTask::before{content:'';display:inline-block;width:10px;height:10px;border:1.5px solid var(--tinte);margin:0 7px -1px 0;transform:rotate(-4deg);border-radius:1px}
+
+/* ---------- Morgenpost als Zeitung: Wolkenwiler Anzeiger ---------- */
+.npaper{background:#EDE8DA;color:#22272B;width:min(880px,96%);max-height:calc(100vh - 28px);overflow:auto;padding:14px 20px 12px;
+  transform:rotate(-.5deg);box-shadow:2px 3px 0 rgba(0,0,0,.08),6px 10px 26px rgba(20,24,28,.4);
+  background-image:radial-gradient(rgba(34,39,43,.05) 1px,transparent 1.2px);background-size:5px 5px}
+.nmast{text-align:center;border-bottom:3px double #22272B;padding-bottom:6px;margin-bottom:10px}
+.nmtop{display:flex;justify-content:space-between;font:700 11px/1 var(--schreib);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid #22272B;padding-bottom:5px}
+.nname{font-family:var(--serif);font-weight:400;font-size:clamp(30px,5vw,46px);line-height:1.1;letter-spacing:.01em;margin:6px 0 2px}
+.nsub{font-size:11.5px;font-style:italic;font-family:Georgia,serif;color:#4a4f52}
+.ncols{display:grid;grid-template-columns:1fr 170px;gap:16px}
+.nmain{min-width:0;border-right:1px solid rgba(34,39,43,.5);padding-right:16px}
+.nkick{font:700 11.5px/1.2 var(--sans);text-transform:uppercase;letter-spacing:.1em;color:var(--rot);margin-bottom:3px}
+.nhead{font-family:var(--serif);font-weight:400;font-size:clamp(20px,2.6vw,27px);line-height:1.15;margin-bottom:8px}
+.nfig{margin:0 0 8px}
+.nfig canvas{width:100%;height:auto;display:block;border:1px solid #22272B;filter:contrast(1.05)}
+.nfig figcaption{font:italic 12px/1.35 Georgia,serif;color:#3d4246;margin-top:3px}
+.nbody{font-family:Georgia,"Times New Roman",serif;font-size:14px;line-height:1.5;column-count:2;column-gap:16px;column-rule:1px solid rgba(34,39,43,.25);text-align:justify;hyphens:auto}
+.nbody.short{column-count:1}
+.nside{display:flex;flex-direction:column;gap:10px;font-size:12px}
+.nbox{border-top:2px solid #22272B;padding-top:4px}
+.nbox > b{display:block;font:700 11px/1.4 var(--sans);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
+.nbox p{font-family:Georgia,serif;line-height:1.35}
+.nbox small{display:block;font:italic 10.5px/1.3 Georgia,serif;color:#55595c;margin-top:3px}
+.nbox canvas{display:block;width:90px;height:50px}
+.npr{display:grid;grid-template-columns:30px auto 1fr;gap:5px;align-items:center;font:700 11px/1.5 var(--schreib)}
+.npr i{height:8px;background:repeating-linear-gradient(90deg,#22272B 0 2px,transparent 2px 3px)}
+.npr em{font-style:normal;font-weight:400}
+.npr.me span{color:var(--rot)}
+.nad{border:1.5px solid #22272B;padding:6px 8px;text-align:center}
+.nad b{font-family:var(--serif)!important;font-weight:400!important;font-size:16px!important;text-transform:none!important;letter-spacing:0!important}
+.nad p{font-size:12px}
+.nslot{margin-top:10px}
+.npaper.ask .nslot{border:1.5px solid #22272B;padding:8px 10px 10px;background:rgba(243,241,234,.7)}
+.npaper.ask .nslot::before{content:attr(data-label);display:block;font:700 11px/1.4 var(--sans);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.npaper .lres{font-family:Georgia,serif}
+.nfoot{display:flex;justify-content:space-between;border-top:1px solid #22272B;margin-top:10px;padding-top:4px;font:10.5px/1.3 var(--schreib);color:#4a4f52}
+@media (max-width:700px){
+  .ncols{grid-template-columns:1fr}
+  .nmain{border-right:none;padding-right:0}
+  .nbody{column-count:1}
+  .nside{flex-direction:row;flex-wrap:wrap}
+  .nside .nbox{flex:1 1 140px}
+}

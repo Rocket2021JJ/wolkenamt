@@ -93,3 +93,12 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
 - Verbesserungen: Automatischer Durchlauf aller 18 Story-Tage ohne Fehler. Auf dem Handy ist die Akte
   jetzt kompakt (Umfrage per Antippen aufklappen) statt ganz versteckt, die Menü-Werte stehen in 2 Spalten.
   Kampagnentitel im Menü passt zu den drei Kapiteln.
+- Überarbeitung nach Feedback (17.11.):
+  - Akte rechts oben: jetzt ein Aktendeckel mit Reiter, Büroklammer und liniertem Blatt. Umfrage als
+    Bleistift-Schraffur, eigene Partei rot eingekreist, Verdacht und Ermittlung als Strichliste, ab
+    Verdacht 60 ein «VERTRAULICH»-Stempel. Aufgabe oben links: Notizzettel mit Klebeband und Kästchen.
+  - Amtshaus-Dach: Ziegel-Vordach rundherum mit Dachrinne und Fallrohr, Bretterboden, Kamin.
+  - Morgenpost ist jetzt eine Seite im «Wolkenwiler Anzeiger»: Zeitungskopf, Schlagzeile, Bild im
+    Rasterdruck (11 von Hand gezeichnete Motive je nach Thema, js/paper.js), Bildlegende, Text,
+    Seitenspalte mit Wetter, Umfrage und Inserat. Entscheidungen stehen unter «Ihre Reaktion».
+    Anrufe bleiben als Notizzettel.

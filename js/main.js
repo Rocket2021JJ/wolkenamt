@@ -1,4 +1,5 @@
 // WOLKENAMT v0.4 – Ablaufsteuerung: 3D-Welt, Schreibtisch, Wolkenplattform, Dorfplatz, Mehrspieler
+import { pickMotif, drawPicture, drawWeather } from './paper.js';
 import { buildHall, HALL_SPOT } from './hall.js';
 import * as THREE from 'three';
 import { World, ROOM } from './world3d.js';
@@ -224,6 +225,11 @@ function showMorning(list, d, done, call) {
     only('morning');
     $('mlDay').textContent = call ? t('call.time') : t('mail.day', { day: L(DAYS[d].name) });
     $('mlFrom').textContent = nameOf(ev.from); $('mlText').textContent = L(ev.text);
+    const asPaper = !call;
+    $('mPaper').classList.toggle('hidden', !asPaper); document.querySelector('#morning .letter').classList.toggle('hidden', asPaper);
+    const slot = asPaper ? $('npSlot') : document.querySelector('#morning .letter');
+    for (const id of ['mlRes', 'mlFx', 'mlBtns']) slot.appendChild($(id));
+    if (asPaper) fillPaper(ev, d, i, list.length, !!ev.choices);
     $('mlRes').classList.add('hidden'); $('mlFx').replaceWith(Object.assign(document.createElement('div'), { id: 'mlFx', className: 'lfx' }));
     const btns = $('mlBtns'); btns.innerHTML = '';
     const cont = () => { btns.innerHTML = ''; const b = document.createElement('button'); b.className = 'prim'; b.textContent = t('btn.next'); b.onclick = next; btns.appendChild(b); updateAkte(); };
@@ -240,6 +246,49 @@ function showMorning(list, d, done, call) {
     else { if (typeof list[i - 1] === 'string') P.history.push({ day: d, ev: list[i - 1] }); const ch = POW.apply(P, ev.fx); $('mlFx').replaceWith(Object.assign(fxChips(ch), { id: 'mlFx' })); cont(); }
   };
   next();
+}
+// Zeitungsseite füllen: Schlagzeile, Bild, Text, Seitenspalte
+function splitHead(txt) {
+  const s = txt.trim();
+  if (s.length <= 70) return [s, ''];
+  // Zitat am Anfang: Schlagzeile bis zum schliessenden »
+  if (s[0] === '«' || s[0] === '“') {
+    const e = s.indexOf(s[0] === '«' ? '»' : '”');
+    if (e > 10 && e < 130) { let k = e + 1; while (/[.,!?]/.test(s[k] || '')) k++; return [s.slice(0, k), s.slice(k).trim()]; }
+  }
+  const m = s.match(/^(.{15,120}?[.!?])\s+(.*)$/s);
+  return m ? [m[1], m[2]] : [s, ''];
+}
+const npHash = str => { let h = 7; for (const ch of str) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+function fillPaper(ev, d, page, pages, ask) {
+  const txt = L(ev.text), from = nameOf(ev.from), h = npHash(txt);
+  const [head, body] = splitHead(txt);
+  const motif = ev.motif || pickMotif(txt, ev.from);
+  $('npNo').textContent = t('np.no', { n: 1180 + d + (inSB() ? save.sb.year * 6 : 0) });
+  $('npDate').textContent = inSB() ? t('sb.hud', { day: L(DAYS[d].name), y: save.sb.year }) : L(DAYS[d].name);
+  $('npKick').textContent = ev.from === 'Wolkenwiler Anzeiger' ? t('np.kickHome') : from;
+  $('npHead').textContent = head;
+  const fills = t('np.fill').split('|');
+  $('npBody').innerHTML = ''; const by = document.createElement('b'); by.textContent = '(im) '; $('npBody').append(by, document.createTextNode(body || fills[h % fills.length]));
+  $('npBody').classList.toggle('short', !body);
+  drawPicture($('npPic'), motif, h);
+  const caps = t('np.cap.' + motif).split('|'); $('npCap').textContent = caps[h % caps.length];
+  const wx = ['sun', 'cloud', 'rain', 'fog', 'storm'][(d * 3 + h) % 5];
+  drawWeather($('npWx'), wx); $('npWxT').textContent = t('np.wx.' + wx);
+  const P = save.power, pl = P ? POW.polls(P) : null, pw = $('npPoll'); pw.innerHTML = '';
+  if (pl) Object.keys(pl).sort((a, b) => pl[b] - pl[a]).forEach(p => {
+    const r = document.createElement('div'); r.className = 'npr' + (P && p === P.party ? ' me' : '');
+    const n = document.createElement('span'); n.textContent = POW.PARTIES[p].short;
+    const b = document.createElement('i'); b.style.width = Math.round(pl[p] * 1.6) + 'px';
+    const v = document.createElement('em'); v.textContent = pl[p].toFixed(0) + '%';
+    r.append(n, b, v); pw.appendChild(r);
+  });
+  const ads = t('np.ads').split('|'); const ad = ads[(d + page + h) % ads.length].split('~');
+  $('npAd').innerHTML = ''; const ah = document.createElement('b'); ah.textContent = ad[0]; const ap = document.createElement('p'); ap.textContent = ad[1] || '';
+  $('npAd').append(ah, ap);
+  $('npPage').textContent = pages > 1 ? t('np.page', { a: page, b: pages }) : '';
+  $('mPaper').classList.toggle('ask', ask); $('npSlot').dataset.label = t('np.react');
+  $('mPaper').scrollTop = 0;
 }
 $('akte').addEventListener('click', () => $('akte').classList.toggle('open'));
 // Strichliste: ein Strich pro 5 Punkte, jeder fünfte quer. Leicht schief, wie von Hand.

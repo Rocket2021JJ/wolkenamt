@@ -1,4 +1,5 @@
 // WOLKENAMT v0.4 – Ablaufsteuerung: 3D-Welt, Schreibtisch, Wolkenplattform, Dorfplatz, Mehrspieler
+import * as LG from './lingo.js';
 import { pickMotif, drawPicture, drawWeather } from './paper.js';
 import { buildHall, HALL_SPOT } from './hall.js';
 import { detailVillage, stepHens } from './village.js';
@@ -46,7 +47,36 @@ decorateRoof(world, office); buildRoessli(world, office); buildParteienhaus(worl
 detailVillage(world);
 { const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepLandscape(world, dt); soundTick(dt); }; }
 // Musik und Umgebung je nach Ort und Lage
+// Wolkwilisch sprechen (mit Sprechblase im Fenster-Titel nicht nötig)
+function sayLingo(line, who, mood = '') { A.speak(LG.syllables(line), A.voiceFor(who), { interrupt: true, mood }); }
+// Sprechblasen über Dorfbewohnern: ab und zu ruft jemand in der Nähe etwas auf Wolkwilisch
+const bubbles = [];
+let nextShout = 3;
+function bubbleTick(dt) {
+  nextShout -= dt;
+  const cam = world.camera, cv = $('c3d'), W = cv.clientWidth, H = cv.clientHeight, p = world.player.pos;
+  if (nextShout < 0 && world.villagers && mode === 'world' && !world.inside) {
+    nextShout = 4 + Math.random() * 6;
+    const near = world.villagers.map((v, i) => ({ v, i, d: v.b.root.position.distanceTo(p) })).filter(o => o.d < 16 && o.d > 1.2).sort((a, b) => a.d - b.d);
+    if (near.length) {
+      const o = near[Math.floor(Math.random() * Math.min(3, near.length))], P = save.power, k = Math.floor(Math.random() * 99);
+      const kind = world.weather === 'rain' || world.weather === 'storm' ? 'rain' : P && P.suspicion >= 55 && Math.random() < 0.6 ? 'suspicion' : Math.random() < 0.25 ? 'huber' : Math.random() < 0.35 ? 'greet' : Math.random() < 0.5 ? 'sun' : 'misc';
+      const line = LG.shout(kind, k), el = document.createElement('div'); el.className = 'bubble'; el.textContent = line; $('bubbles').appendChild(el);
+      bubbles.push({ el, v: o.v, t: 3.2 });
+      A.speak(LG.syllables(line), A.voiceFor('Dorf' + o.i), { overlap: true, gain: Math.max(0.15, 1 - o.d / 16), mood: line.includes('?') ? '?' : line.includes('!') ? '!' : '' });
+    }
+  }
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i]; b.t -= dt;
+    const pos = b.v.b.root.position.clone(); pos.y += 1.9 * b.v.b.root.scale.y; pos.project(cam);
+    const vis = pos.z < 1 && Math.abs(pos.x) < 1.1 && Math.abs(pos.y) < 1.1 && mode === 'world';
+    b.el.style.transform = `translate(${(pos.x * 0.5 + 0.5) * W}px, ${(-pos.y * 0.5 + 0.5) * H}px) translate(-50%, -100%)`;
+    b.el.style.opacity = vis ? Math.min(1, b.t * 2) : 0;
+    if (b.t <= 0) { b.el.remove(); bubbles.splice(i, 1); }
+  }
+}
 function soundTick(dt) {
+  bubbleTick(dt);
   const vis = id => !$(id).classList.contains('hidden');
   const p = world.player.pos, menuOn = vis('menu');
   const where = menuOn ? 'menu' : world.inside ? 'office' : p.y > 3 ? 'roof' : p.z < -28 ? 'room' : 'village';
@@ -64,7 +94,7 @@ world.spawnVillagers(11);
 world.sfx = A.sfx;
 window.__world = world;
 window.__THREE = THREE; window.__A = A;
-window.__dbg = { save: () => save, run: () => run, startDay: d => startDay(d), report: () => showReport() };
+window.__dbg = { mode: () => mode, save: () => save, run: () => run, startDay: d => startDay(d), report: () => showReport() };
 const D = world.deskPos, PLAT = office.platform;
 const SPOT = {
   door: [0, 0, 3.4, Math.PI],
@@ -248,6 +278,9 @@ function showMorning(list, d, done, call) {
     only('morning');
     $('mlDay').textContent = call ? t('call.time') : t('mail.day', { day: L(DAYS[d].name) });
     $('mlFrom').textContent = nameOf(ev.from); $('mlText').textContent = L(ev.text);
+    // Am Telefon redet die Person Wolkwilisch, der Text darunter ist die Übersetzung
+    $('mlLingo').classList.toggle('hidden', !call);
+    if (call) { const tx = L(ev.text), lg = LG.translate(tx, 10); $('mlLingo').textContent = '«' + lg + '»'; A.speak(LG.syllables(lg), A.voiceFor(ev.from), { interrupt: true, mood: /\?\s*»?$/.test(tx) ? '?' : '' }); }
     const asPaper = !call;
     $('mPaper').classList.toggle('hidden', !asPaper); document.querySelector('#morning .letter').classList.toggle('hidden', asPaper);
     const slot = asPaper ? $('npSlot') : document.querySelector('#morning .letter');
@@ -799,6 +832,7 @@ function openPartyDesk(pid) {
 // ---------------- Gasthaus Rössli ----------------
 function openStammtisch() {
   const P = save.power; if (!P || !run || run.kind !== 'day') return;
+  ['Hubärli hubärli.', 'Bümpfelimümpf!', 'Hmmpfli… Wäälimpf?'].forEach((l, k) => setTimeout(() => A.speak(LG.syllables(l), A.voiceFor('Stamm' + k), { overlap: true, gain: 0.7 }), k * 700));
   P.flags = P.flags || {}; const key = 'st' + (inSB() ? save.sb.year * 10 + save.sb.day : run.d);
   const box = townPanel(t('roessli.kicker'), t('roessli.stammTitle'), t('roessli.stammInfo'));
   if (P.flags[key]) { const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('roessli.again'); box.appendChild(p); return; }
@@ -809,12 +843,14 @@ function openStammtisch() {
 }
 function openWirt() {
   const P = save.power; if (!P || !run || run.kind !== 'day') return;
+  sayLingo(LG.shout('greet', run.d) + ' ' + LG.shout('misc', run.d + 2), 'Wirt Bruno');
   const soon = P.queue.filter(q => q.day <= run.d + 1).map(q => POW.EVENTS[q.id]).filter(Boolean);
   const box = townPanel(t('roessli.kicker'), t('roessli.wirtTitle'), soon.length ? t('roessli.wirtHint', { n: nameOf(soon[0].from) }) : t('roessli.wirtNone'));
   const lines = t('roessli.wirtTalk').split('|'); const p = document.createElement('p'); p.className = 'hsub'; p.textContent = lines[(run.d + soon.length) % lines.length]; box.appendChild(p);
 }
 function openImboden() {
   const P = save.power; if (!P || !run || run.kind !== 'day') return;
+  sayLingo('Grüüzimpf! Zytigli? Wüürzli?', 'Frau Imboden, Wolkenwiler Anzeiger', '?');
   P.flags = P.flags || {}; const key = 'im' + (inSB() ? save.sb.year * 10 + save.sb.day : run.d);
   const box = townPanel(t('roessli.kicker'), t('roessli.imTitle'), t('roessli.imInfo'));
   if (P.flags[key]) { const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('roessli.imAgain'); box.appendChild(p); return; }

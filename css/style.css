@@ -510,3 +510,11 @@ html[lang=en] .dossier.hot .dsheet::after{content:'CONFIDENTIAL'}
 .setbox .srow{display:grid;grid-template-columns:110px 1fr;align-items:center;gap:10px;margin:6px 0;font-size:14px}
 .setbox .srow.chk{grid-template-columns:auto 1fr}
 .setbox input[type=range]{accent-color:var(--rot);width:100%}
+
+/* Sprechblasen und Wolkwilisch */
+#bubbles{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.bubble{position:absolute;left:0;top:0;background:#FBF9F2;border:1.5px solid var(--tinte);border-radius:12px 12px 12px 3px;padding:4px 10px 5px;
+  font:italic 600 14px/1.2 var(--serif);color:var(--tinte);white-space:nowrap;box-shadow:2px 2px 0 rgba(34,48,58,.18);transition:opacity .2s}
+.bubble::after{content:'';position:absolute;left:10px;bottom:-8px;border:7px solid transparent;border-top-color:var(--tinte);border-bottom:0}
+body.mode2d #bubbles{display:none}
+.letter .lingo{font:italic 15px/1.35 var(--serif);color:var(--grau);margin:-2px 0 6px}

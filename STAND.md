@@ -151,3 +151,11 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   Kirchenglocke, Kuhglocken, Vögel, Hühner beim Hof, Uhr im Büro, Regen. Oberfläche: Klick, Papier,
   Schreibmaschine, Münzen, gute/schlechte Folgen, Türen. Neues Fenster «Einstellungen» im Menü mit
   Reglern für Musik, Geräusche, Umgebung, Stimmen und «Alles stumm». Ton ist jetzt standardmässig an.
+- Fantasiesprache «Wolkwilisch» (17.11.): js/lingo.js mit Wörterbuch (30 Wörter mit Bedeutung DE/EN,
+  z. B. Grüüzimpf = Hallo, Hubärli = der Huber, Kässeli-kläpf = Bestechung, Hochdrüüpf = Fluch), Zurufen
+  für Dorfbewohner je nach Lage (Wetter, Verdacht, Huber) und einem Silbengenerator, der jeden Satz immer
+  gleich übersetzt. Stimmen per Formant-Synthese (js/audio.js speak/voiceFor): jede Figur hat eigene
+  Stimmlage und Tempo, Fragen gehen hoch, Ausrufe sind lauter. Dorfbewohner in der Nähe rufen sich
+  Wolkwilisch zu (Sprechblase + Stimme, leiser mit Abstand). Am Telefon reden die Anrufer Wolkwilisch,
+  darunter steht die Übersetzung. Im Rössli reden Wirt, Imboden und der Stammtisch. Errungenschaften
+  vorbereitet in js/achievements.js (Namen auf Wolkwilisch, noch ohne Anzeige).

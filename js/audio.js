@@ -271,3 +271,56 @@ export function sfx(kind, surface) {
   else if (kind === 'whoosh') noise(0.6, 'bandpass', 700, 0.18, 0.6);
   else if (kind === 'murmur') { for (let i = 0; i < 6; i++) tone(180 + Math.random() * 140, 0.22, 0.02, 'triangle', (Math.random() - 0.5) * 80, busSfx, i * 0.09 + Math.random() * 0.06); }
 }
+
+// ---------------- Stimmen (Wolkwilisch-Gebrabbel) ----------------
+// Formant-Synthese: eine Sägezahn-«Stimmbandschwingung» durch drei Bandpässe (Vokalklang),
+// Konsonanten als kurze Rauschstösse. Jede Figur hat eine eigene Stimmlage und Sprechgeschwindigkeit.
+const FORM = { a: [800, 1200, 2500], e: [420, 2000, 2600], i: [290, 2250, 2900], o: [460, 820, 2400], u: [330, 720, 2400], 'ä': [650, 1750, 2500], 'ö': [420, 1600, 2400], 'ü': [300, 1700, 2200] };
+let speakUntil = 0;
+export function speak(syl, voice = {}, opt = {}) {
+  if (!ac || sound.muted || !syl || !syl.length) return 0;
+  const pitch = voice.pitch || 150, speed = voice.speed || 1, fs = voice.formant || 1, vol = (opt.gain ?? 1) * 0.5;
+  let t = Math.max(ac.currentTime + 0.02, opt.interrupt ? 0 : speakUntil), n = 0;
+  const maxS = opt.max || 14, last = Math.min(syl.length, maxS);
+  for (let i = 0; i < last; i++) {
+    const s = syl[i];
+    if (s.pause) { t += s.pause === ',' ? 0.12 / speed : 0.22 / speed; continue; }
+    const dur = (s.long ? 0.17 : 0.11) / speed * (0.9 + ((i * 7) % 5) * 0.05);
+    // Satzmelodie: leicht fallend, bei Fragen am Ende steigend, bei Ausrufen höher
+    const end = i >= last - 2, q = opt.mood === '?' && end, ex = opt.mood === '!';
+    const f0 = pitch * (1 + Math.sin(i * 1.7) * 0.06) * (ex ? 1.2 : 1) * (q ? 1.25 : 1) * (1 - i / last * 0.12);
+    // Konsonant vorne
+    if (s.c) {
+      const hiss = /s|z|ch|f|tsch/.test(s.c), plos = /b|p|d|t|g|k/.test(s.c);
+      if (hiss) noise(0.05 / speed, 'highpass', s.c.includes('sch') ? 2400 : 4200, vol * 0.25, 1, busVoice, t - ac.currentTime);
+      else if (plos) noise(0.02, 'lowpass', 900, vol * 0.5, 1, busVoice, t - ac.currentTime);
+      t += hiss ? 0.035 / speed : 0.012;
+    }
+    const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(f0, t); o.frequency.linearRampToValueAtTime(f0 * (q && i === last - 1 ? 1.25 : 0.94), t + dur);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.015); g.gain.setValueAtTime(vol, t + dur * 0.7); g.gain.linearRampToValueAtTime(0, t + dur);
+    const F = FORM[s.v] || FORM.a;
+    [[F[0], 1, 7], [F[1], 0.55, 10], [F[2], 0.22, 12]].forEach(([f, a, Q]) => {
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * fs; bp.Q.value = Q;
+      const ga = ac.createGain(); ga.gain.value = a * 2.2; o.connect(bp).connect(ga).connect(g);
+    });
+    if (/m|n|ng/.test(s.end || '')) { const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500; o.connect(lp).connect(g); }
+    g.connect(busVoice); o.start(t); o.stop(t + dur + 0.02);
+    t += dur + 0.02 / speed; n++;
+  }
+  speakUntil = opt.overlap ? speakUntil : t;
+  return t - ac.currentTime;
+}
+// feste Stimmen für Figuren (Name → Stimme); unbekannte Namen bekommen eine Stimme aus dem Namen
+const VOICES = {
+  'Gemeindepräsident Huber': { pitch: 105, speed: 0.85, formant: 0.92 },
+  'Inspektor Wyss': { pitch: 95, speed: 0.75, formant: 0.9 },
+  'Frau Imboden, Wolkenwiler Anzeiger': { pitch: 210, speed: 1.35, formant: 1.1 },
+  'Grosi Elsbeth': { pitch: 240, speed: 0.8, formant: 1.15 },
+  'Bauer Zbinden': { pitch: 92, speed: 0.95, formant: 0.88 },
+};
+export function voiceFor(name = '') {
+  if (VOICES[name]) return VOICES[name];
+  let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return { pitch: 100 + (h % 150), speed: 0.85 + ((h >> 4) % 40) / 100, formant: 0.9 + ((h >> 8) % 25) / 100 };
+}

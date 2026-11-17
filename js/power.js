@@ -341,6 +341,8 @@ export function freshMulti(partyIds) {
   partyIds.forEach(p => { S.trust[p] = {}; for (const g in GROUPS) S.trust[p][g] = 50; S.susp[p] = 0; });
   return S;
 }
+// Lage der Parteibüros (Innenräume) für den Online-Modus: [x, z]
+export const OFFICE_POS = { wvb: [-48, -640], fww: [-32, -640], pkh: [32, -640], huber: [48, -640] };
 export function pollsMulti(S) {
   const out = {}; for (const p in PARTIES) out[p] = 0;
   for (const g in GROUPS) {

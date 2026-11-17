@@ -107,6 +107,17 @@ function hostRoster() { bc({ t: 'players', players: net.players, rounds: HS.roun
 function hostOnMsg(id, m) {
   if (!HS || !m) return;
   if (m.t === 'hello') {
+    const nm = String(m.name || '?').slice(0, 16), back = HS.gone && HS.gone[nm];
+    if (HS.phase !== 'lobby' && back && net.players.length < 3 && !net.players.find(p => p.id === id)) {
+      // Wiedereinstieg nach Verbindungsabbruch: gleicher Platz (gleiche Partei), gleiche Punkte
+      net.players.splice(Math.min(back.idx, net.players.length), 0, { id, name: nm }); HS.total[id] = back.total || 0; delete HS.gone[nm];
+      hostRoster(); bc({ t: 'chat', sys: 'rejoined', name: nm });
+      if (HS.phase === 'play') { HS.done[id] = { score: 0, stars: 0, img: '', mask: '' }; bc({ t: 'doneack', ids: Object.keys(HS.done) }); }
+      const sync = HS.phase === 'vote' && HS.lastVote ? Object.assign({}, HS.lastVote, { secs: Math.max(3, Math.round((HS.voteEnd - Date.now()) / 1000)) }) : HS.phase === 'results' ? HS.lastResults : HS.phase === 'final' ? HS.lastFinal : null;
+      if (sync) setTimeout(() => net.T.toClient(id, sync), 300);
+      if (HS.pw) setTimeout(() => net.T.toClient(id, { t: 'pstate', pw: HS.pw, polls: POW.pollsMulti(HS.pw), acted: Object.keys(HS.acted || {}) }), 400);
+      return;
+    }
     if (HS.phase !== 'lobby' || net.players.length >= 3) return net.T.toClient(id, { t: 'deny', why: HS.phase !== 'lobby' ? 'running' : 'full' });
     if (!net.players.find(p => p.id === id)) net.players.push({ id, name: String(m.name || '?').slice(0, 16) });
     hostRoster(); bc({ t: 'chat', sys: 'joined', name: pname(id) });
@@ -114,6 +125,7 @@ function hostOnMsg(id, m) {
   else if (m.t === 'pos') {
     // Positionen an alle anderen weiterreichen
     const out = { t: 'pos', id, p: Array.isArray(m.p) ? m.p.slice(0, 7).map(Number) : [] };
+    (HS.pos ||= {})[id] = out.p;
     net.players.forEach(p => { if (p.id !== id && p.id !== 'host') net.T.toClient(p.id, out); });
     if (id !== 'host') onNet(out);
   }
@@ -127,6 +139,25 @@ function hostOnMsg(id, m) {
     const line = POW.multiAct(HS.pw, own, m.a, tg && tg !== own ? tg : null);
     if (line) HS.pw.log.push(line);
     bc({ t: 'pstate', pw: HS.pw, polls: POW.pollsMulti(HS.pw), line, acted: Object.keys(HS.acted) });
+  }
+  else if (m.t === 'office') {
+    // Parteibüros in der Parteigasse: eigenes Büro Plakate drucken, fremdes Büro Plakate klauen.
+    // Wer im fremden Büro ist, während dessen Besitzer auch drin ist, wird erwischt.
+    if (!HS.pw || !POW.PARTIES[m.pid] || !['print', 'steal'].includes(m.a)) return;
+    const own = partyOf(id), key = id + '_' + m.a; HS.office ||= {};
+    if (HS.office[key] === HS.round) return; HS.office[key] = HS.round;
+    const P = n => POW.PARTIES[n].short, room = POW.OFFICE_POS[m.pid];
+    const owner = net.players.find(pl => partyOf(pl.id) === m.pid && pl.id !== id);
+    const op = owner && HS.pos && HS.pos[owner.id];
+    const caught = m.a === 'steal' && op && room && Math.abs(op[0] - room[0]) < 4.2 && Math.abs(op[2] - room[1]) < 3.6;
+    let line;
+    if (m.a === 'print' && m.pid === own) { HS.pw.mod[own] = (HS.pw.mod[own] || 0) + 0.04; line = [`${P(own)} druckt im eigenen Büro neue Plakate.`, `${P(own)} prints new posters in its own office.`]; }
+    else if (m.a === 'steal' && m.pid !== own) {
+      if (caught) { HS.pw.mod[own] -= 0.06; HS.pw.susp[own] = Math.min(100, (HS.pw.susp[own] || 0) + 8); line = [`ERWISCHT! ${pname(id)} (${P(own)}) wurde im Büro von ${P(m.pid)} beim Plakateklauen ertappt.`, `CAUGHT! ${pname(id)} (${P(own)}) was caught stealing posters in the ${P(m.pid)} office.`]; }
+      else { HS.pw.mod[m.pid] = (HS.pw.mod[m.pid] || 0) - 0.05; HS.pw.mod[own] += 0.01; line = [`Im Büro von ${P(m.pid)} fehlen plötzlich die Plakate. Niemand hat etwas gesehen.`, `Posters have suddenly gone missing from the ${P(m.pid)} office. Nobody saw anything.`]; }
+    } else return;
+    HS.pw.log.push(line);
+    bc({ t: 'pstate', pw: HS.pw, polls: POW.pollsMulti(HS.pw), line, acted: Object.keys(HS.acted || {}), office: { id, a: m.a, pid: m.pid, caught: !!caught } });
   }
   else if (m.t === 'pick') {
     if (HS.phase !== 'vote' || HS.picks[id] !== undefined || ![0, 1, 2].includes(m.i)) return;
@@ -146,6 +177,7 @@ function hostCheck() {
 }
 function hostOnClose(id) {
   if (!HS) return; const n = pname(id);
+  if (HS.phase !== 'lobby') (HS.gone ||= {})[n] = { idx: pindex(id), total: HS.total && HS.total[id] };
   net.players = net.players.filter(p => p.id !== id);
   hostRoster(); bc({ t: 'chat', sys: 'left', name: n }); bc({ t: 'gone', id }); hostCheck();
 }
@@ -160,7 +192,8 @@ function hostVote() {
   HS.phase = 'vote'; HS.picks = {};
   if (HS.pp + 3 > HS.pool.length) { HS.pool = shuffle(ORDERS.map((_, i) => i)); HS.pp = 0; }
   HS.opts = HS.pool.slice(HS.pp, HS.pp + 3); HS.pp += 3;
-  bc({ t: 'vote', round: HS.round, rounds: HS.rounds, opts: HS.opts, secs: 20 });
+  HS.lastVote = { t: 'vote', round: HS.round, rounds: HS.rounds, opts: HS.opts, secs: 20 }; HS.voteEnd = Date.now() + 20000;
+  bc(HS.lastVote);
   clearTimeout(HS.timer); HS.timer = setTimeout(hostResolveVote, 21000);
 }
 function hostResolveVote() {
@@ -178,9 +211,9 @@ function hostResults() {
   res.forEach((r, i) => { if (i > 0 && Math.round(r.score * 100) < Math.round(res[i - 1].score * 100)) place = i; r.place = place; r.pts = MP_POINTS[place]; HS.total[r.id] = (HS.total[r.id] || 0) + r.pts; });
   HS.round++;
   if (HS.pw) { net.players.forEach(p => { const d = HS.done[p.id]; if (d) POW.multiCloud(HS.pw, partyOf(p.id), HS.order, d.stars); }); POW.multiRoundEnd(HS.pw); HS.acted = {}; }
-  bc({ t: 'results', pw: HS.pw, polls: HS.pw ? POW.pollsMulti(HS.pw) : null, res, total: HS.total, order: HS.order, rej: pick(HS.rejected), round: HS.round, rounds: HS.rounds, last: HS.round >= HS.rounds });
+  bc(HS.lastResults = { t: 'results', pw: HS.pw, polls: HS.pw ? POW.pollsMulti(HS.pw) : null, res, total: HS.total, order: HS.order, rej: pick(HS.rejected), round: HS.round, rounds: HS.rounds, last: HS.round >= HS.rounds });
 }
-export function hostNext() { if (!HS) return; if (HS.round >= HS.rounds) { HS.phase = 'final'; bc({ t: 'final', total: HS.total, pw: HS.pw, polls: HS.pw ? POW.pollsMulti(HS.pw) : null }); } else hostVote(); }
+export function hostNext() { if (!HS) return; if (HS.round >= HS.rounds) { HS.phase = 'final'; bc(HS.lastFinal = { t: 'final', total: HS.total, pw: HS.pw, polls: HS.pw ? POW.pollsMulti(HS.pw) : null }); } else hostVote(); }
 
 // ----- Alle -----
 function onNet(m) {

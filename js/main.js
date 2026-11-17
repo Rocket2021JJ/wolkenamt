@@ -131,6 +131,7 @@ const folkIts = FOLK.map((f, i) => world.addInteractable('folk_' + i, world.vill
 world.sfx = A.sfx;
 window.__world = world;
 window.__THREE = THREE; window.__A = A;
+window.__net = { net, hostStart, toHost, partyOf };
 window.__dbg = { mode: () => mode, save: () => save, run: () => run, startDay: d => startDay(d), report: () => showReport() };
 const D = world.deskPos, PLAT = office.platform;
 const SPOT = {
@@ -869,15 +870,27 @@ function enterHall() {
   setTask('task.hall');
 }
 // Weitere begehbare Häuser
+let onlinePrev = null;
 function enterRoom(spot, task, vars) {
-  if (flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.townClosed'));
+  const onlineOk = flow === 'online' && task === 'task.pbuero' && mode === 'world';
+  if (!onlineOk && (flow !== 'single' || !run || run.kind !== 'day')) return toast(t('toast.townClosed'));
+  if (onlineOk) { onlinePrev = [taskKey, taskVars]; A.ui('door'); world.teleport(...spot); world.camYawT = 0.28; setTask('task.pbueroOnline', vars); return; }
   if (!/^task\.(hall|roessli|partei|huber|pbuero|r_\w+)$/.test(taskKey)) run.hallPrev = [taskKey, taskVars];
   A.ui('door'); world.teleport(...spot); world.camYawT = 0.28; world.setWeather(null); setTask(task, vars);
 }
 function leaveRoom(id) {
   const e = office.entrance[id]; A.ui('door');
+  if (flow === 'online') { world.teleport(e.pos.x, 0, e.pos.z, e.yaw); setTask(onlinePrev ? onlinePrev[0] : null, onlinePrev ? onlinePrev[1] : undefined); onlinePrev = null; return; }
   world.teleport(e.pos.x, 0, e.pos.z, e.yaw); world.setWeather(run && run.wx ? run.wx : null);
   const pv = run && run.hallPrev; setTask(pv ? pv[0] : 'task.desk', pv ? pv[1] : undefined);
+}
+// Online: im eigenen Büro Plakate drucken, im fremden Plakate klauen (wer erwischt wird, verliert)
+function openPartyDeskOnline(pid) {
+  const own = partyOf(net.id), pa = POW.PARTIES[pid];
+  const box = townPanel(t('partei.kicker'), pa.name ? L(pa.name) : pa.short, t(pid === own ? 'onoff.ownInfo' : 'onoff.rivalInfo', { p: pa.short }));
+  if (!net.pw) { const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('onoff.notyet'); box.appendChild(p); return; }
+  if (pid === own) actRow(box, t('onoff.print'), t('onoff.printI'), true, () => { toHost({ t: 'office', a: 'print', pid }); panelResult(box, t('onoff.sent')); });
+  else actRow(box, t('onoff.steal'), t('onoff.stealI', { p: pa.short }), true, () => { toHost({ t: 'office', a: 'steal', pid }); panelResult(box, t('onoff.sent')); });
 }
 // Villa Huber: jede Aktion macht etwas Lärm. Bei 3 wacht Bläss auf, dann fliegt man raus.
 function hubKey(x) { return 'hub_' + x + '_' + (inSB() ? save.sb.year * 10 + save.sb.day : run.d); }
@@ -996,6 +1009,7 @@ const pname2 = p => L(POW.PARTIES[p].name);
 
 // ---------------- Parteienhaus: eigenes Büro und fremde Pulte ----------------
 function openPartyDesk(pid) {
+  if (flow === 'online') return openPartyDeskOnline(pid);
   const P = save.power; if (!P || !run || run.kind !== 'day') return;
   (save.desksSeen ||= {})[pid] = 1; if (Object.keys(save.desksSeen).length >= 4) ach('einbrecher');
   P.flags = P.flags || {};
@@ -1516,7 +1530,12 @@ net.ui = {
     if (kind === 'deny') { onlineEntry(code, e === 'full' ? t('on.full') : t('on.running')); return; }
     entryMsg(kind === 'create' ? t('on.failCreate', { e }) : e === 'peer-unavailable' ? t('on.notfound') : t('on.failJoin', { e }), true);
   },
-  lost(code) { leaveOnline(); onlineEntry(code, t('on.lost')); },
+  lost(code) {
+    leaveOnline(); onlineEntry(code, t('on.lost'));
+    // automatisch wieder beitreten (gleicher Name = gleicher Platz und Punkte)
+    let tries = 0; const again = () => { if (net.on || flow !== 'online' || tries++ >= 3) return; entryMsg(t('on.rejoining', { n: tries })); netJoin(code, save.name || t('on.default')); setTimeout(again, 4000); };
+    setTimeout(again, 1500);
+  },
   note(e) { sysMsg(t('chat.note', { e })); },
   players() { renderSide(); renderVoice(); syncRemotes(); if (net.phase === 'lobby') renderLobby(); },
   chat(m) { addChat(m); },
@@ -1544,7 +1563,7 @@ net.ui = {
     }, 2600);
   },
   results(m) { renderSide(); showNetResults(m); },
-  pstate(m) { if (m.line) sysMsg(L(m.line)); renderMultiPow(false); },
+  pstate(m) { if (m.line) sysMsg(L(m.line)); if (m.office && m.office.caught && m.office.id === net.id) { A.ui('bad'); toast(t('onoff.caughtMe')); } renderMultiPow(false); },
   final(m) { renderSide(); showNetFinal(m); },
 };
 function startOnlineCut() {
@@ -1626,7 +1645,7 @@ function renderMultiPow(final) {
 function sysMsg(text) { addChat({ sys: 1, text }); }
 function addChat(m) {
   const log = $('sLog'), d = document.createElement('div');
-  if (m.sys) { d.className = 'sys'; d.textContent = m.sys === 'joined' ? t('chat.joined', { n: m.name }) : m.sys === 'left' ? t('chat.left', { n: m.name }) : m.text; }
+  if (m.sys) { d.className = 'sys'; d.textContent = m.sys === 'joined' ? t('chat.joined', { n: m.name }) : m.sys === 'rejoined' ? t('chat.rejoined', { n: m.name }) : m.sys === 'left' ? t('chat.left', { n: m.name }) : m.text; }
   else { const b = document.createElement('b'); b.textContent = m.from + ': '; d.appendChild(b); d.appendChild(document.createTextNode(m.text)); }
   log.appendChild(d); while (log.children.length > 60) log.firstChild.remove(); log.scrollTop = log.scrollHeight;
 }

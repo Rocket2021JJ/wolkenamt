@@ -305,7 +305,7 @@ export class World {
       const c = Math.abs(Math.cos(g.rotation.y)), s = Math.abs(Math.sin(g.rotation.y));
       const hw = (w * c + d * s) / 2, hd = (w * s + d * c) / 2;
       this.addCollider(x - hw, 0, z - hd, x + hw, h + 1.5, z + hd);
-      this.houses.push(g);
+      g.userData = { w, d, h }; this.houses.push(g);
     });
 
     // Tannen
@@ -549,6 +549,19 @@ export class World {
     cam.position.lerp(want, k);
     this.lookNow.lerp(look, k);
     cam.lookAt(this.lookNow);
+    this.fadeOccluders(look);
+  }
+  // Häuser, die zwischen Kamera und Beamtli stehen (oder in denen die Kamera steckt), ausblenden
+  fadeOccluders(look) {
+    if (!this.fadeList) return;
+    const cam = this.camera.position, d = cam.clone().sub(look), ray = new THREE.Ray(look, d.clone().normalize()), len = d.length(), hit = new THREE.Vector3();
+    for (const f of this.fadeList) {
+      const block = !this.inside && (f.box.containsPoint(cam) || (ray.intersectBox(f.box, hit) && hit.distanceTo(look) < len));
+      f.g.visible = !block;
+    }
+  }
+  setFadeHouses(idx) {
+    this.fadeList = idx.map(i => { const g = this.houses[i]; const box = new THREE.Box3().setFromObject(g); box.expandByScalar(0.15); return { g, box }; });
   }
 
 

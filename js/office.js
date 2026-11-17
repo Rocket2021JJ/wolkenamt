@@ -304,6 +304,9 @@ export function furnish(w) {
     for (let i = 0; i < pos.count; i++) { const x = pos.getX(i) + 0.45; pos.setZ(i, Math.sin(time * 5 - x * 6) * 0.06 * x); }
     pos.needsUpdate = true;
     if (o.hallUpdate) o.hallUpdate();
+    if (o.roessliUpdate) o.roessliUpdate(dt);
+    if (o.parteiUpdate) o.parteiUpdate(dt);
+    if (o.roofUpdate) o.roofUpdate(dt, time);
   };
   o.relabel = () => {
     o.posters.forEach(p => p.redraw());
@@ -311,6 +314,12 @@ export function furnish(w) {
     it.find(i => i.id === 'archive').label = t('use.archive'); it.find(i => i.id === 'shredder').label = t('use.shredder'); it.find(i => i.id === 'phone').label = t('use.phone'); it.find(i => i.id === 'weather').label = t('use.weather');
     it.find(i => i.id === 'townhall').label = t('use.townhall'); it.find(i => i.id === 'bakery').label = t('use.bakery'); o.thSign.redraw(t('sign.townhall'));
     o.sign.redraw(t('sign.amt'));
+    if (o.roessliSign) {
+      for (const k of ['stammtisch', 'wirt', 'imboden', 'roessliexit', 'parteiexit', 'roesslidoor', 'parteidoor']) { const f = it.find(i => i.id === k); if (f) f.label = t('use.' + k); }
+      for (const f of it.filter(i => i.id.startsWith('pdesk_'))) f.label = t('use.pdesk', { p: f.id.slice(6) === 'huber' ? 'HUB' : f.id.slice(6).toUpperCase() });
+      o.roessliSign.redraw(t('roessli.sign')); o.stammSign.redraw(t('roessli.stamm')); o.parteiSign.redraw(t('partei.sign')); o.shedSign.redraw(t('roof.shed'));
+      o.roessliDoor.redraw(t('roessli.sign')); o.parteiDoor.redraw(t('partei.signShort'));
+    }
     if (o.hall) { for (const k of ['podium', 'urn', 'huberdesk', 'hallexit']) it.find(i => i.id === k).label = t('use.' + k); o.hallSign.redraw(t('hall.sign')); o.urnSign.redraw(t('hall.urn')); }
   };
   return o;

@@ -1,6 +1,7 @@
 // WOLKENAMT v0.4 – Ablaufsteuerung: 3D-Welt, Schreibtisch, Wolkenplattform, Dorfplatz, Mehrspieler
 import { pickMotif, drawPicture, drawWeather } from './paper.js';
 import { buildHall, HALL_SPOT } from './hall.js';
+import { decorateRoof, buildRoessli, buildParteienhaus, markEntrances, signpost, ROESSLI_SPOT, PARTEI_SPOT } from './interiors.js';
 import * as THREE from 'three';
 import { World, ROOM } from './world3d.js';
 import { furnish } from './office.js';
@@ -39,7 +40,9 @@ const totalStars = () => save.stars.reduce((a, b) => a + (b || 0), 0);
 const world = new World($('c3d'));
 const office = world.office = furnish(world);
 buildHall(world, office);
-world.bake([office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank, office.hall]);
+decorateRoof(world, office); buildRoessli(world, office); buildParteienhaus(world, office, POW.PARTIES); markEntrances(world, office); signpost(world);
+world.setFadeHouses([1, 2, 3, 4, 5, 8, 9]);
+world.bake([...world.fadeList.map(f => f.g), office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank, office.hall, office.roessli, office.partei, office.windsock, ...office.laundry]);
 world.spawnVillagers(11);
 world.sfx = A.sfx;
 window.__world = world;
@@ -341,6 +344,14 @@ world.onUse = (id) => {
   if (id === 'weather') return openWeather();
   if (id === 'townhall') return enterHall();
   if (id === 'hallexit') return leaveHall();
+  if (id === 'roessliexit') return leaveRoom('roessli');
+  if (id === 'parteiexit') return leaveRoom('partei');
+  if (id === 'roesslidoor') return enterRoom(ROESSLI_SPOT, 'task.roessli');
+  if (id === 'parteidoor') return enterRoom(PARTEI_SPOT, 'task.partei');
+  if (id === 'stammtisch') return openStammtisch();
+  if (id === 'wirt') return openWirt();
+  if (id === 'imboden') return openImboden();
+  if (id.startsWith('pdesk_')) return openPartyDesk(id.slice(6));
   if (id === 'podium') return openTownhall();
   if (id === 'urn') return openUrn();
   if (id === 'huberdesk') return searchHuber();
@@ -695,6 +706,104 @@ function enterHall() {
   A.sfx('whoosh'); world.teleport(...HALL_SPOT); world.camYawT = 0.28; world.setWeather(null);
   setTask('task.hall');
 }
+// Weitere begehbare Häuser
+function enterRoom(spot, task) {
+  if (flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.townClosed'));
+  if (!/^task\.(hall|roessli|partei)$/.test(taskKey)) run.hallPrev = [taskKey, taskVars];
+  A.sfx('whoosh'); world.teleport(...spot); world.camYawT = 0.28; world.setWeather(null); setTask(task);
+}
+function leaveRoom(id) {
+  const e = office.entrance[id]; A.sfx('whoosh');
+  world.teleport(e.pos.x, 0, e.pos.z, e.yaw); world.setWeather(run && run.wx ? run.wx : null);
+  const pv = run && run.hallPrev; setTask(pv ? pv[0] : 'task.desk', pv ? pv[1] : undefined);
+}
+// Kleine Helfer für Aktionslisten in Panels
+function actRow(box, label, info, ok, onDo, btnText) {
+  const el = document.createElement('div'); el.className = 'dos';
+  const b = document.createElement('b'); b.textContent = label; el.appendChild(b);
+  if (info) { const n = document.createElement('small'); n.textContent = info; el.appendChild(n); }
+  const btn = document.createElement('button'); btn.textContent = btnText || t('urn.do'); btn.disabled = !ok; btn.onclick = onDo; el.appendChild(btn);
+  box.appendChild(el); return el;
+}
+function panelResult(box, text, ch) {
+  box.innerHTML = ''; box.classList.add('resv'); const p = document.createElement('p'); p.className = 'lres'; p.textContent = text; box.appendChild(p);
+  if (ch) box.appendChild(fxChips(ch));
+  A.stampSound(); persist(); updateAkte();
+}
+const rivals = P => POW.PLAYABLE.concat('huber').filter(p => p !== P.party);
+const pname2 = p => L(POW.PARTIES[p].name);
+
+// ---------------- Parteienhaus: eigenes Büro und fremde Pulte ----------------
+function openPartyDesk(pid) {
+  const P = save.power; if (!P || !run || run.kind !== 'day') return;
+  P.flags = P.flags || {};
+  const dayKey = 'pb' + (inSB() ? save.sb.year * 10 + save.sb.day : run.d);
+  if (pid === P.party) {
+    const box = townPanel(t('partei.kicker'), t('partei.ownTitle', { p: pname2(pid) }), t('partei.ownInfo'));
+    const done = P.flags[dayKey + 'own'];
+    actRow(box, t('partei.print'), t('partei.printInfo'), !done && P.cash >= 1000 && !firstDay(), () => {
+      P.flags[dayKey + 'own'] = 1; panelResult(box, t('partei.printRes'), POW.apply(P, { cash: -1000, mod: { _own: 0.06 } }));
+    });
+    actRow(box, t('partei.flyer'), t('partei.flyerInfo'), !done && P.influence >= 2, () => {
+      P.flags[dayKey + 'own'] = 1;
+      const top = Object.entries(POW.PARTIES[P.party].aff).sort((a, b) => b[1] - a[1])[0][0];
+      panelResult(box, t('partei.flyerRes'), POW.apply(P, { influence: -2, trust: { [top]: 4 } }));
+    });
+    if (done) { const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('town.doneToday'); box.appendChild(p); }
+    return;
+  }
+  const box = townPanel(t('partei.kicker'), t('partei.rivalTitle', { p: pname2(pid) }), t(run.fog ? 'partei.rivalFog' : 'partei.rivalInfo'));
+  if (P.flags[dayKey]) { const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('partei.onceDay'); box.appendChild(p); return; }
+  const extra = pid === 'huber' ? 0.15 : 0;
+  const acts = [
+    ['plan', { lev: pid, influence: 1 }, 0.25],
+    ['glue', { mod: { [pid]: -0.1 } }, 0.2],
+    ['donors', { mod: { [pid]: -0.18 }, suspicion: 6 }, 0.35],
+    ['tap', { influence: 2, mod: { [pid]: -0.04 } }, 0.3],
+  ];
+  acts.forEach(([k, fx, risk]) => {
+    const r = Math.min(0.9, (risk + extra) * (run.fog ? 0.5 : 1));
+    actRow(box, t('sab.' + k), t('sab.' + k + 'Info') + ' ' + t('sab.risk', { r: Math.round(r * 100) }), !firstDay(), () => {
+      P.flags[dayKey] = 1;
+      const caught = Math.random() < r;
+      P.history.push({ day: run.d, ev: 'sab_' + k + '_' + pid, caught });
+      if (caught) { POW.schedule(P, run.d + 1, 'einbruch'); P.flags.lastBreakin = pid; return panelResult(box, t('sab.caught', { p: pname2(pid) }), POW.apply(P, { suspicion: 8 })); }
+      panelResult(box, t('sab.' + k + 'Res', { p: pname2(pid) }), POW.apply(P, fx));
+    });
+  });
+  if (P.lev && P.lev[pid]) actRow(box, t('sab.lev'), t('sab.levInfo'), true, () => {
+    P.flags[dayKey] = 1; panelResult(box, t('sab.levRes', { p: pname2(pid) }), POW.apply(P, { mod: { [pid]: -0.2 }, unlev: pid, suspicion: 5 }));
+  });
+}
+
+// ---------------- Gasthaus Rössli ----------------
+function openStammtisch() {
+  const P = save.power; if (!P || !run || run.kind !== 'day') return;
+  P.flags = P.flags || {}; const key = 'st' + (inSB() ? save.sb.year * 10 + save.sb.day : run.d);
+  const box = townPanel(t('roessli.kicker'), t('roessli.stammTitle'), t('roessli.stammInfo'));
+  if (P.flags[key]) { const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('roessli.again'); box.appendChild(p); return; }
+  actRow(box, t('roessli.round'), t('roessli.roundInfo'), P.cash >= 300, () => { P.flags[key] = 1; panelResult(box, t('roessli.roundRes'), POW.apply(P, { cash: -300, trust: { vereine: 3, senioren: 2 } })); });
+  rivals(P).forEach(p => actRow(box, t('roessli.rumor', { p: POW.PARTIES[p].short }), t('roessli.rumorInfo'), !firstDay(), () => {
+    P.flags[key] = 1; panelResult(box, t('roessli.rumorRes', { p: pname2(p) }), POW.apply(P, { mod: { [p]: -0.07 }, suspicion: 3 }));
+  }));
+}
+function openWirt() {
+  const P = save.power; if (!P || !run || run.kind !== 'day') return;
+  const soon = P.queue.filter(q => q.day <= run.d + 1).map(q => POW.EVENTS[q.id]).filter(Boolean);
+  const box = townPanel(t('roessli.kicker'), t('roessli.wirtTitle'), soon.length ? t('roessli.wirtHint', { n: nameOf(soon[0].from) }) : t('roessli.wirtNone'));
+  const lines = t('roessli.wirtTalk').split('|'); const p = document.createElement('p'); p.className = 'hsub'; p.textContent = lines[(run.d + soon.length) % lines.length]; box.appendChild(p);
+}
+function openImboden() {
+  const P = save.power; if (!P || !run || run.kind !== 'day') return;
+  P.flags = P.flags || {}; const key = 'im' + (inSB() ? save.sb.year * 10 + save.sb.day : run.d);
+  const box = townPanel(t('roessli.kicker'), t('roessli.imTitle'), t('roessli.imInfo'));
+  if (P.flags[key]) { const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('roessli.imAgain'); box.appendChild(p); return; }
+  actRow(box, t('roessli.interview'), t('roessli.interviewInfo'), true, () => { P.flags[key] = 1; panelResult(box, t('roessli.interviewRes'), POW.apply(P, { mod: { _own: 0.05 }, suspicion: P.suspicion > 40 ? 4 : -2 })); });
+  rivals(P).forEach(p => actRow(box, t('roessli.leak', { p: POW.PARTIES[p].short }), t('roessli.leakInfo'), P.cash >= 500 && !firstDay(), () => {
+    P.flags[key] = 1; panelResult(box, t('roessli.leakRes', { p: pname2(p) }), POW.apply(P, { cash: -500, mod: { [p]: -0.12 }, suspicion: 4 }));
+  }));
+}
+
 function leaveHall() {
   A.sfx('whoosh'); world.teleport(-8.2, 0, 13, Math.PI / 2 + Math.PI); world.setWeather(run && run.wx ? run.wx : null);
   const pv = run && run.hallPrev; if (taskKey === 'task.hall') setTask(pv ? pv[0] : 'task.desk', pv ? pv[1] : undefined);
@@ -751,7 +860,7 @@ function searchHuber() {
 // ---------------- Etappe 4: Gemeindehaus, Gerüchte ----------------
 const vid = () => (run && inSB() ? POW.SB_VOTES[(save.sb.year - 1) % 3] : run ? ['seilbahn', 'aufsicht', 'wolkensteuer'][chOf(run.d) - 1] : 'seilbahn');
 const firstDay = () => inSB() ? save.sb.day === 0 : (run.d === 0 || run.d === POW.CH2_START || run.d === POW.CH3_START);
-function townPanel(kicker, title, info) { mode = 'town'; world.enabled = false; hud(false); only('town'); $('tnKicker').textContent = kicker; $('tnTitle').textContent = title; $('tnInfo').textContent = info; const b = $('tnList'); b.innerHTML = ''; return b; }
+function townPanel(kicker, title, info) { mode = 'town'; world.enabled = false; hud(false); only('town'); $('tnKicker').textContent = kicker; $('tnTitle').textContent = title; $('tnInfo').textContent = info; const b = $('tnList'); b.innerHTML = ''; b.classList.remove('resv'); return b; }
 function openTownhall() {
   const P = save.power; if (!P || flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.townClosed'));
   const V = POW.VOTES[vid()];

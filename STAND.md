@@ -102,3 +102,15 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
     Rasterdruck (11 von Hand gezeichnete Motive je nach Thema, js/paper.js), Bildlegende, Text,
     Seitenspalte mit Wetter, Umfrage und Inserat. Entscheidungen stehen unter «Ihre Reaktion».
     Anrufe bleiben als Notizzettel.
+- Feedback-Runde 2 (17.11.):
+  - Dach (2. Stock) ist jetzt eine Wolkenwerkstatt: Wäscheleine mit trocknenden Wolken, Wolkenlager mit
+    Kisten (Cumulus, Stratus, Nebel), Geräteschopf mit Leiter und Rechen, Bank mit Thermoskanne, Wandtafel,
+    Fernrohr, Windsack, Geranien. Wolken und Windsack bewegen sich.
+  - Zwei neue begehbare Häuser hinter dem Dorfplatz (Wegweiser auf dem Platz):
+    Gasthaus Rössli (Stammtisch: Runde spendieren oder Gerüchte streuen; Wirt Bruno verrät, wer morgen
+    etwas von dir will; Redaktorin Imboden: Interview geben oder Geschichten über Gegner stecken) und
+    Parteienhaus (vier Parteibüros; im eigenen Plakate drucken und Flyer verteilen; bei den Gegnern
+    einmal pro Tag sabotieren: Wahlkampfplan abfotografieren, Kleister verdünnen, Spenderliste leaken,
+    Telefon anzapfen, Druckmittel einsetzen. Wer erwischt wird, steht am nächsten Morgen in der Zeitung.
+    Nebel halbiert das Risiko). Code: js/interiors.js
+  - Häuser, die zwischen Kamera und Beamtli stehen, werden ausgeblendet (Sicht auf dem Dorfplatz frei).

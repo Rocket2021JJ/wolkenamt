@@ -174,6 +174,44 @@ export class World {
     roofPart(HOLE.x0, HOLE.x1, HOLE.z1, Z1);
     // Dachkante als dunkle Linie
     this.box(X1 - X0 + 0.06, 0.06, 0.06, PAL.tinte, 0, ry + rt, Z1, { parent: roof, cast: false });
+    // Bretterboden auf der Terrasse (Fugen)
+    for (let z = Z0 + 0.32; z < Z1; z += 0.32 + this.jit(0.02)) {
+      if (z > HOLE.z0 - 0.05 && z < HOLE.z1 + 0.05) { this.box(HOLE.x0 - X0 - 0.2, 0.012, 0.025, PAL.nuss, (X0 + HOLE.x0) / 2, ry + rt, z, { parent: roof, cast: false }); this.box(X1 - HOLE.x1 - 0.2, 0.012, 0.025, PAL.nuss, (HOLE.x1 + X1) / 2, ry + rt, z, { parent: roof, cast: false }); }
+      else this.box(X1 - X0 - 0.2, 0.012, 0.025, PAL.nuss, 0, ry + rt, z, { parent: roof, cast: false });
+    }
+    // Ziegel-Vordach rundherum: schräge Schürze unter der Terrasse, mit Ziegelreihen und Dachrinne
+    const OV = 0.75, DROP = 0.42, slope = Math.hypot(OV, DROP), ang = Math.atan2(DROP, OV), TILE = 0x9A4A33;
+    const skirt = (len, cx, cz, rotY) => {
+      const g = new THREE.Group(); g.position.set(cx, ry + rt - 0.02, cz); g.rotation.y = rotY; roof.add(g);
+      const pl = new THREE.Mesh(new THREE.BoxGeometry(len, 0.07, slope), toon(TILE));
+      pl.position.set(0, -DROP / 2, OV / 2); pl.rotation.x = ang; pl.castShadow = true; pl.receiveShadow = true; g.add(pl);
+      for (let i = 1; i < 4; i++) {
+        const row = new THREE.Mesh(new THREE.BoxGeometry(len, 0.03, 0.03), toon(0x7A3526));
+        row.position.set(0, -DROP * i / 4 + 0.04, OV * i / 4); g.add(row);
+      }
+      for (let x = -len / 2 + 0.22; x < len / 2; x += 0.22) {
+        const rib = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.02, slope), toon(0x7A3526));
+        rib.position.set(x, -DROP / 2 + 0.04, OV / 2); rib.rotation.x = ang; g.add(rib);
+      }
+      const gut = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, len, 8), toon(0x8A9197));
+      gut.rotation.z = Math.PI / 2; gut.position.set(0, -DROP - 0.02, OV + 0.02); g.add(gut);
+    };
+    const RW = X1 - X0, Dd = Z1 - Z0;
+    skirt(RW + 2 * OV, 0, Z1, 0);
+    skirt(RW + 2 * OV, 0, Z0, Math.PI);
+    skirt(Dd, X1, 0, Math.PI / 2);
+    skirt(Dd, X0, 0, -Math.PI / 2);
+    // Ecken der Schürze schliessen
+    for (const [cx, cz] of [[X0, Z0], [X1, Z0], [X0, Z1], [X1, Z1]]) {
+      const c = this.box(0.5, 0.07, 0.5, TILE, cx + Math.sign(cx) * OV * 0.42, ry + rt - DROP * 0.7, cz + Math.sign(cz) * OV * 0.42, { parent: roof });
+      c.rotation.y = Math.PI / 4;
+    }
+    // Fallrohr an der Südost-Ecke
+    this.box(0.08, ry - DROP + 0.1, 0.08, 0x8A9197, X1 + OV - 0.1, 0, Z1 + OV - 0.1, { parent: roof });
+    // Kamin (Nordwest), mit Blechkappe
+    this.box(0.55, 1.35, 0.55, PAL.papier, X0 + 0.7, ry + rt, Z0 + 0.7, { parent: roof, solid: true, line: 0.012 });
+    this.box(0.7, 0.06, 0.7, PAL.tinte, X0 + 0.7, ry + rt + 1.35, Z0 + 0.7, { parent: roof });
+    this.box(0.12, 0.25, 0.12, PAL.tinte, X0 + 0.7, ry + rt + 1.41, Z0 + 0.7, { parent: roof });
     // Geländer rund ums Dach
     const rail = (x0, z0, x1, z1) => {
       const len = Math.hypot(x1 - x0, z1 - z0), n = Math.max(2, Math.round(len / 1.1));

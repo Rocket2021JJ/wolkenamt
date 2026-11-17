@@ -630,6 +630,11 @@ export class World {
       this.villagers.push(v);
     }
   }
+  // Wohnort/Lieblingsplatz eines Bewohners: dort steht er herum statt auf dem Dorfplatz
+  setHome(i, x, z, r = 2.5) {
+    const v = this.villagers[i]; if (!v) return;
+    v.home = { x, z, r, d0: 0 }; v.pos.set(x, 0, z); v.target = null; v.b.root.position.copy(v.pos);
+  }
   stepVillagers(dt) {
     if (!this.villagers) return;
     for (const v of this.villagers) {
@@ -644,7 +649,7 @@ export class World {
       } else {
         b.phoneUp *= 1 - Math.min(1, dt * 3); b.lookUp *= 1 - Math.min(1, dt * 3);
         v.wait -= dt;
-        if (!v.target && v.wait <= 0) { const a = this.r() * 6.28, d = 3 + this.r() * 4.5; v.target = new THREE.Vector3(Math.cos(a) * d, 0, 13 + Math.sin(a) * d * 0.8); }
+        if (!v.target && v.wait <= 0) { const H = v.home || { x: 0, z: 13, r: 4.5, d0: 3 }, a = this.r() * 6.28, d = (H.d0 ?? 0) + this.r() * H.r; v.target = new THREE.Vector3(H.x + Math.cos(a) * d, 0, H.z + Math.sin(a) * d * 0.8); }
         // Bei hohem Verdacht: stehen bleiben und das Beamtli anstarren, wenn es nahe ist
         if (this.stare) {
           const sx = this.stare.x - v.pos.x, sz = this.stare.z - v.pos.z, sl = Math.hypot(sx, sz);
@@ -735,6 +740,7 @@ export class World {
       if (kind === 'rain') { this.scene.background = new THREE.Color(PAL.gletscher); this.sun.intensity = 1.3; }
     } else if (this.rain) this.rain.visible = false;
     this.syncSky();
+    if (this.onWeather) this.onWeather(kind || null);
   }
   stepWeather(dt) {
     if (this.rain && this.rain.visible) {

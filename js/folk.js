@@ -35,6 +35,23 @@ export const FOLK = [
     susp: ['Büebli, du hast so einen Blick wie mein Mann selig, wenn er beim Jassen beschissen hat.', 'Dear, you’ve got the same look my late husband had when he cheated at cards.'],
     lead: ['Ich habe dich gewählt. Also, ich werde. Wenn ich dran denke. Schreib es mir auf.', 'I voted for you. Well, I will. If I remember. Write it down for me.'] },
 ];
+// Wo die Leute stehen, und was sie sich vom Wetter wünschen (wechselt jeden Tag)
+export const FOLK_HOME = { gerber: [43.2, 31, 2.2], moser: [18, -32.6, 2.5], zbinden: [42.5, 9, 3], elsbeth: [-15.6, -6.6, 1.8] };
+export const WISHES = {
+  gerber: [['sun', ['Sonne, dann sitzen die Leute draussen und kaufen Gipfeli.', 'Sun, then people sit outside and buy croissants.']],
+           ['fog', ['Nebel! Dann kauft niemand bei der Konkurrenz im Tal. Die sieht man ja nicht.', 'Fog! Then nobody shops at the competitor in the valley. You can’t even see it.']],
+           ['sun', ['Sonne. Bitte. Ich habe 200 Nussgipfel gebacken.', 'Sun. Please. I baked 200 nut croissants.']]],
+  moser:  [['rain', ['Mmh. Regen. Die Kartoffeln.', 'Mmh. Rain. The potatoes.']],
+           ['sun', ['Mmh. Sonne. Heuet.', 'Mmh. Sun. Haymaking.']],
+           ['rain', ['Mmh. Der Brunnen ist leer. Regen.', 'Mmh. The well is empty. Rain.']]],
+  zbinden: [['snow', ['Schnee! Dann gibt es schulfrei, und ich kann endlich die Aufsätze korrigieren.', 'Snow! Then school’s off and I can finally mark the essays.']],
+            ['sun', ['Sonne für die Schulreise! 24 Kinder und ich, ohne Regenjacken.', 'Sun for the school trip! 24 kids and me, no rain jackets.']],
+            ['storm', ['Ein kleines Gewitter? Für den Naturkunde-Unterricht. Nur ein kleines.', 'A little thunderstorm? For science class. Just a little one.']]],
+  elsbeth: [['sun', ['Ein bisschen Sonne für meine alten Knochen, Büebli.', 'A little sun for my old bones, dear.']],
+            ['snow', ['Schnee wie früher! Da war alles noch weiss und Huber noch klein.', 'Snow like the old days! Everything white and Huber still small.']],
+            ['sun', ['Sonne zum Kaffee auf dem Bänkli. Mehr will ich nicht.', 'Sun for coffee on the bench. That’s all I want.']]],
+};
+export const wishOf = (f, d) => WISHES[f.id][(d + f.id.length) % WISHES[f.id].length];
 export function folkLine(f, P, d) {
   if (P && P.suspicion >= 55) return f.susp;
   if (P && P.lead) return f.lead;

@@ -2,7 +2,8 @@
 import * as LG from './lingo.js';
 import { pickMotif, drawPicture, drawWeather } from './paper.js';
 import { buildHall, HALL_SPOT } from './hall.js';
-import { FOLK, folkLine } from './folk.js';
+import { FOLK, folkLine, FOLK_HOME, wishOf } from './folk.js';
+import { weatherFX, stepWeatherFX } from './weatherfx.js';
 import { ACH, unlock } from './achievements.js';
 import { detailVillage, stepHens, partyPosters, updatePosters, setDusk, stepSmoke } from './village.js';
 import { stepLandscape } from './terrain.js';
@@ -56,9 +57,10 @@ const office = world.office = furnish(world);
 buildHall(world, office);
 decorateRoof(world, office); buildRoessli(world, office); buildHuberhaus(world, office); markEntrances(world, office); signpost(world);
 buildTown(world, office, POW.PARTIES); world.bound = clampToVillage;
+world.onWeather = k => weatherFX(world, k);
 detailVillage(world); world.onDusk = k => setDusk(world, k);
 partyPosters(world);
-{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepSmoke(world, tm); folkIts.forEach((it, i) => { it.pos.copy(world.villagers[i].pos); it.enabled = !world.inside && flow === 'single'; }); stepLandscape(world, dt); stepTown(world, office, dt, tm); soundTick(dt); tutTick(dt); }; }
+{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepSmoke(world, tm); folkIts.forEach((it, i) => { it.pos.copy(world.villagers[i].pos); it.enabled = !world.inside && flow === 'single'; }); stepLandscape(world, dt); stepTown(world, office, dt, tm); stepWeatherFX(world, dt, tm); soundTick(dt); tutTick(dt); }; }
 // Musik und Umgebung je nach Ort und Lage
 // Wolkwilisch sprechen (mit Sprechblase im Fenster-Titel nicht nötig)
 function sayLingo(line, who, mood = '') { A.speak(LG.syllables(line), A.voiceFor(who), { interrupt: true, mood }); }
@@ -93,18 +95,33 @@ function soundTick(dt) {
   { const P = save.power; world.stare = P && flow === 'single' && P.suspicion >= 55 && mode === 'world' && !world.inside ? world.player.pos : null; }
   const vis = id => !$(id).classList.contains('hidden');
   const p = world.player.pos, menuOn = vis('menu');
-  const where = menuOn ? 'menu' : world.inside ? 'office' : p.y > 3 ? 'roof' : p.z < -28 ? 'room' : 'village';
+  const where = menuOn ? 'menu' : world.inside ? 'office' : p.y > 3 ? 'roof' : p.z < -300 ? 'room' : 'village';
   const P = save.power;
   let mus = menuOn ? 'menu' : vis('report') ? 'report' : (P && flow === 'single' && P.suspicion >= 60) ? 'tension' : (world.inside || mode === 'cut' || where === 'room') ? 'office' : 'village';
   A.setMusic(mus);
   A.ambient(where, dt, { rain: world.weather === 'rain' || world.weather === 'storm', storm: world.weather === 'storm', nearHens: Math.hypot(p.x - 15.5, p.z - 11) < 9 });
+  // Geräusche an bestimmten Orten im Dorf
+  if (where === 'village' && !menuOn) {
+    const near = (x, z, r) => Math.max(0, 1 - Math.hypot(p.x - x, p.z - z) / r);
+    const wet = world.weather === 'rain' || world.weather === 'storm';
+    const cow = near(22, -41, 30), bee = near(-43, -37, 14), kid = wet ? 0 : near(47, 21, 26);
+    if (cow && Math.random() < dt * 0.9) A.villageSound('cowbell', cow);
+    if (bee && world.weather !== 'snow' && Math.random() < dt * 0.8) A.villageSound('bees', bee);
+    if (kid && Math.random() < dt * 0.35) A.villageSound('kids', kid);
+    // die Kirchenglocke schlägt alle zwei Minuten
+    soundTick.bellT = (soundTick.bellT ?? 40) - dt;
+    if (soundTick.bellT < 0) { soundTick.bellT = 120; A.churchBells(3); }
+  }
 }
 // erster Klick schaltet Ton frei, jeder Knopf klackt leise
 addEventListener('pointerdown', () => A.ensureAudio(), { capture: true });
 addEventListener('click', e => { if (e.target.closest && e.target.closest('button')) A.ui('click'); }, { capture: true });
 world.setFadeHouses(world.houses.map((_, i) => i), [office.thSign.parent]);
 world.bake([...world.hens, ...world.valleyClouds, world.skyDome, ...world.landscape, office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank, office.hall, office.roessli, office.huber, ...office.townDyn, office.windsock, ...office.laundry], world.fadeList.map(f => f.g));
-world.spawnVillagers(11);
+world.spawnVillagers(16);
+// die vier Leute mit Namen stehen an ihren Orten, fünf weitere Bewohner beleben die neuen Gassen
+FOLK.forEach((f, i) => { const [x, z, r] = FOLK_HOME[f.id]; world.setHome(i, x, z, r); });
+[[-38, 14, 9], [40, 10, 8], [0, 44, 9], [-8, -14, 4], [2, -30, 4]].forEach(([x, z, r], k) => world.setHome(11 + k, x, z, r));
 // Die ersten vier Dorfleute haben Namen und lassen sich ansprechen
 { const cb = world.interactables.find(i => i.id === 'churchbell'); if (cb) cb.label = t('use.churchbell'); }
 const folkIts = FOLK.map((f, i) => world.addInteractable('folk_' + i, world.villagers[i].pos, 1.5, t('folk.talk', { n: L(f.name) })));
@@ -1001,6 +1018,19 @@ function openFolk(i) {
   const p = document.createElement('p'); p.className = 'hsub'; p.textContent = L(folkLine(f, P, d)); box.appendChild(p);
   if (!P || !run || run.kind !== 'day') return;
   P.flags = P.flags || {}; const key = 'folk' + i + '_' + (inSB() ? save.sb.year * 10 + save.sb.day : d);
+  // Wetterwunsch des Tages: erfüllt man ihn am Wetterpult, gibt es beim nächsten Gespräch Dank
+  const [wk, why] = wishOf(f, d), wkey = 'wish' + i + '_' + key.split('_')[1];
+  const wp = document.createElement('p'); wp.className = 'hsub wish';
+  if (P.flags[wkey]) wp.textContent = t('folk.wishThanked');
+  else if (run.wx === wk) {
+    wp.textContent = t('folk.wishDone', { w: t('wx.' + wk) });
+    box.appendChild(wp);
+    actRow(box, t('folk.thanks'), t('folk.thanksInfo', { g: L(POW.GROUPS[f.group].name) }), true, () => {
+      P.flags[wkey] = 1; A.ui('coin'); (save.wishesDone ||= 0); save.wishesDone++; if (save.wishesDone >= 5) ach('wunschkonzert');
+      panelResult(box, t('folk.thanksRes', { n: L(f.name) }), POW.apply(P, { trust: { [f.group]: 4 }, influence: 1 }));
+    }, t('folk.thanksBtn'));
+  } else wp.textContent = t('folk.wish', { w: t('wx.' + wk) }) + ' «' + L(why) + '»';
+  if (!wp.parentNode) box.appendChild(wp);
   if (P.flags[key]) return;
   actRow(box, t('folk.listen'), t('folk.listenInfo', { g: L(POW.GROUPS[f.group].name) }), true, () => {
     P.flags[key] = 1; if (f.id === 'elsbeth') P.flags.safeHint = 1;

@@ -253,6 +253,24 @@ export function puffSound() { if (!ac) return; const t = ac.currentTime; if (t -
 export function windSound() { noise(0.9, 'bandpass', 380, 0.25, 0.7); }
 export function shutter() { noise(0.05, 'highpass', 3000, 0.4); setTimeout(() => noise(0.06, 'highpass', 2500, 0.3), 90); }
 export function stampSound() { noise(0.14, 'lowpass', 160, 1.2); setTimeout(() => noise(0.05, 'bandpass', 900, 0.3), 30); }
+// Dorfgeräusche je nach Ort: Kuhglocken, Bienen, Kinder (vol 0..1 nach Entfernung)
+export function villageSound(kind, vol = 1) {
+  if (!ac || sound.muted || vol <= 0.02) return;
+  const t = ac.currentTime;
+  if (kind === 'cowbell') { const f = 520 + Math.random() * 380; bell(f, t, 0.035 * vol, 0.9, busAmb); if (Math.random() < 0.5) bell(f, t + 0.18, 0.025 * vol, 0.7, busAmb); }
+  if (kind === 'bees') {
+    const o = ac.createOscillator(), g = ac.createGain(), lf = ac.createOscillator(), lg = ac.createGain(), f = ac.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.value = 210 + Math.random() * 40; lf.frequency.value = 7 + Math.random() * 5; lg.gain.value = 18; lf.connect(lg).connect(o.frequency);
+    f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 2; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.02 * vol, t + 0.3); g.gain.linearRampToValueAtTime(0, t + 1.6);
+    o.connect(f).connect(g).connect(busAmb); o.start(t); lf.start(t); o.stop(t + 1.7); lf.stop(t + 1.7);
+  }
+  if (kind === 'kids') {
+    const lines = ['Hii-hii!', 'Fangis! Fangis!', 'Ich bi dra!', 'Gugguseli!', 'Schaukli!', 'Hehe, hehe!'];
+    const V = Object.assign({}, ARCH.piepsig, { pitch: 300 + Math.random() * 80, tract: 1.3, speed: 1.5 });
+    speak(LGsyl(lines[Math.floor(Math.random() * lines.length)]), V, { interrupt: true, overlap: true, gain: 0.35 * vol, noGesture: Math.random() < 0.7, mood: '!' });
+  }
+}
+let LGsyl = s => s.split(/[\s-]+/).filter(Boolean).flatMap(w => (w.match(/[^aeiouäöüy]*[aeiouäöüy]+[^aeiouäöüy]?/gi) || [w]).map((p, i) => { const m = p.match(/^([^aeiouäöüy]*)([aeiouäöüy]+)(.*)$/i) || ['', '', 'a', '']; return { c: m[1].toLowerCase(), v: m[2][0].toLowerCase(), long: m[2].length > 1, end: m[3], w: i === 0 }; }));
 // Kirchenglocke: tiefe, lange Schläge
 export function churchBells(n = 6) {
   if (!ac || sound.muted) return;

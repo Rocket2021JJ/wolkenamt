@@ -264,6 +264,8 @@ export const WEATHER = [
     fx: { trust: { gewerbe: 4 } }, note: ['Die Terrasse ist voll. Der Hoteldirektor winkt zum Amt hinauf.', 'The terrace is full. The hotel manager waves up at the office.'] },
   { id: 'sun_church', kind: 'sun', where: ['Sonne über der Kirche', 'Sun over the church'], groups: ['kirche', 'senioren'],
     fx: { trust: { kirche: 4, senioren: 2 } }, note: ['Pfarrer Imhof predigt über das Licht. Er schaut dabei zum Amt.', 'Father Imhof preaches about the light. He looks at the office while he does.'] },
+  { id: 'snow_village', kind: 'snow', where: ['Schnee über dem ganzen Dorf', 'Snow over the whole village'], groups: ['junge', 'gewerbe'],
+    fx: { trust: { junge: 5, gewerbe: -3 } }, note: ['Schulfrei! Auf dem Dorfplatz stehen Schneemänner. Der Lieferwagen der Bäckerei steckt fest.', 'Snow day! Snowmen on the village square. The bakery van is stuck.'] },
   { id: 'storm_rival', kind: 'storm', where: ['Gewitter über dem Parteilokal der Konkurrenz', 'Thunderstorm over the rival party’s office'], groups: ['junge'],
     fx: { mod: { huber: -0.12 }, suspicion: 7, trust: { junge: 2 } }, note: ['Der Strom fällt aus, die Plakate weichen auf. Ein Gewitter so gezielt? Manche fragen sich das.', 'The power fails, the posters go soggy. A thunderstorm that precise? Some people wonder.'], risk: [0.3, 'blitz'] },
 ];

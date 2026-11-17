@@ -206,3 +206,12 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   Kirche neu: Schiff mit Strebepfeilern und Bogenfenstern, Apsis mit Rundfenster, hoher Turm mit vier Uhren,
   Glockenstube, Spitzhelm mit vier Giebeln, Kreuz und drehendem Güggel, Vorzeichen. Am Glockenseil ziehen
   läutet die Glocke (eigener Klang), die Leute schauen hoch.
+- Wetter sichtbar, Leute an ihren Orten (17.11.): Das Wetter vom Wetterpult wirkt im Dorf (js/weatherfx.js).
+  Regen/Gewitter: grauer Himmel, nasser dunklerer Boden, Pfützen mit Tropfenringen, Schirme, jeder Dritte
+  bleibt drinnen. Sonne: wärmeres Licht, Sonnenbrillen, Glace, Schmetterlinge. Neu Schnee (Wetterpult):
+  Flocken, Schnee auf allen Dächern und am Boden, bereifte Bäume, Schneemänner, Schals. Gerber steht vor
+  der Bäckerei, Moser bei der Weide, Zbinden auf dem Schulhof, Grosi Elsbeth vor der Kirche; fünf weitere
+  Bewohner in Parteigasse, Schulgasse, Oberdorf, bei Kirche und Weide (16 statt 11). Jede der vier Figuren
+  hat jeden Tag einen Wetterwunsch; wer ihn am Wetterpult erfüllt und sie danach anspricht, bekommt
+  +4 Vertrauen der Gruppe und +1 Einfluss (Erfolg «Wunschkonzert» nach fünf). Geräusche: Kuhglocken bei der
+  Weide, Bienen beim Bienenhaus, Kinder auf dem Spielplatz (nicht bei Regen), Kirchenglocke alle zwei Minuten.

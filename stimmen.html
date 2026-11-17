@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><title>HOCHDRUCK · Stimmen-Werkstatt</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body{font:16px/1.45 system-ui,sans-serif;background:#F4EFE4;color:#2A2E38;max-width:760px;margin:30px auto;padding:0 18px}
+  h1{font-family:Georgia,serif;font-weight:400;font-size:34px;margin:0 0 4px} p.k{color:#6B6F78;margin:0 0 22px}
+  label{display:block;font-weight:600;margin:14px 0 4px} textarea,select,input{width:100%;font:inherit;padding:8px;border:1.5px solid #2A2E38;border-radius:3px;background:#fff;box-sizing:border-box}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px} button{font:inherit;padding:8px 14px;border:1.5px solid #2A2E38;background:#fff;border-radius:3px;cursor:pointer} button.p{background:#C8352B;color:#fff;border-color:#C8352B}
+  #out{font-family:Georgia,serif;font-size:22px;margin-top:16px;min-height:30px} small{color:#6B6F78} a{color:#C8352B}
+</style></head><body>
+<h1>Stimmen-Werkstatt</h1>
+<p class="k">Für Videos: Text eingeben, Figur wählen, anhören, als Datei speichern. Die Stimmen werden hier im Browser erzeugt (keine Aufnahmen, keine fremden Rechte). © Duchy Games</p>
+<label>Text auf Deutsch oder Englisch (wird in Wolkwilisch übersetzt)</label>
+<textarea id="src" rows="3">Willkommen in Wolkenwil! Hier bestimmt das Amt, wann es regnet.</textarea>
+<label>oder direkt Wolkwilisch (leer lassen = Übersetzung oben)</label>
+<input id="direct" placeholder="z. B. Grüüzimpf! Hubärli plimm, Hochdrüüpf!">
+<label>Figur</label>
+<select id="who">
+  <option value="Gemeindeschreiber">Beamtli / Erzähler (amtlich, hell)</option>
+  <option value="Gemeindepräsident Huber">Huber (wichtigtuerisch, lacht)</option>
+  <option value="Inspektor Wyss">Inspektor Wyss (trocken)</option>
+  <option value="Frau Imboden, Wolkenwiler Anzeiger">Frau Imboden (plappert)</option>
+  <option value="Grosi Elsbeth">Grosi Elsbeth (zittrig, seufzt)</option>
+  <option value="moser">Bauer Moser (tief, knarzt)</option>
+  <option value="gerber">Bäcker Gerber (grummelt)</option>
+  <option value="zbinden">Lehrerin Zbinden (zappelig, kichert)</option>
+</select>
+<label>Stimmung</label>
+<select id="mood"><option value="">neutral</option><option value="!">Ausruf (laut)</option><option value="?">Frage</option></select>
+<div class="row">
+  <button class="p" id="play">Anhören</button>
+  <button id="save">Aufnehmen und speichern</button>
+  <button data-g="hmpf">Hmpf</button><button data-g="hehe">Hehe</button><button data-g="laugh">Lachen</button><button data-g="sigh">Seufzer</button><button data-g="pff">Pfff</button><button data-g="hm">Hm?</button>
+</div>
+<div id="out"></div>
+<p><small>Gespeichert wird eine .webm-Datei (Audio). Schnittprogramme wie DaVinci Resolve, CapCut oder Shotcut lesen sie direkt. Für mp3: <code>ffmpeg -i datei.webm datei.mp3</code>.</small></p>
+<script type="module">
+import * as A from './js/audio.js';
+import * as LG from './js/lingo.js';
+const $ = id => document.getElementById(id);
+const line = () => ($('direct').value.trim() || LG.translate($('src').value, 24));
+async function ready() { A.ensureAudio(); A.setMuted(false); A.setMusic('none'); await A.ctx().resume(); }
+function say() { const l = line(); $('out').textContent = '«' + l + '»'; return A.speak(LG.syllables(l), A.voiceFor($('who').value), { interrupt: true, mood: $('mood').value, max: 40 }); }
+$('play').onclick = async () => { await ready(); say(); };
+document.querySelectorAll('[data-g]').forEach(b => b.onclick = async () => { await ready(); A.gesture(b.dataset.g, A.voiceFor($('who').value)); });
+$('save').onclick = async () => {
+  await ready(); const ac = A.ctx(), dest = ac.createMediaStreamDestination(); window.__tap(dest);
+  const r = new MediaRecorder(dest.stream), ch = []; r.ondataavailable = e => ch.push(e.data); r.start();
+  await new Promise(z => setTimeout(z, 150)); const d = say(); await new Promise(z => setTimeout(z, d * 1000 + 500));
+  r.stop(); await new Promise(z => r.onstop = z);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(ch, { type: 'audio/webm' }));
+  a.download = 'hochdruck-' + $('who').selectedOptions[0].text.split(' ')[0].toLowerCase() + '-' + Date.now() + '.webm'; a.click();
+};
+</script>
+</body></html>

@@ -44,13 +44,26 @@ const office = world.office = furnish(world);
 buildHall(world, office);
 decorateRoof(world, office); buildRoessli(world, office); buildParteienhaus(world, office, POW.PARTIES); markEntrances(world, office); signpost(world);
 detailVillage(world);
-{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepLandscape(world, dt); }; }
+{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepLandscape(world, dt); soundTick(dt); }; }
+// Musik und Umgebung je nach Ort und Lage
+function soundTick(dt) {
+  const vis = id => !$(id).classList.contains('hidden');
+  const p = world.player.pos, menuOn = vis('menu');
+  const where = menuOn ? 'menu' : world.inside ? 'office' : p.y > 3 ? 'roof' : p.z < -28 ? 'room' : 'village';
+  const P = save.power;
+  let mus = menuOn ? 'menu' : vis('report') ? 'report' : (P && flow === 'single' && P.suspicion >= 60) ? 'tension' : (world.inside || mode === 'cut' || where === 'room') ? 'office' : 'village';
+  A.setMusic(mus);
+  A.ambient(where, dt, { rain: world.weather === 'rain' || world.weather === 'storm', storm: world.weather === 'storm', nearHens: Math.hypot(p.x - 15.5, p.z - 11) < 9 });
+}
+// erster Klick schaltet Ton frei, jeder Knopf klackt leise
+addEventListener('pointerdown', () => A.ensureAudio(), { capture: true });
+addEventListener('click', e => { if (e.target.closest && e.target.closest('button')) A.ui('click'); }, { capture: true });
 world.setFadeHouses(world.houses.map((_, i) => i), [office.thSign.parent]);
 world.bake([...world.hens, ...world.valleyClouds, world.skyDome, ...world.landscape, office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank, office.hall, office.roessli, office.partei, office.windsock, ...office.laundry], world.fadeList.map(f => f.g));
 world.spawnVillagers(11);
 world.sfx = A.sfx;
 window.__world = world;
-window.__THREE = THREE;
+window.__THREE = THREE; window.__A = A;
 window.__dbg = { save: () => save, run: () => run, startDay: d => startDay(d), report: () => showReport() };
 const D = world.deskPos, PLAT = office.platform;
 const SPOT = {
@@ -66,7 +79,7 @@ let flow = 'single';   // single | local | online
 let run = null;        // Arbeitstag oder freie Wolke
 let mp = null;         // lokal zu dritt
 let taskKey = null, taskVars = null;
-const OVER = ['town', 'weather', 'archive', 'party', 'morning', 'menu', 'brief', 'result', 'desk', 'report', 'mpSetup', 'handoff', 'mpRes', 'onEntry', 'onLobby', 'onVote', 'card'];
+const OVER = ['settings', 'town', 'weather', 'archive', 'party', 'morning', 'menu', 'brief', 'result', 'desk', 'report', 'mpSetup', 'handoff', 'mpRes', 'onEntry', 'onLobby', 'onVote', 'card'];
 const only = (...ids) => OVER.forEach(x => $(x).classList.toggle('hidden', !ids.includes(x)));
 const touchMode = matchMedia('(pointer: coarse)').matches || /[?&]touch/.test(location.search);
 if (touchMode) document.body.classList.add('touch');
@@ -208,7 +221,7 @@ function openParty(done) {
 $('pBack').onclick = () => showMenu();
 const fmtCash = n => 'CHF ' + num(Math.abs(n));
 function fxChips(ch) {
-  const box = document.createElement('div'); box.className = 'lfx';
+  const box = document.createElement('div'); box.className = 'lfx'; let score = 0, coin = false;
   ch.forEach(c => {
     const e = document.createElement('span'); let txt, good = c.d > 0;
     if (c.k === 'trust') txt = `${L(POW.GROUPS[c.g].name)} ${c.d > 0 ? '+' : ''}${c.d}`;
@@ -219,7 +232,9 @@ function fxChips(ch) {
     else if (c.k === 'inv') { txt = `${t('akte.inv')} ${c.d > 0 ? '+' : ''}${c.d}`; good = c.d < 0; }
     else if (c.k === 'lev') txt = `${c.d > 0 ? t('fx.lev') : t('fx.levUsed')}: ${c.p.charAt(0).toUpperCase() + c.p.slice(1)}`;
     e.className = 'fx ' + (good ? 'pos' : 'neg'); e.textContent = txt; box.appendChild(e);
+    score += good ? 1 : -1; if (c.k === 'cash' && c.d > 0) coin = true;
   });
+  if (ch.length) setTimeout(() => A.ui(coin ? 'coin' : score >= 0 ? 'good' : 'bad'), 120);
   return box;
 }
 function showMorning(list, d, done, call) {
@@ -237,7 +252,7 @@ function showMorning(list, d, done, call) {
     $('mPaper').classList.toggle('hidden', !asPaper); document.querySelector('#morning .letter').classList.toggle('hidden', asPaper);
     const slot = asPaper ? $('npSlot') : document.querySelector('#morning .letter');
     for (const id of ['mlRes', 'mlFx', 'mlBtns']) slot.appendChild($(id));
-    if (asPaper) fillPaper(ev, d, i, list.length, !!ev.choices);
+    if (asPaper) { fillPaper(ev, d, i, list.length, !!ev.choices); A.ui('paper'); } else A.ui('type');
     $('mlRes').classList.add('hidden'); $('mlFx').replaceWith(Object.assign(document.createElement('div'), { id: 'mlFx', className: 'lfx' }));
     const btns = $('mlBtns'); btns.innerHTML = '';
     const cont = () => { btns.innerHTML = ''; const b = document.createElement('button'); b.className = 'prim'; b.textContent = t('btn.next'); b.onclick = next; btns.appendChild(b); updateAkte(); };
@@ -708,17 +723,17 @@ $('wxClose').onclick = () => enterWorld(null, taskKey, taskVars);
 function enterHall() {
   if (flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.townClosed'));
   if (taskKey !== 'task.hall') run.hallPrev = [taskKey, taskVars];
-  A.sfx('whoosh'); world.teleport(...HALL_SPOT); world.camYawT = 0.28; world.setWeather(null);
+  A.ui('door'); world.teleport(...HALL_SPOT); world.camYawT = 0.28; world.setWeather(null);
   setTask('task.hall');
 }
 // Weitere begehbare Häuser
 function enterRoom(spot, task) {
   if (flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.townClosed'));
   if (!/^task\.(hall|roessli|partei)$/.test(taskKey)) run.hallPrev = [taskKey, taskVars];
-  A.sfx('whoosh'); world.teleport(...spot); world.camYawT = 0.28; world.setWeather(null); setTask(task);
+  A.ui('door'); world.teleport(...spot); world.camYawT = 0.28; world.setWeather(null); setTask(task);
 }
 function leaveRoom(id) {
-  const e = office.entrance[id]; A.sfx('whoosh');
+  const e = office.entrance[id]; A.ui('door');
   world.teleport(e.pos.x, 0, e.pos.z, e.yaw); world.setWeather(run && run.wx ? run.wx : null);
   const pv = run && run.hallPrev; setTask(pv ? pv[0] : 'task.desk', pv ? pv[1] : undefined);
 }
@@ -1438,7 +1453,17 @@ function confirmLeave() { if (performance.now() < leaveArm) return true; leaveAr
 $('hMenu').onclick = () => { if (flow === 'online' && !confirmLeave()) return; showMenu(); };
 $('tMenu').onclick = () => { if (flow === 'online' && !confirmLeave()) return; showMenu(); };
 function soundLabels() { const l = A.sound.muted ? t('sound.on') : t('sound.off'); $('tSound').textContent = l; $('mSound').textContent = l; }
-$('tSound').onclick = $('mSound').onclick = () => { A.setMuted(!A.sound.muted); soundLabels(); };
+$('tSound').onclick = $('mSound').onclick = () => { A.setMuted(!A.sound.muted); soundLabels(); $('vMute').checked = A.sound.muted; };
+// Einstellungen: Lautstärken
+function openSettings() {
+  A.ensureAudio();
+  const back = [...OVER].filter(x => !$(x).classList.contains('hidden'));
+  $('settings').classList.remove('hidden');
+  for (const [id, k] of [['vMusic', 'music'], ['vSfx', 'sfx'], ['vAmb', 'amb'], ['vVoice', 'voice']]) { $(id).value = A.volume[k]; $(id).oninput = () => A.setVolume(k, +$(id).value); }
+  $('vMute').checked = A.sound.muted; $('vMute').onchange = () => { A.setMuted($('vMute').checked); soundLabels(); };
+  $('setClose').onclick = () => { $('settings').classList.add('hidden'); back.forEach(x => $(x).classList.remove('hidden')); };
+}
+$('mSettings').onclick = openSettings;
 $('lDe').onclick = () => setLang('de'); $('lEn').onclick = () => setLang('en');
 addEventListener('keydown', e => {
   if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;

@@ -503,3 +503,10 @@ html[lang=en] .dossier.hot .dsheet::after{content:'CONFIDENTIAL'}
 }
 #tnList.resv{display:block!important;text-align:left}
 #tnList.resv .lfx{justify-content:flex-start}
+
+/* Einstellungen */
+.setbox{max-width:420px;width:94%}
+.setbox h3{font:700 12px/1.4 var(--sans);text-transform:uppercase;letter-spacing:.1em;margin:12px 0 6px;color:var(--grau)}
+.setbox .srow{display:grid;grid-template-columns:110px 1fr;align-items:center;gap:10px;margin:6px 0;font-size:14px}
+.setbox .srow.chk{grid-template-columns:auto 1fr}
+.setbox input[type=range]{accent-color:var(--rot);width:100%}

@@ -144,3 +144,10 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   CrazyGames verlangt u. a. Startdownload höchstens 50 MB, höchstens 1500 Dateien, Inhalte nach PEGI 12,
   für den vollen Start das CrazyGames-SDK und dass man direkt im Spiel landet (ohne langes Menü).
   HOCHDRUCK ist heute weit unter diesen Grössen. Offen: SDK, Ladezeit des Geländes, Schnellstart.
+- Ton (17.11.): Neues Audio-System in js/audio.js, alles im Code erzeugt (keine Aufnahmen, eigene
+  Melodien, Rechte bei Duchy Games). Instrumente: Hackbrett (gezupfte Saiten), Akkordeon, Bass, Glocken.
+  Fünf Musikstücke: Titel (Menü), «Wolkenwiler Ländler» (Dorf), «Amtsstube»-Walzer (Büro, Schneiden),
+  «Abendbericht» (ruhig), «Hochdruck» (Spannung ab Verdacht 60). Umgebung je nach Ort: Wind (Dach stärker),
+  Kirchenglocke, Kuhglocken, Vögel, Hühner beim Hof, Uhr im Büro, Regen. Oberfläche: Klick, Papier,
+  Schreibmaschine, Münzen, gute/schlechte Folgen, Türen. Neues Fenster «Einstellungen» im Menü mit
+  Reglern für Musik, Geräusche, Umgebung, Stimmen und «Alles stumm». Ton ist jetzt standardmässig an.

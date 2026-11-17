@@ -21,6 +21,7 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
 | 9 | Kapitel 3 «Der Wahlkampf» mit Gemeindewahl und 7 Enden | fertig (Version 1) |
 | 10 | Sandbox «Jahre im Amt» | fertig (Version 1) |
 | 11 | Ratssaal im Gemeindehaus begehbar | fertig |
+| 12 | Echter Sprachkanal (online) | gebaut, Test mit echten Geräten offen |
 
 ## Notizen
 
@@ -83,3 +84,9 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   lassen, Zettel dazulegen, Gemeindeschreiber bestechen; kann am nächsten Tag auffliegen) und Hubers
   Schreibtisch (einmal pro Kapitel durchsuchen: Druckmittel finden oder von Huber erwischt werden; Nebel
   hilft). Raus geht es durch die Türe. Code: js/hall.js
+- Etappe 12: Der Sprachkanal funktioniert jetzt (nur echtes Online-Spiel, nicht im ?lokaltest). Knopf
+  «Sprachkanal beitreten» fragt nach dem Mikrofon. Wer beitritt, ruft alle an, die schon drin sind
+  (WebRTC-Audio über PeerJS, direkt von Browser zu Browser). Stumm-Knopf und Taste M, «Verlassen».
+  In der Spielerliste: grüner Ring = im Sprachkanal, leuchtet beim Sprechen, «stumm» wird angezeigt.
+  Konnte hier nicht mit echten Mikrofonen getestet werden (kein Internet im Testsystem). Bitte zu zweit
+  auf zwei Geräten ausprobieren. Hinweis: Manche Netze (Schule, Firma) blockieren WebRTC.

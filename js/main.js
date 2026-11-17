@@ -12,7 +12,7 @@ import * as A from './audio.js';
 import * as POW from './power.js';
 import { drawSignature, drawStamp, forgeryKind } from './forgery.js';
 import { NAMES } from './data.js';
-import { net, netCreate, netJoin, netReset, netAvailable, hostStart, hostNext, setRounds, toHost, pname, LOCALTEST, MP_POINTS, partyOf } from './net.js';
+import { net, netCreate, netJoin, netReset, netAvailable, hostStart, hostNext, setRounds, toHost, pname, LOCALTEST, MP_POINTS, partyOf , voice, voiceJoin, voiceMute, voiceLeave, voiceSupported } from './net.js';
 
 const { cut, pad, nameOf } = cutM;
 const $ = id => document.getElementById(id);
@@ -1040,7 +1040,7 @@ net.ui = {
   },
   lost(code) { leaveOnline(); onlineEntry(code, t('on.lost')); },
   note(e) { sysMsg(t('chat.note', { e })); },
-  players() { renderSide(); syncRemotes(); if (net.phase === 'lobby') renderLobby(); },
+  players() { renderSide(); renderVoice(); syncRemotes(); if (net.phase === 'lobby') renderLobby(); },
   chat(m) { addChat(m); },
   pos(id, p) {
     const r = world.remotes.get(id); if (!r || !p || p.length < 5) return;
@@ -1048,6 +1048,7 @@ net.ui = {
   },
   gone(id) { world.removeRemote(id); remoteTags.get(id)?.remove(); remoteTags.delete(id); },
   side() { renderSide(); },
+  voice() { renderSide(); renderVoice(); },
   vote() { renderSide(); A.chime([440, 554], 0.08); cutM.stop(); world.clearSkyClouds(); world.watch(false); world.setTod(null); only(); goDesk(renderVote); setTask('task.vote'); },
   start(m) {
     [...$('vCards').children].forEach((el, i) => {
@@ -1162,12 +1163,34 @@ function renderSide() {
     let pct = null;
     if (net.phase === 'vote') ps.textContent = net.picked.includes(p.id) ? t('side.voted') : '…';
     else if (net.phase === 'play') { pct = net.prog[p.id] || 0; ps.textContent = net.doneIds.includes(p.id) ? t('side.done') : Math.round(pct * 100) + ' %'; }
-    else ps.textContent = t('side.mic');
+    else ps.textContent = p.voice ? (p.mute ? t('voice.muted') : t('voice.in')) : t('side.mic');
+    row.dataset.id = p.id; if (p.voice) row.classList.add('vin');
     row.append(av, pn, ps);
     if (pct !== null) { const bar = document.createElement('div'); bar.className = 'pbar'; const f = document.createElement('i'); f.style.width = Math.round(pct * 100) + '%'; bar.appendChild(f); row.appendChild(bar); }
     box.appendChild(row);
   });
 }
+// Sprachkanal: Knöpfe und «spricht»-Anzeige
+function renderVoice() {
+  $('vJoin').classList.toggle('hidden', voice.on); $('vMute').classList.toggle('hidden', !voice.on); $('vLeave').classList.toggle('hidden', !voice.on);
+  $('vMute').textContent = voice.mute ? t('voice.unmute') : t('voice.mute'); $('vMute').classList.toggle('on', voice.mute);
+}
+$('vJoin').onclick = async () => {
+  if (!voiceSupported()) return toast(t('voice.local'));
+  try { await voiceJoin(); } catch (e) { toast(t('voice.denied')); }
+  renderVoice();
+};
+$('vMute').onclick = () => { voiceMute(); renderVoice(); };
+$('vLeave').onclick = () => { voiceLeave(); renderVoice(); };
+addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && voice.on && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { voiceMute(); renderVoice(); } });
+setInterval(() => {
+  if (!voice.on) return;
+  document.querySelectorAll('#sPlayers .prow').forEach(r => {
+    const f = voice.level[r.dataset.id], lv = f ? f() : 0;
+    r.classList.toggle('talk', lv > 0.06 && !(r.dataset.id === net.id && voice.mute));
+  });
+}, 120);
+
 function renderLobby() {
   $('lCode').textContent = net.code;
   const box = $('lPlayers'); box.innerHTML = '';

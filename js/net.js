@@ -46,6 +46,7 @@ function peerTransport() {
     toClient(id, m) { const c = conns[id]; if (c && c.open) c.send(m); },
     toHost(m) { if (hc && hc.open) hc.send(m); },
     destroy() { try { if (peer) peer.destroy(); } catch (e) {} },
+    peer: () => peer,
   };
 }
 function localTransport() {
@@ -72,6 +73,8 @@ const bc = m => { net.players.forEach(p => { if (p.id !== 'host') net.T.toClient
 
 export function netAvailable() { return LOCALTEST || typeof Peer !== 'undefined'; }
 export function netReset() {
+  if (voice.on) voiceLeave(true);
+  listening = false;
   if (HS && HS.timer) clearTimeout(HS.timer);
   if (net.T) net.T.destroy();
   HS = null; net.T = null; net.on = false; net.host = false; net.players = []; net.phase = '';
@@ -115,6 +118,7 @@ function hostOnMsg(id, m) {
     if (id !== 'host') onNet(out);
   }
   else if (m.t === 'chat') bc({ t: 'chat', from: pname(id), text: String(m.text || '').slice(0, 200) });
+  else if (m.t === 'voice') { const pl = net.players.find(p => p.id === id); pl.voice = !!m.on; pl.mute = !!m.mute; hostRoster(); }
   else if (m.t === 'act') {
     if (!HS.pw || HS.phase !== 'results' || HS.acted[id]) return;
     const own = partyOf(id), tg = POW.PARTIES[m.target] ? m.target : null;
@@ -196,4 +200,56 @@ function onNet(m) {
   else if (m.t === 'results') { net.phase = 'results'; net.pw = m.pw; net.polls = m.polls; net.acted = []; ui('results', m); }
   else if (m.t === 'pstate') { net.pw = m.pw; net.polls = m.polls; net.acted = m.acted || []; ui('pstate', m); }
   else if (m.t === 'final') { net.phase = 'final'; ui('final', m); }
+}
+
+// ---------------- Sprachkanal (WebRTC-Audio über PeerJS) ----------------
+// Wer beitritt, ruft alle an, die schon drin sind. Wer drin ist, nimmt Anrufe an.
+export const voice = { on: false, mute: false, stream: null, calls: {}, level: {}, ctx: null };
+const realId = id => (id === 'host' ? NETPFX + net.code : id);
+const idOf = peerId => (peerId === NETPFX + net.code ? 'host' : peerId);
+export function voiceSupported() { return !LOCALTEST && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && net.T && net.T.peer; }
+function meter(id, stream) {
+  try {
+    voice.ctx = voice.ctx || new (window.AudioContext || window.webkitAudioContext)();
+    const src = voice.ctx.createMediaStreamSource(stream), an = voice.ctx.createAnalyser(); an.fftSize = 256; src.connect(an);
+    const buf = new Uint8Array(an.frequencyBinCount);
+    voice.level[id] = () => { an.getByteTimeDomainData(buf); let m = 0; for (const v of buf) m = Math.max(m, Math.abs(v - 128)); return m / 128; };
+  } catch (e) {}
+}
+function attach(call) {
+  const id = idOf(call.peer); voice.calls[id] = call;
+  call.on('stream', st => {
+    let a = document.getElementById('va_' + id);
+    if (!a) { a = document.createElement('audio'); a.id = 'va_' + id; a.autoplay = true; document.body.appendChild(a); }
+    a.srcObject = st; a.play && a.play().catch(() => {});
+    meter(id, st); ui('voice');
+  });
+  const end = () => { delete voice.calls[id]; delete voice.level[id]; const a = document.getElementById('va_' + id); if (a) a.remove(); ui('voice'); };
+  call.on('close', end); call.on('error', end);
+}
+let listening = false;
+function listen() {
+  const peer = net.T && net.T.peer && net.T.peer(); if (!peer || listening) return; listening = true;
+  peer.on('call', call => { if (voice.on && voice.stream) { call.answer(voice.stream); attach(call); } else call.close(); });
+}
+export async function voiceJoin() {
+  if (voice.on || !voiceSupported()) return false;
+  listen();
+  voice.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+  voice.on = true; voice.mute = false; meter(net.id, voice.stream);
+  const peer = net.T.peer();
+  net.players.forEach(p => { if (p.id !== net.id && p.voice) attach(peer.call(realId(p.id), voice.stream)); });
+  toHost({ t: 'voice', on: true, mute: false }); ui('voice');
+  return true;
+}
+export function voiceMute(m = !voice.mute) {
+  voice.mute = m; if (voice.stream) voice.stream.getAudioTracks().forEach(tr => { tr.enabled = !m; });
+  toHost({ t: 'voice', on: voice.on, mute: m }); ui('voice');
+}
+export function voiceLeave(silent) {
+  Object.values(voice.calls).forEach(c => { try { c.close(); } catch (e) {} }); voice.calls = {};
+  if (voice.stream) voice.stream.getTracks().forEach(tr => tr.stop());
+  voice.stream = null; voice.on = false; voice.level = {};
+  document.querySelectorAll('audio[id^="va_"]').forEach(a => a.remove());
+  if (!silent && net.T) toHost({ t: 'voice', on: false }); ui('voice');
 }

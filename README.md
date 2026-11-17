@@ -182,7 +182,7 @@ Fortschritt, Ansehen, Sichtungen, Sprache und Ton werden im `localStorage` des B
 - [x] Kapitel 2 und 3 (Untersuchung, Wahlkampf, 7 Enden)
 - [x] Sandbox über mehrere Jahre
 - [x] Gemeindehaus von innen begehbar (Ratssaal mit Urne und Hubers Schreibtisch)
-- [ ] Sprachkanal (Optik ist schon drin, Funktion folgt)
+- [x] Sprachkanal (online, WebRTC-Audio, Stumm-Taste M)
 - [ ] Steam-Version
 
 Den genauen Stand der Etappen zeigt `STAND.md`.

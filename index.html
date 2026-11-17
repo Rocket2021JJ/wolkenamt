@@ -265,10 +265,10 @@
   <aside id="side" class="hidden">
     <div class="sroom"><span data-i18n="on.code">Raum-Code</span> <b id="sRoom">-----</b></div>
     <div class="sbox">
-      <div class="sh"><span data-i18n="voice.title">Sprachkanal</span> <span class="badge" data-i18n="voice.preview">Vorschau</span></div>
+      <div class="sh"><span data-i18n="voice.title">Sprachkanal</span></div>
       <div id="sPlayers"></div>
-      <button disabled class="full" data-i18n="voice.join">Sprachkanal beitreten</button>
-      <small data-i18n="voice.later">Sprache kommt in einer späteren Version.</small>
+      <div class="vbtns"><button id="vJoin" class="full" data-i18n="voice.join">Sprachkanal beitreten</button><button id="vMute" class="hidden"></button><button id="vLeave" class="hidden" data-i18n="voice.leave">Verlassen</button></div>
+      <small id="vNote" data-i18n="voice.note">Kopfhörer empfohlen. Die Stimme geht direkt von Browser zu Browser.</small>
     </div>
     <div class="sbox schat">
       <div class="sh" data-i18n="chat.title">Funk</div>

@@ -2,7 +2,7 @@
 import * as LG from './lingo.js';
 import { pickMotif, drawPicture, drawWeather } from './paper.js';
 import { buildHall, HALL_SPOT } from './hall.js';
-import { detailVillage, stepHens } from './village.js';
+import { detailVillage, stepHens, partyPosters, updatePosters } from './village.js';
 import { stepLandscape } from './terrain.js';
 import { decorateRoof, buildRoessli, buildParteienhaus, markEntrances, signpost, ROESSLI_SPOT, PARTEI_SPOT } from './interiors.js';
 import * as THREE from 'three';
@@ -45,6 +45,7 @@ const office = world.office = furnish(world);
 buildHall(world, office);
 decorateRoof(world, office); buildRoessli(world, office); buildParteienhaus(world, office, POW.PARTIES); markEntrances(world, office); signpost(world);
 detailVillage(world);
+partyPosters(world);
 { const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepLandscape(world, dt); soundTick(dt); }; }
 // Musik und Umgebung je nach Ort und Lage
 // Wolkwilisch sprechen (mit Sprechblase im Fenster-Titel nicht nötig)
@@ -77,6 +78,7 @@ function bubbleTick(dt) {
 }
 function soundTick(dt) {
   bubbleTick(dt);
+  { const P = save.power; world.stare = P && flow === 'single' && P.suspicion >= 55 && mode === 'world' && !world.inside ? world.player.pos : null; }
   const vis = id => !$(id).classList.contains('hidden');
   const p = world.player.pos, menuOn = vis('menu');
   const where = menuOn ? 'menu' : world.inside ? 'office' : p.y > 3 ? 'roof' : p.z < -28 ? 'room' : 'village';
@@ -210,6 +212,7 @@ function startDay(d) {
   const go = () => { enterWorld('door', 'task.desk'); setDay(inSB() ? t('sb.hud', { day: L(DAYS[d].name), y: save.sb.year }) : t('hud.day', { day: L(DAYS[d].name), n: dayNo(d) })); updateAkte(); };
   if (chOf(d) === 2 && P.inv != null && P.inv >= 100) return showRemoved(P);
   const ev = POW.due(P, d);
+  if (P.rivalNext) { ev.push(POW.rivalEvent(P.rivalNext, P)); P.rivalNext = null; }
   const paper = morningPaper(P, d); if (paper) ev.unshift(paper);
   if (chOf(d) === 2) {
     if (POW.startInvestigation(P)) ev.unshift(POW.INV_INTRO);
@@ -364,6 +367,7 @@ function tally(svg, v) {
 const barEnd = { wvb: '96% 0, 100% 40%, 97% 100%', fww: '100% 10%, 95% 60%, 99% 100%', pkh: '97% 0, 100% 70%, 94% 100%', huber: '100% 0, 96% 45%, 100% 100%' };
 function updateAkte() {
   const P = save.power, box = $('akte');
+  if (P) { const pl0 = POW.polls(P); updatePosters(Object.keys(pl0).sort((a, b) => pl0[b] - pl0[a])[0], POW.PARTIES); }
   if (!P || flow !== 'single') { box.classList.add('hidden'); return; }
   box.classList.remove('hidden');
   $('aParty').textContent = POW.PARTIES[P.party].short;
@@ -802,6 +806,7 @@ function openPartyDesk(pid) {
       const top = Object.entries(POW.PARTIES[P.party].aff).sort((a, b) => b[1] - a[1])[0][0];
       panelResult(box, t('partei.flyerRes'), POW.apply(P, { influence: -2, trust: { [top]: 4 } }));
     });
+    if (!P.flags.lock) actRow(box, t('partei.lock'), t('partei.lockInfo'), P.cash >= 800, () => { P.flags.lock = 1; panelResult(box, t('partei.lockRes'), POW.apply(P, { cash: -800 })); });
     if (done) { const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('town.doneToday'); box.appendChild(p); }
     return;
   }
@@ -1114,6 +1119,10 @@ function powerReport(Dy, sum) {
   else if (DAYS[run.d].end === 3) { voteResult(P, box); electionEnd(P, box); }
   else if (DAYS[run.d].end === 4) { voteResult(P, box); sbYearEnd(P, box); }
   if (inSB() && P.suspicion >= 95 && !save.sb.over) sbRemoved(P, box);
+  // Ehrliche Haut: wenig Verdacht bringt jeden Tag etwas Ansehen
+  if (P.suspicion < 20) { const e = document.createElement('p'); e.className = 'hsub'; e.textContent = t('pow.honest'); box.appendChild(e); box.appendChild(fxChips(POW.apply(P, { mod: { _own: 0.015 } }))); }
+  // Die Gegner planen etwas für morgen (nicht am ersten Tag und nicht nach einem Kapitelende)
+  if (!DAYS[run.d].end && run.d !== 0 && run.d !== POW.CH2_START && run.d !== POW.CH3_START) { const R = POW.rivalTurn(P); if (R) P.rivalNext = R; }
   P.lastPolls = POW.polls(P);
   const lead = Object.keys(now).sort((a, b) => now[b] - now[a])[0];
   const q = P.queue.length;

@@ -640,6 +640,11 @@ export class World {
         b.phoneUp *= 1 - Math.min(1, dt * 3); b.lookUp *= 1 - Math.min(1, dt * 3);
         v.wait -= dt;
         if (!v.target && v.wait <= 0) { const a = this.r() * 6.28, d = 3 + this.r() * 4.5; v.target = new THREE.Vector3(Math.cos(a) * d, 0, 13 + Math.sin(a) * d * 0.8); }
+        // Bei hohem Verdacht: stehen bleiben und das Beamtli anstarren, wenn es nahe ist
+        if (this.stare) {
+          const sx = this.stare.x - v.pos.x, sz = this.stare.z - v.pos.z, sl = Math.hypot(sx, sz);
+          if (sl < 6.5) { v.target = null; v.vel.set(0, 0, 0); v.wait = Math.max(v.wait, 1); let d = Math.atan2(sx, sz) - b.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); b.yaw += d * Math.min(1, dt * 3); }
+        }
         if (v.target) {
           const dx = v.target.x - v.pos.x, dz = v.target.z - v.pos.z, l = Math.hypot(dx, dz);
           if (l < 0.2) { v.target = null; v.wait = 2 + this.r() * 6; v.vel.set(0, 0, 0); }

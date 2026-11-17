@@ -545,3 +545,49 @@ export function sbMorning(P, year, day) {
   P.mod.huber = Math.max(0.15, P.mod.huber + (0.35 - P.mod.huber) * 0.05);
   return out;
 }
+
+// ---------------- Gegner schlagen zurück (Einzelspiel) ----------------
+// Am Abend entscheiden die anderen Parteien, ob sie dir am nächsten Morgen schaden. Wer vorne liegt
+// oder unter Verdacht steht, ist ein leichtes Ziel. Gespeichert wird nur {kind, actor}, der Text entsteht beim Zeigen.
+export function rivalTurn(P, rnd = Math.random) {
+  const pl = polls(P), order = Object.keys(pl).sort((a, b) => pl[b] - pl[a]);
+  const lead = order[0] === P.party;
+  let chance = 0.3 + (lead ? 0.25 : 0) + (P.suspicion > 40 ? 0.15 : 0);
+  if (rnd() > chance) return null;
+  const rivals = order.filter(p => p !== P.party), actor = lead ? rivals[0] : (rnd() < 0.5 ? rivals[0] : 'huber');
+  const w = [['rumor', 0.4], ['report', P.suspicion > 30 ? 0.35 : 0.15], ['breakin', 0.2], ['poster', actor === 'huber' ? 0.3 : 0.12]];
+  let x = rnd() * w.reduce((s, [, v]) => s + v, 0), kind = 'rumor';
+  for (const [k, v] of w) { if ((x -= v) <= 0) { kind = k; break; } }
+  return { kind, actor };
+}
+const PN = id => PARTIES[id].name, PS = id => PARTIES[id].short;
+const tx = (de, en) => [de, en];
+export function rivalEvent(R, P) {
+  const a = R.actor, own = PS(P.party);
+  if (R.kind === 'rumor') return { from: 'Wolkenwiler Anzeiger',
+    text: tx(`Im Dorf geht ein Gerücht um: Das Wolkenamt habe «gewisse Gärten» bevorzugt. Die Quelle sitzt angeblich im Büro von ${PS(a)}.`, `A rumour is going round: the Cloud Office supposedly favoured “certain gardens”. The source reportedly sits in the ${PS(a)} office.`),
+    choices: [
+      [tx('Gegendarstellung schreiben (1 Einfluss)', 'Write a correction (1 influence)'), { influence: -1, mod: { _own: 0.02 } }, tx('Imboden druckt sie klein auf Seite 4. Immerhin.', 'Imboden prints it small on page 4. Still.'), Q => Q.influence >= 1],
+      [tx('Schweigen', 'Stay silent'), { mod: { _own: -0.06 } }, tx('Das Gerücht wird am Stammtisch grösser. Es hat jetzt einen Hund.', 'The rumour grows at the regulars’ table. It now has a dog.')],
+      [tx(`${PS(a)} mit dem Druckmittel drohen`, `Threaten ${PS(a)} with your leverage`), { mod: { [a]: -0.08 }, unlev: a, suspicion: 3 }, tx('Ein kurzer Anruf. Am Nachmittag erzählt niemand mehr etwas.', 'One short call. By the afternoon nobody says anything any more.'), Q => Q.lev && Q.lev[a]],
+    ] };
+  if (R.kind === 'report') return { from: 'Kanton Wolkenwil, Inspektorat',
+    text: tx(`Gegen das Wolkenamt ist eine anonyme Anzeige eingegangen. Absender unbekannt. Briefpapier von ${PS(a)}.`, `An anonymous complaint against the Cloud Office has arrived. Sender unknown. ${PS(a)} letterhead.`),
+    choices: [
+      [tx('Anwalt Dr. Steiner (CHF 1000)', 'Lawyer Dr Steiner (CHF 1,000)'), { cash: -1000, suspicion: 2 }, tx('Dr. Steiner schreibt drei Seiten zurück. Der Kanton legt sie ab.', 'Dr Steiner writes back three pages. The canton files them.'), Q => Q.cash >= 1000],
+      [tx('Offen kooperieren', 'Cooperate openly'), { suspicion: 4, trust: { kirche: 2, senioren: 1 } }, tx('Du schickst alle Unterlagen. Fast alle.', 'You send all documents. Almost all.')],
+      [tx('Ignorieren', 'Ignore it'), { suspicion: 9, inv: P.inv != null ? 5 : 0 }, tx('Der Kanton mag es nicht, ignoriert zu werden.', 'The canton does not like being ignored.')],
+    ] };
+  if (R.kind === 'breakin') {
+    if (P.flags.lock) return { from: 'Wolkenwiler Anzeiger', text: tx(`Versuchter Einbruch im Büro von ${own}! Das neue Schloss hat gehalten. Am Türrahmen klebt ein ${PS(a)}-Kleber.`, `Attempted break-in at the ${own} office! The new lock held. A ${PS(a)} sticker is stuck to the door frame.`), fx: { mod: { [a]: -0.04 } } };
+    const levs = Object.keys(P.lev || {}).filter(k => P.lev[k]);
+    const fx = levs.length ? { unlev: levs[0], mod: { _own: -0.03 } } : P.cash >= 800 ? { cash: -800, mod: { _own: -0.03 } } : { influence: -2, mod: { _own: -0.03 } };
+    return { from: 'Wolkenwiler Anzeiger', text: tx(`Einbruch im Büro von ${own}! Die Akten liegen am Boden, ${levs.length ? 'ein Dossier fehlt' : P.cash >= 800 ? 'die Kasse ist leichter' : 'die Pläne für den Wahlkampf sind weg'}. Tipp: im Parteienhaus ein neues Schloss kaufen.`, `Break-in at the ${own} office! Files on the floor, ${levs.length ? 'a dossier is missing' : P.cash >= 800 ? 'the cash box is lighter' : 'the campaign plans are gone'}. Tip: buy a new lock at the party house.`), fx };
+  }
+  return { from: PN(a)[0] === 'Liste Huber' ? 'Gemeindepräsident Huber' : 'Wolkenwiler Anzeiger',
+    text: tx(`Über Nacht hängen überall neue Plakate von ${PS(a)}. Sogar auf dem Brunnen.`, `Overnight new ${PS(a)} posters went up everywhere. Even on the fountain.`),
+    choices: [
+      [tx('Überkleben lassen (CHF 600)', 'Have them pasted over (CHF 600)'), { cash: -600, suspicion: 2 }, tx('Am Mittag kleben eure Plakate drüber. Am Abend wieder ihre.', 'By noon your posters cover theirs. By evening theirs are back on top.'), Q => Q.cash >= 600],
+      [tx('Hinnehmen', 'Accept it'), { mod: { [a]: 0.05 } }, tx('Die Plakate bleiben. Die Kühe lesen sie auch.', 'The posters stay. The cows read them too.')],
+    ] };
+}

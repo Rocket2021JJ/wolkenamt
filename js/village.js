@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { PAL } from './palette.js';
 import { toon, outline } from './toon.js';
+import { ROOM } from './world3d.js';
 
 const STEIN = '#9C9A92', ZIEGEL = '#9A4A33', ZIEGEL2 = '#7A3526', BLECH = '#8A9197', GERANIE = '#D94A5A', HOLZHELL = '#B98A5A';
 
@@ -263,4 +264,40 @@ export function detailVillage(w) {
 export function stepHens(w, t) {
   if (!w.hens) return;
   w.hens.forEach((g, i) => { const k = Math.max(0, Math.sin(t * 3 + i * 1.7)); g.rotation.x = k > 0.8 ? 0.5 : 0; g.position.y = 0; g.rotation.y += Math.sin(t * 0.5 + i) * 0.003; });
+}
+
+// ---------------- Wahlplakate der führenden Partei ----------------
+// Hängen an Hauswänden rund um den Platz und wechseln, wenn eine andere Partei vorne liegt.
+let posterCv = null, posterTex = null, posterLead = null;
+export function partyPosters(w) {
+  posterCv = document.createElement('canvas'); posterCv.width = 256; posterCv.height = 340;
+  posterTex = new THREE.CanvasTexture(posterCv); posterTex.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.MeshBasicMaterial({ map: posterTex });
+  const spots = [[0, -0.5], [5, -0.6], [6, 0.7], [7, -0.5], [10, 0.6], [11, -0.6]];
+  w.partyPosters = [];
+  for (const [i, dx] of spots) {
+    const g = w.houses[i]; if (!g) continue;
+    const { w: W, d: D } = g.userData;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.96), mat);
+    m.position.set(dx * (W / 2 - 0.55) / 0.6, 1.25, D / 2 + 0.035); m.rotation.z = (i % 3 - 1) * 0.04; g.add(m);
+    w.partyPosters.push(m);
+  }
+  // zwei Plakate an der Front des Amtshauses (gut sichtbar vom Platz)
+  for (const x of [-4.7, 4.9]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.06), mat); m.position.set(x, 1.35, ROOM.z1 + ROOM.wall + 0.04); m.rotation.z = x < 0 ? 0.03 : -0.05; w.scene.add(m); w.partyPosters.push(m); }
+  return w.partyPosters;
+}
+export function updatePosters(lead, P) {
+  if (!posterCv || lead === posterLead) return;
+  posterLead = lead;
+  const c = posterCv.getContext('2d'), p = P[lead], L = (a) => a[0];
+  c.fillStyle = p.color; c.fillRect(0, 0, 256, 340);
+  c.fillStyle = 'rgba(255,255,255,.12)'; for (let i = 0; i < 6; i++) c.fillRect(0, 40 + i * 52, 256, 18);
+  c.fillStyle = PAL.schnee; c.font = 'bold 74px Georgia, serif'; c.textAlign = 'center'; c.fillText(p.short, 128, 110);
+  // kleine Wolke als Logo
+  for (const [x, y, r] of [[100, 170, 26], [128, 158, 34], [158, 172, 24]]) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
+  c.font = 'italic 22px Georgia, serif'; const words = L(p.slogan).split(' '); let line = '', y = 238;
+  for (const wd of words) { if (c.measureText(line + wd).width > 220) { c.fillText(line.trim(), 128, y); y += 28; line = ''; } line += wd + ' '; }
+  c.fillText(line.trim(), 128, y);
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(0, 322, 256, 18);
+  posterTex.needsUpdate = true;
 }

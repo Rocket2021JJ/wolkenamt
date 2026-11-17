@@ -159,3 +159,10 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   Wolkwilisch zu (Sprechblase + Stimme, leiser mit Abstand). Am Telefon reden die Anrufer Wolkwilisch,
   darunter steht die Übersetzung. Im Rössli reden Wirt, Imboden und der Stammtisch. Errungenschaften
   vorbereitet in js/achievements.js (Namen auf Wolkwilisch, noch ohne Anzeige).
+- Gegner und Folgen (17.11.): Die anderen Parteien und Huber schlagen im Einzelspiel zurück (js/power.js
+  rivalTurn/rivalEvent): Gerüchte, anonyme Anzeigen beim Kanton, Einbruch ins eigene Büro (Schloss im
+  Parteienhaus schützt), Plakatkampagnen. Wer vorne liegt oder verdächtig ist, wird öfter angegriffen,
+  Gegenwehr mit Einfluss, Geld oder Druckmitteln. Balance: Wenig Verdacht (unter 20) bringt jeden Abend
+  einen kleinen Bonus («ehrliche Haut»); Simulation zeigt: ehrlich und sorgfältig gespielt gewinnt man die
+  Wahl. Sichtbar im Dorf: Wahlplakate der führenden Partei an Häusern und am Amtshaus (wechseln mit der
+  Umfrage), bei Verdacht ab 55 bleiben Bewohner stehen und starren dich an und tuscheln.

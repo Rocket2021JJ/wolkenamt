@@ -273,54 +273,193 @@ export function sfx(kind, surface) {
 }
 
 // ---------------- Stimmen (Wolkwilisch-Gebrabbel) ----------------
-// Formant-Synthese: eine Sägezahn-«Stimmbandschwingung» durch drei Bandpässe (Vokalklang),
-// Konsonanten als kurze Rauschstösse. Jede Figur hat eine eigene Stimmlage und Sprechgeschwindigkeit.
-const FORM = { a: [800, 1200, 2500], e: [420, 2000, 2600], i: [290, 2250, 2900], o: [460, 820, 2400], u: [330, 720, 2400], 'ä': [650, 1750, 2500], 'ö': [420, 1600, 2400], 'ü': [300, 1700, 2200] };
-let speakUntil = 0;
+// Eigene Formant-Synthese, keine Aufnahmen: Pro Satz läuft EINE Stimmbandschwingung durch, deren Klang
+// (Formanten) von Silbe zu Silbe gleitet, wie beim echten Sprechen. Dazu Atem, Rauschen für s/sch/f,
+// kurze Verschlüsse für p/t/k, Nasale, Betonung, Satzmelodie. Jede Figur ist ein «Typ» mit Charakter:
+// Grummler, Plaudertasche, Grosi mit Zitterstimme, wichtigtuerischer Präsident, trockener Beamter …
+// Dazu Laute ohne Worte: Hmpf, Hehe, Pfff, Ooh, Hm?
+const FORM = { a: [780, 1220, 2550], e: [440, 1950, 2600], i: [300, 2250, 2950], o: [480, 860, 2450], u: [340, 760, 2350], 'ä': [660, 1720, 2500], 'ö': [430, 1580, 2400], 'ü': [310, 1680, 2250], 'é': [400, 2100, 2700], 'è': [600, 1800, 2550], 'à': [780, 1220, 2550] };
+const ARCH = {
+  normal:   { pitch: 135, speed: 1.05, tract: 1.0,  breath: 0.06, rough: 0.05, vib: 0,    vibR: 5,   swing: 0.16, nasal: 0.15, creak: 0.2, stretch: 1 },
+  grummel:  { pitch: 92,  speed: 0.92, tract: 0.86, breath: 0.07, rough: 0.4,  vib: 0,    vibR: 5,   swing: 0.09, nasal: 0.12, creak: 0.7, stretch: 1, grunt: 0.5 },
+  bauer:    { pitch: 86,  speed: 0.78, tract: 0.84, breath: 0.1,  rough: 0.28, vib: 0,    vibR: 5,   swing: 0.07, nasal: 0.2,  creak: 0.8, stretch: 1.15, grunt: 0.6 },
+  piepsig:  { pitch: 235, speed: 1.35, tract: 1.2,  breath: 0.05, rough: 0,    vib: 0.01, vibR: 7,   swing: 0.28, nasal: 0.5,  creak: 0,   stretch: 0.9, giggle: 0.4 },
+  plapper:  { pitch: 215, speed: 1.55, tract: 1.12, breath: 0.07, rough: 0.02, vib: 0,    vibR: 6,   swing: 0.24, nasal: 0.28, creak: 0.05, stretch: 0.85, giggle: 0.25 },
+  grosi:    { pitch: 255, speed: 0.82, tract: 1.13, breath: 0.26, rough: 0.06, vib: 0.055, vibR: 6.2, swing: 0.22, nasal: 0.2,  creak: 0.15, stretch: 1.2, sigh: 0.4 },
+  wichtig:  { pitch: 112, speed: 0.8,  tract: 0.9,  breath: 0.04, rough: 0.16, vib: 0.012, vibR: 4.5, swing: 0.32, nasal: 0.08, creak: 0.35, stretch: 1.45, laugh: 0.35 },
+  amtlich:  { pitch: 100, speed: 0.86, tract: 0.93, breath: 0.03, rough: 0.05, vib: 0,    vibR: 5,   swing: 0.03, nasal: 0.3,  creak: 0.4, stretch: 1.05 },
+  zappel:   { pitch: 165, speed: 1.4,  tract: 1.04, breath: 0.09, rough: 0.08, vib: 0,    vibR: 5,   swing: 0.3,  nasal: 0.18, creak: 0.1, stretch: 0.9, giggle: 0.3 },
+};
+let glottal = null;
+function glottalWave() {
+  if (glottal) return glottal;
+  const n = 40, re = new Float32Array(n), im = new Float32Array(n);
+  for (let k = 1; k < n; k++) { const a = Math.pow(k, -1.25) * (1 + 0.25 * Math.sin(k * 1.3)); re[k] = a * 0.35; im[k] = -a; }
+  return (glottal = ac.createPeriodicWave(re, im));
+}
+let speakUntil = 0, lastVoice = null;
+// Ein «Sprechapparat» für einen Satz: Quelle → Formanten → Ausgang, alles automatisierbar
+function rig(V, t0, vol) {
+  const o = ac.createOscillator(); o.setPeriodicWave(glottalWave());
+  // Zittern und Vibrato über die Tonhöhe (in Cent)
+  const j1 = ac.createOscillator(), j2 = ac.createOscillator(), jg = ac.createGain();
+  j1.frequency.value = 6.7 + Math.random(); j2.frequency.value = 13.1 + Math.random() * 2; jg.gain.value = 8 + V.rough * 35;
+  j1.connect(jg); j2.connect(jg); jg.connect(o.detune);
+  const vb = ac.createOscillator(), vg = ac.createGain(); vb.frequency.value = V.vibR; vg.gain.value = V.vib * 1200; vb.connect(vg).connect(o.detune);
+  // Stimme an/aus (Hüllkurve), Knurren als schnelle Amplitudenmodulation
+  const voiced = ac.createGain(); voiced.gain.value = 0;
+  const growl = ac.createGain(); growl.gain.value = 1;
+  const gl = ac.createOscillator(), glg = ac.createGain(); gl.type = 'triangle'; gl.frequency.value = 28 + Math.random() * 10; glg.gain.value = V.rough * 0.55; gl.connect(glg).connect(growl.gain);
+  o.connect(growl).connect(voiced);
+  // Atem: Rauschen mit gleicher Hüllkurve, läuft durch dieselben Formanten
+  const br = ac.createBufferSource(); br.buffer = noiseBuf; br.loop = true;
+  const bhp = ac.createBiquadFilter(); bhp.type = 'highpass'; bhp.frequency.value = 500;
+  const breath = ac.createGain(); breath.gain.value = 0;
+  br.connect(bhp).connect(breath);
+  const src = ac.createGain(); voiced.connect(src); breath.connect(src);
+  const out = ac.createGain(); out.gain.value = vol;
+  const F = [0, 1, 2].map(k => { const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = [5, 9, 12][k]; const g = ac.createGain(); g.gain.value = [2.4, 1.5, 0.75][k]; src.connect(bp).connect(g).connect(out); return { bp, g }; });
+  // Nase und Brustkorb
+  const nb = ac.createBiquadFilter(); nb.type = 'bandpass'; nb.frequency.value = 260; nb.Q.value = 3; const ng = ac.createGain(); ng.gain.value = V.nasal * 1.6; src.connect(nb).connect(ng).connect(out);
+  const ch = ac.createBiquadFilter(); ch.type = 'lowpass'; ch.frequency.value = 350; const cg = ac.createGain(); cg.gain.value = 0.35; voiced.connect(ch).connect(cg).connect(out);
+  // Mundraum: oben etwas weicher
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200 * V.tract; out.connect(lp).connect(busVoice);
+  if (reverb) { const rs = ac.createGain(); rs.gain.value = 0.12; lp.connect(rs).connect(reverb); }
+  const all = [o, j1, j2, vb, gl, br];
+  return { o, voiced, breath, F, ng, out, start: () => all.forEach(x => x.start(t0)), stop: t => all.forEach(x => x.stop(t)) };
+}
+// Rauschstoss für Konsonanten (eigener Weg, damit s/sch nicht durch die Vokalformanten müssen)
+function fric(t, dur, f, q, vol, type = 'bandpass') {
+  const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+  const b = ac.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q;
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = Math.min(9000, f * 1.8); lp.Q.value = 0.5;
+  const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.setTargetAtTime(vol, t, Math.max(0.004, dur * 0.12)); g.gain.setTargetAtTime(0, t + dur * 0.55, Math.max(0.006, dur * 0.2));
+  s.connect(b).connect(lp).connect(g).connect(busVoice); s.start(t, Math.random() * 1.5); s.stop(t + dur * 2 + 0.06);
+}
+const CONS = c => {
+  if (!c) return null;
+  if (/tsch|sch/.test(c)) return { k: 'fric', f: 2700, q: 1.6, dur: 0.075, v: 0.32 };
+  if (/ch/.test(c)) return { k: 'fric', f: 1700, q: 0.9, dur: 0.07, v: 0.22 };
+  if (/[sz]/.test(c)) return { k: 'fric', f: 5800, q: 2.2, dur: 0.06, v: 0.24 };
+  if (/[fv]/.test(c)) return { k: 'fric', f: 2400, q: 0.5, dur: 0.055, v: 0.12 };
+  if (/h/.test(c)) return { k: 'asp', dur: 0.05 };
+  if (/[pb]/.test(c)) return { k: 'stop', f: 700, dur: 0.045, v: /p/.test(c) ? 0.35 : 0.2, voiced: /b/.test(c) };
+  if (/[td]/.test(c)) return { k: 'stop', f: 3600, dur: 0.04, v: /t/.test(c) ? 0.35 : 0.2, voiced: /d/.test(c) };
+  if (/[kgq]/.test(c)) return { k: 'stop', f: 1800, dur: 0.05, v: /k|q/.test(c) ? 0.4 : 0.22, voiced: /g/.test(c) };
+  if (/[mn]/.test(c)) return { k: 'nas', dur: 0.05 };
+  if (/[lrjw]/.test(c)) return { k: 'liq', dur: 0.04, r: /r/.test(c) };
+  return { k: 'liq', dur: 0.03 };
+};
+function formTo(R, v, t, fs, tc = 0.022) { const f = FORM[v] || FORM.a; R.F.forEach((x, k) => x.bp.frequency.setTargetAtTime(f[k] * fs, t, tc)); }
 export function speak(syl, voice = {}, opt = {}) {
   if (!ac || sound.muted || !syl || !syl.length) return 0;
-  const pitch = voice.pitch || 150, speed = voice.speed || 1, fs = voice.formant || 1, vol = (opt.gain ?? 1) * 0.5;
-  let t = Math.max(ac.currentTime + 0.02, opt.interrupt ? 0 : speakUntil), n = 0;
-  const maxS = opt.max || 14, last = Math.min(syl.length, maxS);
-  for (let i = 0; i < last; i++) {
-    const s = syl[i];
-    if (s.pause) { t += s.pause === ',' ? 0.12 / speed : 0.22 / speed; continue; }
-    const dur = (s.long ? 0.17 : 0.11) / speed * (0.9 + ((i * 7) % 5) * 0.05);
-    // Satzmelodie: leicht fallend, bei Fragen am Ende steigend, bei Ausrufen höher
-    const end = i >= last - 2, q = opt.mood === '?' && end, ex = opt.mood === '!';
-    const f0 = pitch * (1 + Math.sin(i * 1.7) * 0.06) * (ex ? 1.2 : 1) * (q ? 1.25 : 1) * (1 - i / last * 0.12);
-    // Konsonant vorne
-    if (s.c) {
-      const hiss = /s|z|ch|f|tsch/.test(s.c), plos = /b|p|d|t|g|k/.test(s.c);
-      if (hiss) noise(0.05 / speed, 'highpass', s.c.includes('sch') ? 2400 : 4200, vol * 0.25, 1, busVoice, t - ac.currentTime);
-      else if (plos) noise(0.02, 'lowpass', 900, vol * 0.5, 1, busVoice, t - ac.currentTime);
-      t += hiss ? 0.035 / speed : 0.012;
+  const V = Object.assign({}, ARCH.normal, voice);
+  const sp = V.speed, fs = V.tract, vol = (opt.gain ?? 1) * 0.42;
+  let t = Math.max(ac.currentTime + 0.03, opt.interrupt ? 0 : speakUntil);
+  const mood = opt.mood || '', rnd = Math.random;
+  // manchmal zuerst ein Laut ohne Worte, je nach Typ
+  if (!opt.noGesture) {
+    const pre = mood === '!' && V.grunt && rnd() < V.grunt ? 'hmpf' : mood === '?' && rnd() < 0.25 ? 'hm' : V.sigh && rnd() < V.sigh * 0.5 ? 'sigh' : null;
+    if (pre) t += gestureAt(pre, V, t, vol) + 0.06;
+  }
+  const maxS = opt.max || 14, list = syl.slice(0, maxS), last = list.filter(s => !s.pause).length;
+  const R = rig(V, t - 0.01, vol); R.start();
+  let n = 0, prevEnd = t, phraseStart = 0;
+  const base = V.pitch * (mood === '!' ? 1.12 : 1);
+  R.o.frequency.setValueAtTime(base, t);
+  for (let i = 0; i < list.length; i++) {
+    const s = list[i];
+    if (s.pause) {
+      // Pause: Stimme aus, kurz Luft holen
+      const pd = (s.pause === ',' ? 0.13 : 0.24) / sp;
+      R.voiced.gain.setTargetAtTime(0, t, 0.015); R.breath.gain.setTargetAtTime(V.breath * 0.6, t, 0.02); R.breath.gain.setTargetAtTime(0, t + pd * 0.6, 0.02);
+      t += pd; phraseStart = n; continue;
     }
-    const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sawtooth';
-    o.frequency.setValueAtTime(f0, t); o.frequency.linearRampToValueAtTime(f0 * (q && i === last - 1 ? 1.25 : 0.94), t + dur);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.015); g.gain.setValueAtTime(vol, t + dur * 0.7); g.gain.linearRampToValueAtTime(0, t + dur);
-    const F = FORM[s.v] || FORM.a;
-    [[F[0], 1, 7], [F[1], 0.55, 10], [F[2], 0.22, 12]].forEach(([f, a, Q]) => {
-      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * fs; bp.Q.value = Q;
-      const ga = ac.createGain(); ga.gain.value = a * 2.2; o.connect(bp).connect(ga).connect(g);
-    });
-    if (/m|n|ng/.test(s.end || '')) { const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500; o.connect(lp).connect(g); }
-    g.connect(busVoice); o.start(t); o.stop(t + dur + 0.02);
-    t += dur + 0.02 / speed; n++;
+    const prog = last > 1 ? n / (last - 1) : 0, fin = n === last - 1;
+    const stress = s.w || n === 0;
+    let dur = (s.long ? 0.16 : 0.105) / sp * (stress ? 1.25 : 1) * (fin ? 1.45 * V.stretch : 1) * (0.88 + rnd() * 0.24);
+    // Konsonant vorne
+    const C = CONS(s.c);
+    if (C) {
+      if (C.k === 'fric') { R.voiced.gain.setTargetAtTime(0.08, t, 0.01); fric(t, C.dur / sp, C.f, C.q, vol * C.v * 1.6); t += C.dur / sp * 0.85; }
+      else if (C.k === 'stop') { R.voiced.gain.setTargetAtTime(C.voiced ? 0.15 : 0, t, 0.006); t += C.dur / sp * 0.7; fric(t, 0.03, C.f, 0.8, vol * C.v * 1.5); t += 0.014; if (!C.voiced) { R.breath.gain.setTargetAtTime(V.breath + 0.15, t, 0.005); R.breath.gain.setTargetAtTime(V.breath * 0.4, t + 0.02, 0.015); } }
+      else if (C.k === 'asp') { R.voiced.gain.setTargetAtTime(0, t, 0.01); R.breath.gain.setTargetAtTime(0.5, t, 0.01); t += C.dur / sp; R.breath.gain.setTargetAtTime(V.breath * 0.4, t, 0.015); }
+      else if (C.k === 'nas') { R.voiced.gain.setTargetAtTime(0.45, t, 0.01); R.ng.gain.setTargetAtTime(V.nasal * 1.6 + 1.6, t, 0.01); R.F.forEach(x => x.g.gain.setTargetAtTime(x.g.gain.value * 0.25, t, 0.01)); t += C.dur / sp; R.ng.gain.setTargetAtTime(V.nasal * 1.6, t, 0.02); R.F.forEach((x, k) => x.g.gain.setTargetAtTime([2.4, 1.5, 0.75][k], t, 0.02)); }
+      else if (C.k === 'liq') { R.voiced.gain.setTargetAtTime(0.6, t, 0.01); if (C.r) { R.F[1].bp.frequency.setTargetAtTime(1300 * fs, t, 0.01); } t += C.dur / sp; }
+    }
+    // Vokal: Formanten gleiten hin, Stimme an
+    formTo(R, s.v, t - 0.01, fs);
+    const accent = stress ? V.swing : -V.swing * 0.25;
+    let f0 = base * (1 - prog * 0.16) * (1 + accent) * (1 + (rnd() - 0.5) * 0.05);
+    let f1 = f0 * (stress ? 0.93 : 0.98);
+    if (fin && mood === '?') { f0 *= 1.05; f1 = f0 * 1.38; }
+    else if (fin && mood === '!') { f0 *= 1.1; f1 = f0 * 0.8; }
+    else if (fin) f1 = f0 * (0.8 - V.creak * 0.12);
+    R.o.frequency.setTargetAtTime(f0, t - 0.01, 0.025); R.o.frequency.setTargetAtTime(f1, t + dur * 0.45, dur * 0.35);
+    const loud = (stress ? 1 : 0.78) * (mood === '!' && n < 3 ? 1.15 : 1);
+    R.voiced.gain.setTargetAtTime(loud, t - 0.005, 0.012);
+    R.breath.gain.setTargetAtTime(V.breath * (fin ? 1.6 : 1), t, 0.02);
+    // Ende der Silbe
+    t += dur;
+    if (s.end && /[mn]/.test(s.end)) { R.ng.gain.setTargetAtTime(V.nasal * 1.6 + 1.4, t, 0.01); R.voiced.gain.setTargetAtTime(0.45, t, 0.01); t += 0.05 / sp; R.ng.gain.setTargetAtTime(V.nasal * 1.6, t, 0.02); }
+    else if (s.end && /[sz]/.test(s.end)) { R.voiced.gain.setTargetAtTime(0.05, t, 0.008); fric(t, 0.06 / sp, 5800, 2.2, vol * 0.35); t += 0.05 / sp; }
+    else if (s.end && /[ptk]/.test(s.end)) { R.voiced.gain.setTargetAtTime(0, t, 0.005); t += 0.03 / sp; fric(t, 0.03, 2500, 0.8, vol * 0.35); t += 0.02; }
+    // Knarzen am Satzende (Stimme fällt in den Keller)
+    if (fin && V.creak > 0.3 && mood !== '?') { R.o.frequency.setTargetAtTime(f1 * 0.72, t - dur * 0.25, 0.04); }
+    n++; prevEnd = t;
+  }
+  R.voiced.gain.setTargetAtTime(0, t, 0.025); R.breath.gain.setTargetAtTime(V.breath * 1.5, t, 0.02); R.breath.gain.setTargetAtTime(0, t + 0.08, 0.04);
+  R.stop(t + 0.35);
+  t += 0.06;
+  // danach vielleicht ein Kichern, Lachen oder Seufzen
+  if (!opt.noGesture) {
+    const post = mood === '!' && V.laugh && rnd() < V.laugh ? 'laugh' : V.giggle && rnd() < V.giggle ? 'hehe' : V.sigh && mood !== '!' && rnd() < V.sigh * 0.4 ? 'pff' : null;
+    if (post) t += gestureAt(post, V, t + 0.05, vol) + 0.05;
   }
   speakUntil = opt.overlap ? speakUntil : t;
   return t - ac.currentTime;
 }
-// feste Stimmen für Figuren (Name → Stimme); unbekannte Namen bekommen eine Stimme aus dem Namen
-const VOICES = {
-  'Gemeindepräsident Huber': { pitch: 105, speed: 0.85, formant: 0.92 },
-  'Inspektor Wyss': { pitch: 95, speed: 0.75, formant: 0.9 },
-  'Frau Imboden, Wolkenwiler Anzeiger': { pitch: 210, speed: 1.35, formant: 1.1 },
-  'Grosi Elsbeth': { pitch: 240, speed: 0.8, formant: 1.15 },
-  'Bauer Zbinden': { pitch: 92, speed: 0.95, formant: 0.88 },
+// Laute ohne Worte. Gibt die Dauer zurück.
+function gestureAt(kind, V, t, vol) {
+  const fs = V.tract, p = V.pitch;
+  const one = (v, d, fA, fB, opts = {}) => {
+    const R = rig(V, t - 0.01, vol * (opts.vol || 1)); R.start(); formTo(R, v, t - 0.02, fs, 0.005);
+    if (opts.hum) { R.F.forEach(x => x.g.gain.value *= 0.2); R.ng.gain.value = 3.2; }
+    R.o.frequency.setValueAtTime(fA, t); R.o.frequency.linearRampToValueAtTime(fB, t + d);
+    R.voiced.gain.setTargetAtTime(opts.voice ?? 1, t, 0.01); R.breath.gain.setTargetAtTime(opts.breath ?? V.breath, t, 0.01);
+    R.voiced.gain.setTargetAtTime(0, t + d * 0.8, 0.02); R.breath.gain.setTargetAtTime(0, t + d * 0.85, 0.02); R.stop(t + d + 0.25);
+  };
+  if (kind === 'hmpf') { one('u', 0.18, p * 1.05, p * 0.82, { hum: true }); fric(t + 0.17, 0.08, 1200, 0.5, vol * 0.35); return 0.27; }
+  if (kind === 'hm') { one('u', 0.28, p * 0.92, p * 1.22, { hum: true }); return 0.3; }
+  if (kind === 'sigh') { one('a', 0.42, p * 1.15, p * 0.72, { voice: 0.25, breath: 0.6 }); return 0.45; }
+  if (kind === 'pff') { fric(t, 0.05, 900, 0.6, vol * 0.5); fric(t + 0.04, 0.3, 1600, 0.4, vol * 0.25); return 0.34; }
+  if (kind === 'oh') { one('o', 0.4, p * 0.95, p * 1.3, {}); return 0.42; }
+  if (kind === 'hehe' || kind === 'laugh') {
+    const n = kind === 'laugh' ? 4 : 3, d = kind === 'laugh' ? 0.13 : 0.09, v = kind === 'laugh' ? 'a' : 'e';
+    for (let k = 0; k < n; k++) { const tt = t + k * (d + 0.045), f = p * (kind === 'laugh' ? 1.3 - k * 0.08 : 1.35 + k * 0.06);
+      fric(tt, 0.035, 1500, 0.5, vol * 0.3);
+      const R = rig(V, tt, vol * 0.9); R.start(); formTo(R, v, tt - 0.01, fs, 0.005); R.o.frequency.setValueAtTime(f, tt); R.o.frequency.linearRampToValueAtTime(f * 0.9, tt + d);
+      R.voiced.gain.setTargetAtTime(1, tt + 0.02, 0.008); R.breath.gain.setTargetAtTime(0.25, tt, 0.01); R.voiced.gain.setTargetAtTime(0, tt + d, 0.012); R.breath.gain.setTargetAtTime(0, tt + d, 0.012); R.stop(tt + d + 0.15); }
+    return n * (d + 0.045);
+  }
+  return 0;
+}
+export function gesture(kind, voice = {}, opt = {}) { if (!ac || sound.muted) return 0; const V = Object.assign({}, ARCH.normal, voice); return gestureAt(kind, V, ac.currentTime + 0.03, (opt.gain ?? 1) * 0.42); }
+// feste Stimmen für Figuren; unbekannte Namen bekommen einen Typ und eine leicht eigene Lage aus dem Namen
+const CAST = {
+  'Gemeindepräsident Huber': ['wichtig', 1], huber: ['wichtig', 1],
+  'Inspektor Wyss': ['amtlich', 1], 'Kantonsinspektor Wyss': ['amtlich', 1], 'Kanton Wolkenwil, Inspektorat': ['amtlich', 1.08], 'Gemeindeschreiber': ['amtlich', 1.25],
+  'Frau Imboden, Wolkenwiler Anzeiger': ['plapper', 1], 'Redaktorin Imboden': ['plapper', 1], 'Wolkenwiler Anzeiger': ['plapper', 1],
+  'Grosi Elsbeth': ['grosi', 1], elsbeth: ['grosi', 1],
+  'Bauer Zbinden': ['bauer', 1], moser: ['bauer', 0.96], 'Bauer Moser': ['bauer', 0.96],
+  gerber: ['grummel', 1.05], 'Herr Gerber': ['grummel', 1.05], 'Bäckerei Moser': ['grummel', 1.1], 'Wirt Bruno': ['grummel', 0.95],
+  zbinden: ['zappel', 1.25], 'Schulleitung': ['zappel', 1.2], 'FC Wolkenwil': ['zappel', 0.85],
+  'Pfarrei St. Niklaus': ['amtlich', 0.9], 'Anonymer Anrufer': ['grummel', 0.8], 'Unbekannt': ['grummel', 0.85],
 };
 export function voiceFor(name = '') {
-  if (VOICES[name]) return VOICES[name];
+  name = Array.isArray(name) ? name[0] : String(name);
   let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return { pitch: 100 + (h % 150), speed: 0.85 + ((h >> 4) % 40) / 100, formant: 0.9 + ((h >> 8) % 25) / 100 };
+  const pick = CAST[name] || [['normal', 'grummel', 'piepsig', 'plapper', 'zappel', 'bauer', 'normal'][h % 7], 0.92 + ((h >> 5) % 18) / 100];
+  const A = ARCH[pick[0]];
+  return Object.assign({}, A, { pitch: A.pitch * pick[1], tract: A.tract * (0.97 + ((h >> 9) % 7) / 100), speed: A.speed * (0.95 + ((h >> 3) % 10) / 100) });
 }

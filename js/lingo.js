@@ -77,7 +77,8 @@ export function syllables(text) {
   const out = []; const re = /([^aeiouäöü\s!?.,]*)([aeiouäöü]+)([^aeiouäöü\s!?.,]?)|([!?.,])/g; let m;
   while ((m = re.exec(s))) {
     if (m[4]) { out.push({ pause: m[4] }); continue; }
-    out.push({ c: m[1], v: m[2][0], long: m[2].length > 1, end: m[3] });
+    const w = m.index === 0 || /[\s!?.,]/.test(s[m.index - 1]);
+    out.push({ c: m[1], v: m[2][0], long: m[2].length > 1, end: m[3], w });
   }
   return out;
 }

@@ -73,7 +73,7 @@ function bubbleTick(dt) {
       const kind = world.weather === 'rain' || world.weather === 'storm' ? 'rain' : P && P.suspicion >= 55 && Math.random() < 0.6 ? 'suspicion' : Math.random() < 0.25 ? 'huber' : Math.random() < 0.35 ? 'greet' : Math.random() < 0.5 ? 'sun' : 'misc';
       const line = LG.shout(kind, k), el = document.createElement('div'); el.className = 'bubble'; el.textContent = line; $('bubbles').appendChild(el);
       bubbles.push({ el, v: o.v, t: 3.2 });
-      A.speak(LG.syllables(line), A.voiceFor('Dorf' + o.i), { overlap: true, gain: Math.max(0.15, 1 - o.d / 16), mood: line.includes('?') ? '?' : line.includes('!') ? '!' : '' });
+      A.speak(LG.syllables(line), A.voiceFor(o.i < FOLK.length ? FOLK[o.i].id : 'Dorf' + o.i), { overlap: true, gain: Math.max(0.15, 1 - o.d / 16), mood: line.includes('?') ? '?' : line.includes('!') ? '!' : '' });
     }
   }
   for (let i = bubbles.length - 1; i >= 0; i--) {

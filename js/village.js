@@ -275,7 +275,6 @@ function church(w, x, z, rot) {
   };
   C(-NW / 2 - 0.4, -ND / 2 - 2.2, NW / 2 + 0.4, ND / 2, 8); C(-TW / 2, ND / 2, TW / 2, ND / 2 + TW + 0.4, 20);
   const door = new THREE.Vector3(Math.sin(rot) * (VZ + 1.4), 0, Math.cos(rot) * (VZ + 1.4)).add(g.position);
-  w.addInteractable('churchbell', door, 1.2, 'Glocke');
   return g;
 }
 function maibaum(w, x, z) {

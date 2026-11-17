@@ -10,6 +10,7 @@ import { stepLandscape } from './terrain.js';
 import { decorateRoof, buildRoessli, buildHuberhaus, markEntrances, signpost, ROESSLI_SPOT, HUBER_SPOT } from './interiors.js';
 import { buildTown, stepTown, relabelTown, clampToVillage, PSPOT, NOTES, PHOUSES } from './town.js';
 import { drawMap } from './map.js';
+import { buildRooms2, spot2 } from './interiors2.js';
 import * as THREE from 'three';
 import { World, ROOM } from './world3d.js';
 import { furnish } from './office.js';
@@ -59,6 +60,7 @@ buildHall(world, office);
 decorateRoof(world, office); buildRoessli(world, office); buildHuberhaus(world, office); markEntrances(world, office); signpost(world);
 buildTown(world, office, POW.PARTIES); world.bound = clampToVillage;
 world.onWeather = k => weatherFX(world, k);
+buildRooms2(world, office);
 detailVillage(world); world.onDusk = k => setDusk(world, k);
 partyPosters(world);
 { const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepSmoke(world, tm); folkIts.forEach((it, i) => { it.pos.copy(world.villagers[i].pos); it.enabled = !world.inside && flow === 'single'; }); stepLandscape(world, dt); stepTown(world, office, dt, tm); stepWeatherFX(world, dt, tm); if (mapOpen()) { if (mode !== 'world') toggleMap(false); else if ((mapT -= dt) < 0) { mapT = 0.25; renderMap(); } } soundTick(dt); tutTick(dt); }; }
@@ -492,6 +494,9 @@ world.onUse = (id) => {
   if (id.startsWith('pdoor_')) { const pid = id.slice(6); return enterRoom(PSPOT(pid), 'task.pbuero', { p: POW.PARTIES[pid].short }); }
   if (id.startsWith('pexit_')) return leaveRoom('p_' + id.slice(6));
   if (id.startsWith('note_')) return openNote(+id.slice(5));
+  if (id.startsWith('rdoor_')) { const r = id.slice(6); return enterRoom(spot2(r), 'task.r_' + r); }
+  if (id.startsWith('rexit_')) return leaveRoom('r_' + id.slice(6));
+  if (/^(bakecounter|bakeback|schoolclass|schooldraw|pfarrer|kollekte)$/.test(id)) return openRoomSpot(id);
   if (id === 'fernrohr') return lookThrough();
   if (id === 'churchbell') { if ((world.bellT || 0) > 0) return; world.bellT = 4.6; A.churchBells(6); world.watch(true, world.churchBell.getWorldPosition(V(0, 0, 0))); setTimeout(() => { if (mode === 'world') world.watch(false); }, 5000); return; }
   if (id === 'huberdoor') { office.dogNoise = 0; return enterRoom(HUBER_SPOT, 'task.huber'); }
@@ -857,7 +862,7 @@ function enterHall() {
 // Weitere begehbare Häuser
 function enterRoom(spot, task, vars) {
   if (flow !== 'single' || !run || run.kind !== 'day') return toast(t('toast.townClosed'));
-  if (!/^task\.(hall|roessli|partei|huber|pbuero)$/.test(taskKey)) run.hallPrev = [taskKey, taskVars];
+  if (!/^task\.(hall|roessli|partei|huber|pbuero|r_\w+)$/.test(taskKey)) run.hallPrev = [taskKey, taskVars];
   A.ui('door'); world.teleport(...spot); world.camYawT = 0.28; world.setWeather(null); setTask(task, vars);
 }
 function leaveRoom(id) {
@@ -913,6 +918,34 @@ function openHuberSpot(id) {
     mark(); if (hubNoise(1)) return;
     panelResult(box, t('hh.modelRes'), POW.apply(P, { influence: 1, trust: { gewerbe: -1 } }));
   });
+}
+
+// Bäckerei, Schulhaus, Kirche: je eine kleine Aktion pro Tag
+function openRoomSpot(id) {
+  const P = save.power, box = townPanel(t('rs.' + id + '.k'), t('rs.' + id + '.t'), t('rs.' + id + '.i'));
+  if (!P || !run || run.kind !== 'day') { const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('rs.noday'); box.appendChild(p); return; }
+  P.flags = P.flags || {}; const key = 'rs_' + id + '_' + (inSB() ? save.sb.year * 10 + save.sb.day : run.d);
+  if (P.flags[key]) { const p = document.createElement('p'); p.className = 'hsub'; p.textContent = t('rs.done'); box.appendChild(p); return; }
+  const done = () => { P.flags[key] = 1; P.history.push({ day: run.d, ev: 'room_' + id }); };
+  const R = (txtKey, fx) => { done(); panelResult(box, t(txtKey), POW.apply(P, fx)); };
+  if (id === 'bakecounter') {
+    actRow(box, t('rs.bake.buy'), t('rs.bake.buyI'), P.cash >= 40, () => R('rs.bake.buyR', { cash: -40, influence: 1 }), 'CHF 40');
+    actRow(box, t('rs.bake.give'), t('rs.bake.giveI'), P.cash >= 150, () => R('rs.bake.giveR', { cash: -150, trust: { gewerbe: 2, senioren: 2 } }), 'CHF 150');
+  }
+  if (id === 'bakeback') actRow(box, t('rs.back.do'), t('rs.back.doI'), true, () => {
+    if (Math.random() < (run.fog ? 0.15 : 0.35)) { done(); A.ui('bad'); panelResult(box, t('rs.back.caught'), POW.apply(P, { suspicion: 6, trust: { gewerbe: -2 } })); }
+    else R('rs.back.found', { mod: { huber: -0.05 }, influence: 1 });
+  });
+  if (id === 'schoolclass') actRow(box, t('rs.class.do'), t('rs.class.doI'), true, () => {
+    if (P.suspicion >= 40) R('rs.class.awk', { trust: { junge: 1 }, suspicion: 1 }); else R('rs.class.ok', { trust: { junge: 3 }, influence: 1 });
+  });
+  if (id === 'schooldraw') actRow(box, t('rs.draw.do'), t('rs.draw.doI'), true, () => R('rs.draw.r', { trust: { junge: 1 } }));
+  if (id === 'pfarrer') {
+    const last = P.flags.confessDay ?? -9;
+    actRow(box, t('rs.conf.do'), t('rs.conf.doI'), run.d - last >= 3 && P.suspicion > 0, () => { P.flags.confessDay = run.d; R('rs.conf.r', { suspicion: -5, trust: { kirche: 1 } }); });
+    actRow(box, t('rs.ask.do'), t('rs.ask.doI'), true, () => R(P.suspicion >= 50 ? 'rs.ask.warn' : 'rs.ask.r', { trust: { kirche: 1 } }));
+  }
+  if (id === 'kollekte') actRow(box, t('rs.koll.do'), t('rs.koll.doI'), P.cash >= 100, () => R('rs.koll.r', { cash: -100, trust: { kirche: 3, senioren: 1 } }), 'CHF 100');
 }
 
 // Zettel mit Wolkwilisch-Wörtern, im ganzen Dorf versteckt
@@ -1768,7 +1801,7 @@ addEventListener('keydown', e => {
 
 // Sprache wechseln: alles neu beschriften
 onLang(() => {
-  applyDom(); office.relabel(); relabelTown(office); { const cb = world.interactables.find(i => i.id === 'churchbell'); if (cb) cb.label = t('use.churchbell'); } soundLabels(); folkIts.forEach((it, i) => { it.label = t('folk.talk', { n: L(FOLK[i].name) }); });
+  applyDom(); office.relabel(); relabelTown(office); (office.roomSigns || []).forEach(([tp, k]) => tp.redraw(t(k))); { const cb = world.interactables.find(i => i.id === 'churchbell'); if (cb) cb.label = t('use.churchbell'); } soundLabels(); folkIts.forEach((it, i) => { it.label = t('folk.talk', { n: L(FOLK[i].name) }); });
   if (mode === 'menu') showMenu();
   if (taskKey) setTask(taskKey, taskVars);
   document.title = t('doc.title');

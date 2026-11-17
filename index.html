@@ -38,10 +38,17 @@
     <div id="hud" class="hidden">
       <div class="task"><small id="hDay"></small><span id="hTask"></span></div>
       <div class="hbtns"><button id="hMenu" data-i18n="btn.central">Zentrale</button></div>
-      <div class="akte hidden" id="akte"><div class="ah"><span data-i18n="akte.poll">Umfrage</span><small id="aParty"></small></div><div id="aPolls"></div>
-        <div class="arow"><span data-i18n="akte.susp">Verdacht</span><span class="meter red"><i id="aSusp"></i></span><b id="aSuspN"></b></div>
-        <div class="arow hidden" id="aInvRow"><span data-i18n="akte.inv">Ermittlung</span><span class="meter red"><i id="aInv"></i></span><b id="aInvN"></b></div>
-        <div class="arow"><span data-i18n="akte.inf">Einfluss</span><b id="aInf"></b><span data-i18n="akte.cash">Schwarzkasse</span><b id="aCash"></b></div></div>
+      <div class="dossier hidden" id="akte">
+        <div class="dtab"><span data-i18n="akte.file">Akte</span> <b id="aParty"></b></div>
+        <svg class="dclip" viewBox="0 0 20 52" aria-hidden="true"><path d="M6 44 V9 a4 4 0 0 1 8 0 V40 a6.5 6.5 0 0 1 -13 0 V14" fill="none" stroke="#8A9197" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <div class="dsheet">
+          <div class="dh" data-i18n="akte.poll">Umfrage</div>
+          <div id="aPolls"></div>
+          <div class="dline"><span data-i18n="akte.susp">Verdacht</span><svg id="aSusp" class="tally" aria-hidden="true"></svg><b id="aSuspN"></b></div>
+          <div class="dline hidden" id="aInvRow"><span data-i18n="akte.inv">Ermittlung</span><svg id="aInv" class="tally" aria-hidden="true"></svg><b id="aInvN"></b></div>
+          <div class="dnote"><span><span data-i18n="akte.inf">Einfluss</span> <b id="aInf"></b></span><span><span data-i18n="akte.cashShort">Kässeli</span> <b id="aCash"></b></span></div>
+        </div>
+      </div>
       <div class="keys" id="hKeys" data-i18n="hud.keys">WASD gehen · Leertaste hüpfen · E benutzen · Maus ziehen dreht die Kamera</div>
     </div>
     <div id="touch" class="hidden">

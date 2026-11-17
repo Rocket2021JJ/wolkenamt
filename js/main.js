@@ -242,6 +242,21 @@ function showMorning(list, d, done, call) {
   next();
 }
 $('akte').addEventListener('click', () => $('akte').classList.toggle('open'));
+// Strichliste: ein Strich pro 5 Punkte, jeder fünfte quer. Leicht schief, wie von Hand.
+function tally(svg, v) {
+  const n = Math.round(v / 5), NS = 'http://www.w3.org/2000/svg';
+  svg.innerHTML = ''; let x = 2, seed = 7;
+  const j = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280 - 0.5; };
+  for (let i = 0; i < n; i++) {
+    const p = document.createElementNS(NS, 'path');
+    if (i % 5 === 4) { const x0 = x - 4 * 4.2 - 1.5; p.setAttribute('d', `M${x0} ${11 + j()} L${x - 2.2} ${3.5 + j()}`); x += 4; }
+    else { p.setAttribute('d', `M${x + j() * 1.2} ${2.5 + j()} L${x + 0.6 + j() * 1.2} ${12.5 + j()}`); x += 4.2; }
+    svg.appendChild(p);
+  }
+  svg.setAttribute('viewBox', `0 0 ${Math.max(10, x + 2)} 15`); svg.style.width = Math.max(10, x + 2) + 'px';
+}
+// Bleistiftbalken: jedes Ende etwas anders, aber stabil pro Partei
+const barEnd = { wvb: '96% 0, 100% 40%, 97% 100%', fww: '100% 10%, 95% 60%, 99% 100%', pkh: '97% 0, 100% 70%, 94% 100%', huber: '100% 0, 96% 45%, 100% 100%' };
 function updateAkte() {
   const P = save.power, box = $('akte');
   if (!P || flow !== 'single') { box.classList.add('hidden'); return; }
@@ -250,15 +265,17 @@ function updateAkte() {
   const pl = POW.polls(P), wrap = $('aPolls'); wrap.innerHTML = '';
   Object.keys(POW.PARTIES).sort((a, b) => pl[b] - pl[a]).forEach(p => {
     const r = document.createElement('div'); r.className = 'prow2' + (p === P.party ? ' me' : '');
-    const n = document.createElement('span'); n.textContent = POW.PARTIES[p].short;
-    const bar = document.createElement('span'); bar.className = 'bar'; const f = document.createElement('i'); f.style.width = Math.min(100, pl[p] * 2) + '%'; f.style.background = POW.PARTIES[p].color; bar.appendChild(f);
-    const v = document.createElement('b'); v.textContent = pl[p].toFixed(1) + ' %';
+    const n = document.createElement('span'); n.className = 'pn'; n.textContent = POW.PARTIES[p].short;
+    const bar = document.createElement('span'); bar.className = 'bar'; const f = document.createElement('i');
+    f.style.width = Math.min(100, pl[p] * 2) + '%'; f.style.color = POW.PARTIES[p].color; f.style.clipPath = `polygon(0 8%, ${barEnd[p]}, 0 92%)`; bar.appendChild(f);
+    const v = document.createElement('b'); v.textContent = pl[p].toFixed(1).replace('.', L([',', '.'])) + '%';
     r.append(n, bar, v); wrap.appendChild(r);
   });
-  $('aSusp').style.width = P.suspicion + '%'; $('aSuspN').textContent = P.suspicion;
+  tally($('aSusp'), P.suspicion); $('aSuspN').textContent = P.suspicion;
+  $('akte').classList.toggle('hot', P.suspicion >= 60);
   $('aInf').textContent = P.influence; $('aCash').textContent = fmtCash(P.cash);
   $('aInvRow').classList.toggle('hidden', P.inv == null);
-  if (P.inv != null) { $('aInv').style.width = P.inv + '%'; $('aInvN').textContent = P.inv; }
+  if (P.inv != null) { tally($('aInv'), P.inv); $('aInvN').textContent = P.inv; }
 }
 function startFree() {
   A.ensureAudio();

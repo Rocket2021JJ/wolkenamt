@@ -347,7 +347,7 @@ body.online #bar{right:264px}
 .powrep h3{font-family:var(--serif);font-weight:400;font-size:17px;margin:0 0 6px}
 .powrep .prow2{grid-template-columns:150px 1fr 90px}
 @media (max-width:700px){.pcards{grid-template-columns:1fr}}
-#hud .akte{display:block}
+
 #hud .akte.hidden{display:none}
 .prow2 .bar{display:block}
 .akte .arow span:first-child{white-space:nowrap}
@@ -401,13 +401,60 @@ body.online #bar{right:264px}
 #side .prow.talk .av{box-shadow:0 0 0 3px var(--tanne),0 0 10px var(--tanne)}
 #side .prow.talk .ps{color:var(--tanne);font-weight:600}
 
-/* Handy: Akte kompakt, Umfrage per Antippen */
+
+
+/* ---------- Akte im Spiel: Aktendeckel mit Blatt, Bleistift, Strichliste ---------- */
+#hud .dossier{position:absolute;right:16px;top:60px;width:238px;pointer-events:auto;transform:rotate(.7deg);
+  background:#DCC48A;border-radius:2px 3px 3px 2px;padding:10px 7px 7px 9px;
+  box-shadow:0 1px 0 #B99E5E inset,0 -1px 0 #EAD9A8 inset,2px 3px 6px rgba(34,48,58,.28)}
+.dossier .dtab{position:absolute;left:14px;top:-15px;height:17px;padding:2px 10px 0 9px;background:#DCC48A;border-radius:4px 7px 0 0;
+  font:700 10.5px/1 var(--schreib);letter-spacing:.08em;text-transform:uppercase;color:#5E4A22;box-shadow:0 -1px 0 #EAD9A8 inset}
+.dossier .dtab b{color:var(--rot);margin-left:3px}
+.dossier .dclip{position:absolute;right:22px;top:-12px;width:11px;height:30px;z-index:2;transform:rotate(4deg)}
+.dossier .dsheet{position:relative;background:#F6F3EA;padding:7px 9px 7px 20px;transform:rotate(-1.1deg);
+  box-shadow:1px 1px 0 rgba(0,0,0,.08);
+  background-image:linear-gradient(90deg,transparent 14px,rgba(200,53,43,.45) 14px,rgba(200,53,43,.45) 15px,transparent 15px),
+    repeating-linear-gradient(180deg,transparent 0 18px,rgba(47,78,140,.16) 18px 19px)}
+.dossier .dh{font:700 11px/1.5 var(--schreib);letter-spacing:.1em;text-transform:uppercase;color:var(--grau);margin-bottom:1px}
+.dossier .prow2{grid-template-columns:34px 1fr 44px;gap:5px;margin:0;height:19px;align-items:center}
+.dossier .prow2 .pn{font:700 12px/1 var(--schreib);position:relative;justify-self:start}
+.dossier .prow2.me .pn{text-decoration:none}
+.dossier .prow2.me .pn::before{content:'';position:absolute;left:-5px;top:-4px;right:-5px;bottom:-4px;border:1.5px solid var(--rot);
+  border-radius:52% 46% 55% 43% / 58% 50% 48% 44%;transform:rotate(-4deg)}
+.dossier .prow2 .bar{height:9px;background:none;position:relative}
+.dossier .prow2 .bar::after{content:'';position:absolute;left:0;right:0;bottom:-1px;border-bottom:1px dotted rgba(34,48,58,.3)}
+.dossier .prow2 .bar i{height:100%;background:repeating-linear-gradient(-62deg,currentColor 0 1.6px,transparent 1.6px 3.4px);opacity:.92}
+.dossier .prow2 b{font:400 12px/1 var(--schreib);text-align:right}
+.dossier .prow2.me b{font-weight:700}
+.dossier .dline{display:flex;align-items:center;gap:7px;height:19px;font-size:12px;margin-top:1px}
+.dossier .dline > span{min-width:62px}
+.dossier .tally{height:15px;flex:none}
+.dossier .tally path{stroke:var(--tinte);stroke-width:1.5;stroke-linecap:round;fill:none}
+.dossier .dline b{margin-left:auto;font:700 12px/1 var(--schreib);color:var(--rot)}
+.dossier #aInvRow .tally path{stroke:var(--rot)}
+.dossier .dnote{display:flex;justify-content:space-between;gap:6px;height:19px;align-items:center;font-size:11.5px;color:var(--grau);white-space:nowrap}
+.dossier .dnote b{font:700 12px/1 var(--schreib);color:var(--tinte)}
+.dossier.hot .dsheet::after{content:'VERTRAULICH';position:absolute;right:30px;top:4px;font:700 10.5px/1 var(--schreib);letter-spacing:.12em;
+  color:var(--rot);border:1.5px solid var(--rot);padding:2px 4px;transform:rotate(-6deg);opacity:.6;pointer-events:none;mix-blend-mode:multiply}
+html[lang=en] .dossier.hot .dsheet::after{content:'CONFIDENTIAL'}
+
+/* Notizzettel oben links */
+#hud .task{border:none;background:#F6F3EA;transform:rotate(-1deg);padding:12px 13px 9px;border-radius:1px;
+  box-shadow:1px 2px 0 rgba(34,48,58,.12),2px 4px 8px rgba(34,48,58,.22);
+  background-image:radial-gradient(circle at 5px 0,transparent 3px,#F6F3EA 3.5px);background-size:10px 6px;background-repeat:repeat-x;
+  background-color:#F6F3EA}
+#hud .task::before{content:'';position:absolute;left:50%;top:-8px;width:62px;height:17px;margin-left:-31px;background:rgba(220,196,138,.72);
+  transform:rotate(2.5deg);box-shadow:0 0 0 1px rgba(150,120,60,.12) inset}
+#hud .task small{font:700 10.5px/1.4 var(--schreib);letter-spacing:.08em;text-transform:uppercase;color:var(--grau);margin-bottom:2px}
+#hud.flash .task{color:var(--rot)}
+
 @media (max-width:700px){
-  #hud .task{max-width:calc(100% - 190px)}
-  #hud .akte{width:160px;right:8px;top:52px;padding:6px 8px;font-size:11.5px;cursor:pointer}
-  #hud .akte:not(.open) #aPolls{display:none}
-  #hud .akte .ah::after{content:'▾';margin-left:4px}
-  #hud .akte.open .ah::after{content:'▴'}
-  #hud .akte .arow:last-child{flex-wrap:wrap}
+  #hud .task{max-width:calc(100% - 196px)}
+  #hud .dossier{width:168px;right:10px;top:58px;cursor:pointer}
+  #hud .dossier:not(.open) #aPolls,#hud .dossier:not(.open) .dh{display:none}
+  #hud .dossier .dtab::after{content:' ▾'}
+  #hud .dossier.open .dtab::after{content:' ▴'}
+  .dossier .dnote{flex-direction:column;align-items:flex-start;height:auto;gap:1px}
   .sheet .akte{grid-template-columns:1fr 1fr}
 }
+#hud .task #hTask::before{content:'';display:inline-block;width:10px;height:10px;border:1.5px solid var(--tinte);margin:0 7px -1px 0;transform:rotate(-4deg);border-radius:1px}

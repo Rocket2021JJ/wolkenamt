@@ -23,6 +23,8 @@ add({
   'end.next': ['Kapitel 2 «Die Untersuchung» ist jetzt im Menü freigeschaltet.', 'Chapter 2 “The Investigation” is now unlocked in the menu.'],
   'menu.ch1': ['Kapitel 1 · Der Posten', 'Chapter 1 · The Post'],
   'menu.ch2': ['Kapitel 2 · Die Untersuchung', 'Chapter 2 · The Investigation'],
+  'akte.cashShort': ['Kässeli', 'Slush'],
+  'akte.file': ['Akte', 'File'],
   'akte.inv': ['Ermittlung', 'Investigation'],
   'inv.daily': ['Stand der Ermittlung: {v} von 100 (heute +{d} durch den Verdacht). Bei 100 ist das Amt weg.', 'Investigation: {v} of 100 (+{d} today from suspicion). At 100 you lose the office.'],
   'rep.week2': ['Kapitel 2 ist vorbei. Inspektor Wyss schreibt seinen Bericht. Rang im Amt: {r}.', 'Chapter 2 is over. Inspector Wyss is writing his report. Rank in the office: {r}.'],

@@ -253,6 +253,12 @@ export function puffSound() { if (!ac) return; const t = ac.currentTime; if (t -
 export function windSound() { noise(0.9, 'bandpass', 380, 0.25, 0.7); }
 export function shutter() { noise(0.05, 'highpass', 3000, 0.4); setTimeout(() => noise(0.06, 'highpass', 2500, 0.3), 90); }
 export function stampSound() { noise(0.14, 'lowpass', 160, 1.2); setTimeout(() => noise(0.05, 'bandpass', 900, 0.3), 30); }
+// Kirchenglocke: tiefe, lange Schläge
+export function churchBells(n = 6) {
+  if (!ac || sound.muted) return;
+  const seq = [196, 247, 165, 196, 247, 165, 220, 196];
+  for (let i = 0; i < n; i++) { bell(seq[i % seq.length], ac.currentTime + i * 0.75, 0.12, 3.2, busAmb); bell(seq[i % seq.length] * 2.01, ac.currentTime + i * 0.75, 0.035, 1.8, busAmb); }
+}
 export function chime(freqs, gap) {
   if (!ac || sound.muted) return;
   freqs.forEach((fq, i) => bell(fq, ac.currentTime + i * gap, 0.05, 1.2, busSfx));

@@ -106,6 +106,7 @@ world.setFadeHouses(world.houses.map((_, i) => i), [office.thSign.parent]);
 world.bake([...world.hens, ...world.valleyClouds, world.skyDome, ...world.landscape, office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank, office.hall, office.roessli, office.huber, ...office.townDyn, office.windsock, ...office.laundry], world.fadeList.map(f => f.g));
 world.spawnVillagers(11);
 // Die ersten vier Dorfleute haben Namen und lassen sich ansprechen
+{ const cb = world.interactables.find(i => i.id === 'churchbell'); if (cb) cb.label = t('use.churchbell'); }
 const folkIts = FOLK.map((f, i) => world.addInteractable('folk_' + i, world.villagers[i].pos, 1.5, t('folk.talk', { n: L(f.name) })));
 world.sfx = A.sfx;
 window.__world = world;
@@ -474,6 +475,7 @@ world.onUse = (id) => {
   if (id.startsWith('pexit_')) return leaveRoom('p_' + id.slice(6));
   if (id.startsWith('note_')) return openNote(+id.slice(5));
   if (id === 'fernrohr') return lookThrough();
+  if (id === 'churchbell') { if ((world.bellT || 0) > 0) return; world.bellT = 4.6; A.churchBells(6); world.watch(true, world.churchBell.getWorldPosition(V(0, 0, 0))); setTimeout(() => { if (mode === 'world') world.watch(false); }, 5000); return; }
   if (id === 'huberdoor') { office.dogNoise = 0; return enterRoom(HUBER_SPOT, 'task.huber'); }
   if (id === 'huberexit') return leaveRoom('huber');
   if (/^h(desk|safe|portrait|model)$/.test(id)) return openHuberSpot(id);
@@ -1720,7 +1722,7 @@ addEventListener('keydown', e => {
 
 // Sprache wechseln: alles neu beschriften
 onLang(() => {
-  applyDom(); office.relabel(); relabelTown(office); soundLabels(); folkIts.forEach((it, i) => { it.label = t('folk.talk', { n: L(FOLK[i].name) }); });
+  applyDom(); office.relabel(); relabelTown(office); { const cb = world.interactables.find(i => i.id === 'churchbell'); if (cb) cb.label = t('use.churchbell'); } soundLabels(); folkIts.forEach((it, i) => { it.label = t('folk.talk', { n: L(FOLK[i].name) }); });
   if (mode === 'menu') showMenu();
   if (taskKey) setTask(taskKey, taskVars);
   document.title = t('doc.title');

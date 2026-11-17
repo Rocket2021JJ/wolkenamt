@@ -200,3 +200,9 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   rund 95 Bäume, Wäscheleinen, Heuballen, Laternen, Bänkli, Wegweiser. Zwölf Wolkwilisch-Zettel im Dorf
   versteckt (alle gefunden = Erfolg). Seilbahn-Bergstation an den Südostrand verlegt. Alle Innenräume
   liegen jetzt weit weg (z = -640) auf einer Wiese, die nur sichtbar ist, wenn man drin ist.
+- Umgebung im Stil heller Spielwelten (17.11.): weiches Gelände (runde Schattierung statt Facetten), saftiges
+  Grün, klares türkises Wasser mit Sandufer, echte Felder im Tal (Weizen, Mais, Acker, Wiese mit Reihen),
+  gemischter Wald aus runden Tannen und Kugelbäumen mit leicht unterschiedlichen Farben, runde Felsen.
+  Kirche neu: Schiff mit Strebepfeilern und Bogenfenstern, Apsis mit Rundfenster, hoher Turm mit vier Uhren,
+  Glockenstube, Spitzhelm mit vier Giebeln, Kreuz und drehendem Güggel, Vorzeichen. Am Glockenseil ziehen
+  läutet die Glocke (eigener Klang), die Leute schauen hoch.

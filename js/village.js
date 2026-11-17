@@ -199,23 +199,84 @@ export function lamp(w, x, z) {
   const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), BULB);
   const halo = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), HALO); halo.position.copy(bulb.position); w.scene.add(halo); bulb.position.set(x + 0.42, 2.77, z); w.scene.add(bulb);
 }
+// Kirche St. Niklaus: Schiff mit Strebepfeilern und hohen Bogenfenstern, Chor mit Apsis hinten,
+// hoher Turm vorne mit Uhren, Glockenstube, Spitzhelm mit vier Giebeln, Kreuz und goldenem Güggel, Vorzeichen.
 function church(w, x, z, rot) {
   const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot; w.scene.add(g);
-  w.box(4.2, 3.4, 7, PAL.schnee, 0, 0, 0, { parent: g, line: 0.015 });
-  w.box(4.3, 0.4, 7.1, STEIN, 0, 0, 0, { parent: g });
-  const rf = w.gable(5.0, 2.4, 7.5, ZIEGEL, 0, 3.4, 0, 0, g); rf.castShadow = true;
-  for (const zz of [-2, 0, 2]) { w.box(0.06, 1.4, 0.5, PAL.tinte, 2.12, 1.2, zz, { parent: g, cast: false }); const a = new THREE.Mesh(new THREE.CircleGeometry(0.25, 10, 0, Math.PI), toon(PAL.tinte)); a.rotation.y = Math.PI / 2; a.position.set(2.13, 2.6, zz); g.add(a); }
-  // Turm mit Spitzhelm, Uhr und Glocke
-  w.box(1.8, 6.2, 1.8, PAL.schnee, 0, 0, 4.3, { parent: g, line: 0.015 });
-  const helm = new THREE.Mesh(new THREE.ConeGeometry(1.35, 3.6, 4), toon(ZIEGEL2)); helm.rotation.y = Math.PI / 4; helm.position.set(0, 6.2 + 1.8, 4.3); helm.castShadow = true; g.add(helm); outline(helm, 0.02);
-  w.box(0.05, 0.8, 0.05, PAL.ocker, 0, 9.8, 4.3, { parent: g }); w.box(0.4, 0.05, 0.05, PAL.ocker, 0, 10.3, 4.3, { parent: g });
-  const cl = new THREE.Mesh(new THREE.CircleGeometry(0.42, 18), toon(PAL.papier)); cl.position.set(0, 5.0, 5.21); g.add(cl);
-  w.box(0.04, 0.3, 0.02, PAL.tinte, 0, 5.05, 5.23, { parent: g, cast: false }); const hd = w.box(0.04, 0.22, 0.02, PAL.tinte, 0.06, 4.95, 5.23, { parent: g, cast: false }); hd.rotation.z = -1.2;
-  for (const s of [-1, 1]) { const sl = w.box(0.04, 0.7, 0.4, PAL.tinte, s * 0.91, 3.9, 4.3, { parent: g, cast: false }); }
-  w.box(0.9, 1.6, 0.06, PAL.nuss, 0, 0, 5.22, { parent: g });
-  // Friedhofsmäuerchen mit Kreuzen
-  for (let k = 0; k < 5; k++) { const cx = -3.4 + k * 0.6, cz = -1.5 + (k % 2) * 1.2; w.box(0.06, 0.6, 0.06, PAL.tinte, cx, 0, cz, { parent: g }); w.box(0.3, 0.06, 0.06, PAL.tinte, cx, 0.42, cz, { parent: g }); }
-  w.box(0.3, 0.55, 5.2, STEIN, -4.1, 0, 0, { parent: g });
+  const B = (wd, ht, dp, col, px, py, pz, o = {}) => w.box(wd, ht, dp, col, px, py, pz, { parent: g, cast: o.cast, line: o.line, tilt: o.tilt });
+  const WEISS = '#F4EFE4', QUAD = '#C9C1AE', DACH = '#7C3A2A', GLAS = '#7FA9C9', GOLD = '#D9A93A';
+  const NW = 5.6, ND = 9, NH = 4.6;
+  // Sockel und Schiff
+  B(NW + 0.3, 0.5, ND + 0.3, STEIN, 0, 0, 0);
+  B(NW, NH, ND, WEISS, 0, 0, 0, { line: 0.012 });
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (let y = 0.5, k = 0; y < NH - 0.3; y += 0.4, k++) B(k % 2 ? 0.28 : 0.45, 0.32, 0.03, QUAD, sx * (NW / 2 - (k % 2 ? 0.14 : 0.22)), y, sz * (ND / 2 + 0.01), { cast: false });
+  // Strebepfeiler und hohe Bogenfenster an beiden Seiten
+  for (const sx of [-1, 1]) {
+    for (const zz of [-4.2, -1.4, 1.4, 4.2]) { const sp = B(0.45, NH - 0.6, 0.55, WEISS, sx * (NW / 2 + 0.2), 0, zz, { line: 0.01 }); B(0.5, 0.25, 0.6, QUAD, sx * (NW / 2 + 0.22), NH - 0.6, zz); }
+    for (const zz of [-2.8, 0, 2.8]) {
+      B(0.06, 2.0, 0.9, GLAS, sx * (NW / 2 + 0.02), 1.4, zz, { cast: false });
+      const arc = new THREE.Mesh(new THREE.CircleGeometry(0.45, 14, 0, Math.PI), toon(GLAS)); arc.rotation.y = sx * Math.PI / 2; arc.position.set(sx * (NW / 2 + 0.03), 3.4, zz); g.add(arc);
+      B(0.08, 0.1, 1.1, QUAD, sx * (NW / 2 + 0.04), 1.3, zz, { cast: false });
+      B(0.07, 2.1, 0.05, PAL.tinte, sx * (NW / 2 + 0.05), 1.4, zz, { cast: false }); B(0.07, 0.05, 0.9, PAL.tinte, sx * (NW / 2 + 0.05), 2.5, zz, { cast: false });
+    }
+  }
+  // Dach mit Überstand, First und Ziegelreihen
+  const rf = w.gable(NW + 1.2, 3.4, ND + 0.8, DACH, 0, NH, 0, 0, g); rf.castShadow = true;
+  B(0.25, 0.14, ND + 0.9, '#5E2A1E', 0, NH + 3.35, 0, { cast: false });
+  const ang = Math.atan2(3.4, (NW + 1.2) / 2);
+  for (const sd of [-1, 1]) for (let k = 1; k < 5; k++) { const t = k / 5, m = B(0.05, 0.05, ND + 0.82, '#5E2A1E', sd * (NW + 1.2) / 2 * (1 - t), NH + 3.4 * t + 0.02, 0, { cast: false }); m.rotation.z = -sd * ang; }
+  // Chor mit Apsis hinten, Rundfenster im Giebel
+  const ap = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, NH - 0.6, 16, 1, false, Math.PI / 2, Math.PI), toon(WEISS)); ap.position.set(0, (NH - 0.6) / 2, -ND / 2); ap.castShadow = true; g.add(ap); outline(ap, 0.012);
+  const apr = new THREE.Mesh(new THREE.ConeGeometry(2.45, 2.2, 16, 1, false, Math.PI / 2, Math.PI), toon(DACH)); apr.position.set(0, NH - 0.6 + 1.1, -ND / 2); apr.castShadow = true; g.add(apr);
+  const rose = new THREE.Mesh(new THREE.CircleGeometry(0.55, 16), toon(GLAS)); rose.position.set(0, NH + 1.1, -ND / 2 - 0.03); rose.rotation.y = Math.PI; g.add(rose);
+  const rr = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.07, 6, 18), toon(QUAD)); rr.position.copy(rose.position); g.add(rr);
+  // Turm vorne
+  const TZ = ND / 2 + 1.2, TW = 2.6, TH = 10.5;
+  B(TW + 0.3, 0.6, TW + 0.3, STEIN, 0, 0, TZ);
+  B(TW, TH, TW, WEISS, 0, 0, TZ, { line: 0.014 });
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (let y = 0.6, k = 0; y < TH - 0.3; y += 0.45, k++) B(0.06, 0.36, k % 2 ? 0.3 : 0.5, QUAD, sx * (TW / 2 + 0.01), y, TZ + sz * (TW / 2 - (k % 2 ? 0.15 : 0.25)), { cast: false });
+  B(TW + 0.12, 0.18, TW + 0.12, QUAD, 0, TH - 2.9, TZ); B(TW + 0.16, 0.2, TW + 0.16, QUAD, 0, TH, TZ);
+  // Glockenstube: Schallöffnungen auf allen Seiten, Glocke sichtbar
+  for (let k = 0; k < 4; k++) {
+    const a = k * Math.PI / 2, ox = Math.sin(a) * (TW / 2 + 0.01), oz = Math.cos(a) * (TW / 2 + 0.01);
+    const op = B(0.8, 1.3, 0.05, '#3A3530', ox, TH - 2.4, TZ + oz, { cast: false }); op.rotation.y = a;
+    const oa = new THREE.Mesh(new THREE.CircleGeometry(0.4, 12, 0, Math.PI), toon('#3A3530')); oa.position.set(ox * 1.001, TH - 1.1, TZ + oz * 1.001); oa.rotation.y = a; g.add(oa);
+    for (let j = 0; j < 3; j++) { const lv = B(0.82, 0.05, 0.08, PAL.nuss, ox * 1.02, TH - 2.2 + j * 0.38, TZ + oz * 1.02, { cast: false }); lv.rotation.y = a; }
+    // Uhr mit Zeigern
+    const cf = new THREE.Mesh(new THREE.CircleGeometry(0.62, 22), toon(PAL.tinte)); cf.position.set(ox * 1.012, TH - 4.3, TZ + oz * 1.012); cf.rotation.y = a; g.add(cf);
+    const cw = new THREE.Mesh(new THREE.CircleGeometry(0.54, 22), toon('#F1E6C2')); cw.position.set(ox * 1.02, TH - 4.3, TZ + oz * 1.02); cw.rotation.y = a; g.add(cw);
+    for (const [len, rz] of [[0.42, 0.3], [0.3, -1.9]]) { const hand = new THREE.Mesh(new THREE.BoxGeometry(0.05, len, 0.01), toon(PAL.tinte)); hand.geometry.translate(0, len / 2, 0); hand.position.set(ox * 1.03, TH - 4.3, TZ + oz * 1.03); hand.rotation.set(0, a, rz); g.add(hand); }
+  }
+  const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.48, 0.65, 12, 1, true), toon(GOLD, { side: THREE.DoubleSide })); bell.position.set(0, TH - 1.6, TZ); g.add(bell); w.churchBell = bell;
+  // Spitzhelm mit vier Giebeln (Wimperge), Kugel, Kreuz, Güggel
+  for (let k = 0; k < 4; k++) {
+    const a = k * Math.PI / 2, gs = new THREE.Shape(); gs.moveTo(-TW / 2, 0); gs.lineTo(TW / 2, 0); gs.lineTo(0, 1.4); gs.closePath();
+    const gm = new THREE.Mesh(new THREE.ExtrudeGeometry(gs, { depth: 0.12, bevelEnabled: false }), toon(WEISS)); gm.position.set(Math.sin(a) * (TW / 2 - 0.06), TH + 0.2, TZ + Math.cos(a) * (TW / 2 - 0.06)); gm.rotation.y = a; g.add(gm); outline(gm, 0.012);
+  }
+  const helm = new THREE.Mesh(new THREE.ConeGeometry(TW * 0.74, 7.2, 8), toon(DACH)); helm.position.set(0, TH + 0.2 + 3.6, TZ); helm.rotation.y = Math.PI / 8; helm.castShadow = true; g.add(helm); outline(helm, 0.02);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), toon(GOLD)); ball.position.set(0, TH + 7.55, TZ); g.add(ball);
+  B(0.07, 1.0, 0.07, GOLD, 0, TH + 7.6, TZ); B(0.5, 0.07, 0.07, GOLD, 0, TH + 8.25, TZ);
+  const rooster = new THREE.Group(); rooster.position.set(0, TH + 8.75, TZ); g.add(rooster); w.churchRooster = rooster;
+  const rb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), toon(GOLD)); rb.scale.set(1.5, 1, 0.5); rooster.add(rb);
+  const rt = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.35, 6), toon(GOLD)); rt.position.set(-0.25, 0.12, 0); rt.rotation.z = 0.9; rooster.add(rt);
+  const rh = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), toon(GOLD)); rh.position.set(0.22, 0.15, 0); rooster.add(rh);
+  // Vorzeichen (Vordach) vor dem Eingang, Doppeltüre mit Bogen
+  const VZ = TZ + TW / 2 + 0.9;
+  for (const sx of [-0.85, 0.85]) w.cyl(0.08, 0.1, 2.3, PAL.nuss, sx, 0, VZ + 0.6, { parent: g, seg: 8 });
+  const vd = w.gable(2.4, 0.9, 1.9, DACH, 0, 2.3, VZ, 0, g);
+  B(1.3, 2.1, 0.08, PAL.nuss, 0, 0, TZ + TW / 2 + 0.03, { line: 0.01 });
+  const da = new THREE.Mesh(new THREE.CircleGeometry(0.65, 14, 0, Math.PI), toon(PAL.nuss)); da.position.set(0, 2.1, TZ + TW / 2 + 0.04); g.add(da);
+  B(0.03, 2.1, 0.02, PAL.tinte, 0, 0, TZ + TW / 2 + 0.08, { cast: false });
+  B(2.0, 0.15, 1.6, STEIN, 0, 0, VZ + 0.2, { cast: false });
+  // Kollision: Schiff, Turm, Apsis
+  const C = (lx0, lz0, lx1, lz1, h) => {
+    const pts = [[lx0, lz0], [lx1, lz0], [lx0, lz1], [lx1, lz1]].map(([a, b]) => [x + a * Math.cos(rot) + b * Math.sin(rot), z - a * Math.sin(rot) + b * Math.cos(rot)]);
+    w.addCollider(Math.min(...pts.map(p => p[0])), 0, Math.min(...pts.map(p => p[1])), Math.max(...pts.map(p => p[0])), h, Math.max(...pts.map(p => p[1])));
+  };
+  C(-NW / 2 - 0.4, -ND / 2 - 2.2, NW / 2 + 0.4, ND / 2, 8); C(-TW / 2, ND / 2, TW / 2, ND / 2 + TW + 0.4, 20);
+  const door = new THREE.Vector3(Math.sin(rot) * (VZ + 1.4), 0, Math.cos(rot) * (VZ + 1.4)).add(g.position);
+  w.addInteractable('churchbell', door, 1.2, 'Glocke');
+  return g;
 }
 function maibaum(w, x, z) {
   const h = 9;
@@ -293,7 +354,7 @@ function garden(w, x, z, wd, dp) {
 }
 function poles(w) {
   // Holzmasten mit durchhängenden Leitungen hinter dem Nordzaun
-  const xs = [-22, -13, -4, 5, 14, 23], z = -13.5;
+  const xs = [-7, 3, 13, 23], z = -13.5;
   xs.forEach(x => { w.box(0.14, 5.5, 0.14, PAL.nuss, x, 0, z, { tilt: w.jit(0.04) }); w.box(1.2, 0.08, 0.08, PAL.nuss, x, 5.2, z); for (const s of [-0.5, 0, 0.5]) w.box(0.06, 0.12, 0.06, PAL.schnee, x + s, 5.28, z, { cast: false }); });
   for (let i = 0; i < xs.length - 1; i++) for (const s of [-0.5, 0, 0.5]) {
     const pts = []; for (let k = 0; k <= 10; k++) { const t = k / 10; pts.push(new THREE.Vector3(xs[i] + s + (xs[i + 1] - xs[i]) * t, 5.36 - Math.sin(t * Math.PI) * 0.55, z)); }
@@ -338,7 +399,7 @@ export function benchTable(w, x, z, rot) {
 export function detailVillage(w) {
   w.houses.forEach((g, i) => decorateHouse(w, g, i));
   for (const [x, z] of [[-8.6, 6.6], [8.6, 6.6], [-8.6, 19.3], [8.6, 19.3]]) lamp(w, x, z);
-  church(w, -18, -17, 0.25);
+  church(w, -18, -19, 0.25);
   maibaum(w, 7.6, 10.4);
   wegkreuz(w, -7.6, -0.6, 0.4);
   tractor(w, 16.5, 7.8, 0.6);

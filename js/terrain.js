@@ -65,49 +65,30 @@ export function terrainH(x, z) {
 const C = s => new THREE.Color(s);
 const GR = [C('#6F8F4E'), C('#7E9C55'), C('#62824A'), C('#86A25C')], WALD = C('#4C6B3C'), ALP = C('#8AA45E'), FELS = C('#868276'), FELS2 = C('#7C8E9C'),
   SCHNEE = C(PAL.schnee), WASSER = C('#6F9BB8'), ACKER = [C('#C9B26A'), C('#8DAA5E'), C('#9C7B4E'), C('#A9B963'), C('#7E9C55')], WEG = C('#B7A98A'), STRASSE = C('#8B8A84'), SCHOTTER = C('#7A6A58'), FELS3 = C('#5E6870'), GEROELL = C('#A8A598'), ROCK_L = C('#A39C8E'), ROCK_M = C('#878A86'), ROCK_D = C('#5C6670'), LEDGE = C('#6E8A4C');
+// Farben im Stil von hellen, saftigen Spielwelten: weiche Übergänge, kräftiges Grün, klares Wasser
+const LUSH = [C('#7DBA4C'), C('#8FC95A'), C('#6AA944')], FOREST = C('#4E8B3A'), ROCK = C('#A7A59C'), SAND = C('#E3D29A'), LUSH_HIGH = C('#A9CF78'), ROAD = C('#8E8C86'), RAILB = C('#8A7A66');
 function colorAt(x, z, h, slope, d) {
-  const n = fbm(x * 0.15, z * 0.15), n2 = vnoise(x * 0.6, z * 0.6);
-  let c = GR[0].clone().lerp(GR[1], sstep(0.45, 0.7, n)).lerp(GR[2], sstep(0.55, 0.8, 1 - n) * 0.8);
-  if (d <= 0) {
-    c.lerp(GR[3], sstep(0.6, 0.9, n2) * 0.6);
-    
-    return c;
-  }
-  const fy = floorY(z), onFloor = h < fy + 7;
-  if (onFloor) {
-    // Talboden: Felder als Flickenteppich, Fluss, Strasse, Bahn
-    const fx = Math.floor((x + 1000) / 18), fz = Math.floor((z + 1000) / 12), k = Math.floor(hash(fx, fz) * 5);
-    c = ACKER[k].clone().lerp(GR[1], 0.2 + n2 * 0.2);
-    if (Math.abs(x - riverX(z)) < 5.5) c = WASSER.clone();
-    else if (Math.abs(x - riverX(z)) < 8) c = GR[2].clone();
-    if (Math.abs(x - roadX(z)) < 2.4) c = STRASSE.clone();
-    if (Math.abs(x - railX(z)) < 2.2) c = SCHOTTER.clone();
+  const n = fbm(x * 0.02, z * 0.02), n2 = fbm(x * 0.08 + 3, z * 0.08, 3);
+  const c = LUSH[0].clone().lerp(LUSH[1], sstep(0.35, 0.65, n)).lerp(LUSH[2], sstep(0.55, 0.8, n2) * 0.35);
+  if (d <= 0) return c;
+  const fy = floorY(z);
+  if (h < fy + 5) {
+    const rd = Math.abs(x - riverX(z));
+    if (rd < 7.5) return SAND.clone().lerp(c, sstep(5.5, 7.5, rd));
+    if (Math.abs(x - roadX(z)) < 2.6) return ROAD.clone();
+    if (Math.abs(x - railX(z)) < 2.3) return RAILB.clone();
     return c;
   }
   if (d < 75 && Math.abs(x) < 190) {
-    // Hang der Kuppe: Wald, Fels an steilen Stellen
-    c.lerp(WALD, 0.55 * sstep(2, 8, d));
-    if (slope > 0.9) c.lerp(FELS, sstep(0.9, 1.6, slope));
+    c.lerp(FOREST, 0.5 * sstep(4, 10, d) * sstep(0.45, 0.62, n2));
+    if (slope > 1.1) c.lerp(ROCK, sstep(1.1, 1.8, slope) * 0.6);
     return c;
   }
-  // Hügel: Flickenteppich aus Wiesen, Hecken und Waldstücken
-  return patchColor(x, z, h, slope);
-  const hn = h + (n - 0.5) * 28;
-  c = WALD.clone().lerp(GR[2], n2 * 0.25);
-  if (hn > 25) c = ALP.clone().lerp(GR[1], n2 * 0.3);
-  if (hn > 80 || slope > 1.25) {
-    // Fels mit Schichtbändern, senkrechten Rinnen, Grasbändern auf Absätzen und hellem Geröll am Fuss
-    const band = Math.sin(h * 0.09 + n * 5) * 0.5 + 0.5, streak = fbm(x * 0.045 + z * 0.03, z * 0.045 - x * 0.03, 3);
-    c = ROCK_L.clone().lerp(ROCK_M, sstep(0.3, 0.7, band)).lerp(ROCK_D, sstep(0.52, 0.72, streak) * 0.85);
-    if (sstep(0.62, 0.78, fbm(x * 0.02 + 9, h * 0.05, 3)) > 0.5 && hn < 210) c.lerp(LEDGE, 0.75);
-    if (slope < 1.45 && hn > 60 && hn < 150) c.lerp(ALP, 0.6 * sstep(1.45, 0.95, slope));
-    if (hn < 115 && slope < 1.05) c.lerp(GEROELL, 0.45 * sstep(1.05, 0.7, slope));
-  }
-  if (hn > 140 && slope < 0.95) c = c.lerp(SCHNEE, sstep(140, 175, hn) * 0.9);
-  if (hn > 175) c = SCHNEE.clone().lerp(FELS2, slope > 1.5 ? 0.35 : 0);
+  if (patchCell(x, z).forest) c.lerp(FOREST, 0.7);
+  if (slope > 1.3) c.lerp(ROCK, sstep(1.3, 2.0, slope) * 0.6);
+  if (h > fy + 200) c.lerp(LUSH_HIGH, 0.4);
   return c;
 }
-
 // Wiesenstücke als unregelmässige Zellen (Voronoi), jede Zelle eine Farbe; manche sind Wald
 const MEADOW = [C('#7FA055'), C('#8DAA5E'), C('#6F9450'), C('#98B266'), C('#87A35A'), C('#B9B46A')], HECKE = C('#46653A'), WALD2 = C('#3F5F36');
 export function patchCell(x, z) {
@@ -145,37 +126,29 @@ function terrainMesh(size, seg, cx, cz, hole) {
     const c = colorAt(x, z, h, sl, plateauDist(x, z)); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
   }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const flat = geo.toNonIndexed(); flat.computeVertexNormals();
-  // Ausserhalb des Dorfes: eine Farbe pro Dreieck aus seinem Mittelpunkt (klare Flicken statt Verläufe)
-  const FP = flat.attributes.position, FC = flat.attributes.color, FN = flat.attributes.normal;
-  // je zwei Dreiecke bilden ein Feld des Rasters: das ganze Feld bekommt eine Farbe (keine Zacken)
-  for (let t = 0; t < FP.count; t += 6) {
-    let x = 0, y = 0, z = 0; for (let k = 0; k < 6; k++) { x += FP.getX(t + k); y += FP.getY(t + k); z += FP.getZ(t + k); } x /= 6; y /= 6; z /= 6;
-    const d = plateauDist(x, z); if (d < 4) continue;
-    const ny = Math.max(0.05, (FN.getY(t) + FN.getY(t + 3)) / 2), sl = Math.sqrt(1 - ny * ny) / ny;
-    edgeW = e * 0.6;
-    const c = colorAt(x, z, y, sl, d);
-    for (let k = 0; k < 6; k++) FC.setXYZ(t + k, c.r, c.g, c.b);
-  }
-  edgeW = 2.2;
-  return flat;
+  geo.computeVertexNormals();
+  return geo;
 }
 const terrainMat = () => new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: gradient });
 
-// Tanne als ein Stück Geometrie mit Farben (für InstancedMesh)
-function firGeo() {
-  const parts = [], add = (g, color, y) => { g = g.toNonIndexed(); g.translate(0, y, 0); const c = new THREE.Color(color), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); parts.push(g); };
-  add(new THREE.CylinderGeometry(0.1, 0.14, 0.5, 5), PAL.chalet, 0.25);
-  add(new THREE.ConeGeometry(0.75, 1.3, 7), '#557A43', 1.0);
-  add(new THREE.ConeGeometry(0.58, 1.1, 7), '#5E8449', 1.6);
-  add(new THREE.ConeGeometry(0.4, 0.9, 7), '#6A9152', 2.15);
+// Bäume als ein Stück Geometrie mit Farben (für InstancedMesh): runde Tanne und Kugelbaum, weich schattiert
+function merged(parts) {
   const n = parts.reduce((s, g) => s + g.attributes.position.count, 0), pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3);
   let o = 0; for (const g of parts) { pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); col.set(g.attributes.color.array, o * 3); o += g.attributes.position.count; }
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   return geo;
 }
+function part(g, color, y, sy = 1) { g = g.toNonIndexed(); g.scale(1, sy, 1); g.translate(0, y, 0); const c = new THREE.Color(color), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g; }
+export function pineGeo() {
+  return merged([part(new THREE.CylinderGeometry(0.12, 0.16, 0.6, 7), '#8A5A36', 0.3),
+    part(new THREE.ConeGeometry(0.85, 1.3, 12), '#3F8A3E', 1.05), part(new THREE.ConeGeometry(0.68, 1.15, 12), '#4A9A45', 1.7), part(new THREE.ConeGeometry(0.48, 1.0, 12), '#58AA4E', 2.3)]);
+}
+export function roundGeo() {
+  return merged([part(new THREE.CylinderGeometry(0.13, 0.19, 1.3, 7), '#8A5A36', 0.65),
+    part(new THREE.SphereGeometry(0.95, 12, 9), '#5FA845', 2.05, 0.92), part(new THREE.SphereGeometry(0.6, 10, 8).translate(0.45, 0.35, 0.25), '#72B851', 2.15)]);
+}
 function forest(w) {
-  const geo = firGeo(), mat = new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: gradient });
+  const mat = new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: gradient });
   const spots = [];
   let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   // dichter Wald am Kuppenrand und an den Hängen
@@ -201,15 +174,22 @@ function forest(w) {
     if (P.edge < 3 && rnd() < 0.08) spots.push([x, h, z, 4 + rnd() * 2.5]);
   }
   for (let k = 0; k < 220; k++) { const z = -700 + rnd() * 900, x = riverX(z) + (rnd() < 0.5 ? -1 : 1) * (9 + rnd() * 5); spots.push([x, terrainH(x, z), z, 3 + rnd() * 2]); }
-  const im = new THREE.InstancedMesh(geo, mat, spots.length), m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-  spots.forEach(([x, h, z, sc], i) => { q.setFromAxisAngle(up, (i * 2.399) % 6.28); s.set(sc, sc * (0.9 + (i % 5) * 0.06), sc); p.set(x, h - 0.1, z); m.compose(p, q, s); im.setMatrixAt(i, m); });
-  im.castShadow = false; im.receiveShadow = true; w.scene.add(im);
-  return im;
+  // gemischt: Tannen und runde Laubbäume, jeder Baum leicht andere Farbe
+  const isRound = spots.map(([x, , z], i) => hash(Math.floor(x * 3), Math.floor(z * 3)) < (plateauDist(x, z) < 70 ? 0.3 : 0.45));
+  const mkI = (geo, list) => { const im = new THREE.InstancedMesh(geo, mat, Math.max(1, list.length)); im.castShadow = false; im.receiveShadow = true; w.scene.add(im); return im; };
+  const P = spots.filter((_, i) => !isRound[i]), R = spots.filter((_, i) => isRound[i]);
+  const ip = mkI(pineGeo(), P), ir = mkI(roundGeo(), R), m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), col = new THREE.Color();
+  const put = (im, list, round) => list.forEach(([x, h, z, sc], i) => {
+    q.setFromAxisAngle(up, (i * 2.399) % 6.28); const k = round ? sc * 0.85 : sc; s.set(k, k * (0.9 + (i % 5) * 0.06), k); p.set(x, h - 0.1, z); m.compose(p, q, s); im.setMatrixAt(i, m);
+    col.setHSL(0, 0, 1).offsetHSL(0, 0, 0); const v = 0.86 + hash(i, round ? 7 : 3) * 0.28; col.setRGB(v, v * (0.97 + hash(i, 9) * 0.06), v * 0.95); im.setColorAt(i, col);
+  });
+  put(ip, P, false); put(ir, R, true);
+  return [ip, ir];
 }
 function grassTufts(w) {
   // Grasbüschel und Blümchen auf der Dorfwiese (nicht auf Platz, Wegen, Häusern)
   const tuft = new THREE.ConeGeometry(0.07, 0.28, 3); tuft.translate(0, 0.14, 0);
-  const n = 2600, im = new THREE.InstancedMesh(tuft, toon('#5A7A40'), n), fl = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 5, 4), toon(PAL.schnee), 700), fy = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 5, 4), toon('#E6C64A'), 500);
+  const n = 2600, im = new THREE.InstancedMesh(tuft, toon('#5E9A3E'), n), fl = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 5, 4), toon(PAL.schnee), 700), fy = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 5, 4), toon('#E6C64A'), 500);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
   let seed = 5; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   const free = (x, z) => !(Math.abs(x) < 9.6 && z > 5.3 && z < 19.6) && !(Math.abs(x) < 7 && z > -5.5 && z < 5.6) && !(x < -9.5 && x > -16.5 && z > 9 && z < 17) && !(w.houses || []).some(g => Math.hypot(g.position.x - x, g.position.z - z) < 3.2) && pathDist(x, z) > 1.3 && plateauDist(x, z) < -3;
@@ -278,7 +258,7 @@ function alpHuts(w) {
 // Felsbrocken am Rand der Kuppe und auf den Weiden
 function boulders(w) {
   let seed = 31; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-  const geo = new THREE.DodecahedronGeometry(1, 0), im = new THREE.InstancedMesh(geo, toon('#8F8B80'), 140);
+  const geo = new THREE.SphereGeometry(1, 9, 7), im = new THREE.InstancedMesh(geo, toon('#A3A39B'), 140);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(); let k = 0;
   for (let t = 0; t < 6000 && k < 140; t++) {
     const a = rnd() * 6.28, rr = 50 + rnd() * 70, x = Math.cos(a) * rr * 1.1, z = Math.sin(a) * rr * 1.25 + 6;
@@ -302,8 +282,8 @@ function ribbon(w, fx, z0, z1, width, color, lift, step = 6) {
 }
 function riverAndRoads(w) {
   // Fluss: Wasserband und helle Schaumstreifen
-  w.river = ribbon(w, riverX, -1000, 230, 9.5, '#6F9BB8', 0.5, 5);
-  ribbon(w, z => riverX(z) - 2.5, -1000, 230, 0.5, '#B9D3E2', 0.56, 9);
+  w.river = ribbon(w, riverX, -1000, 230, 9.5, '#4DB6E0', 0.5, 5);
+  ribbon(w, z => riverX(z) - 2.5, -1000, 230, 0.5, '#C9EEF8', 0.56, 9);
   ribbon(w, z => riverX(z) + 2.2, -1000, 230, 0.4, '#B9D3E2', 0.56, 11);
   ribbon(w, roadX, -1000, 230, 4.2, '#8B8A84', 0.25, 6);
   ribbon(w, z => roadX(z), -1000, 230, 0.18, '#E8E3D2', 0.3, 6);
@@ -325,8 +305,8 @@ function lake(w) {
   const z0 = -470, x0 = riverX(z0) - 30, y = floorY(z0) - 1.2;
   const geo = new THREE.CircleGeometry(1, 40); geo.rotateX(-Math.PI / 2);
   const P = geo.attributes.position; for (let i = 0; i < P.count; i++) { const a = Math.atan2(P.getZ(i), P.getX(i)), r = Math.hypot(P.getX(i), P.getZ(i)) * (1 + Math.sin(a * 3) * 0.12 + Math.sin(a * 5) * 0.06); P.setXYZ(i, Math.cos(a) * r, 0, Math.sin(a) * r); }
-  const m = new THREE.Mesh(geo, toon('#6F9BB8')); m.scale.set(70, 1, 110); m.position.set(x0, y + 1.6, z0); w.scene.add(m);
-  const rim = new THREE.Mesh(geo, toon('#B9D3E2')); rim.scale.set(73, 1, 113); rim.position.set(x0, y + 1.5, z0); w.scene.add(rim);
+  const m = new THREE.Mesh(geo, toon('#4DB6E0')); m.scale.set(70, 1, 110); m.position.set(x0, y + 1.6, z0); w.scene.add(m);
+  const rim = new THREE.Mesh(geo, toon('#E3D29A')); rim.scale.set(73, 1, 113); rim.position.set(x0, y + 1.5, z0); w.scene.add(rim);
   // Bootssteg und zwei Ruderboote
   w.box(3, 0.3, 14, PAL.chalet, x0 + 66, y + 1.9, z0 + 8, { cast: false });
   for (const [dx, dz] of [[-20, 30], [12, -40]]) { const b = new THREE.Mesh(new THREE.SphereGeometry(1.4, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), toon(PAL.rot)); b.rotation.x = Math.PI; b.scale.set(0.8, 0.5, 1.8); b.position.set(x0 + dx, y + 2.2, z0 + dz); w.scene.add(b); }
@@ -413,6 +393,42 @@ function skyDome(w) {
   m.renderOrder = -10; w.scene.add(m); return m;
 }
 
+// Felder im Tal als eigene Flächen mit Reihen (Weizen, Mais, Acker, Wiese), sauber abgegrenzt
+function cropTex(base, line, gap) {
+  const cv = document.createElement('canvas'); cv.width = 32; cv.height = 32; const g = cv.getContext('2d');
+  g.fillStyle = base; g.fillRect(0, 0, 32, 32); g.fillStyle = line; for (let x = 0; x < 32; x += gap) g.fillRect(x, 0, Math.max(1, gap / 2.5), 32);
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; return t;
+}
+function valleyFields(w) {
+  const kinds = [['#E2C25A', '#CFA944', 8], ['#7BB04A', '#5E9A3A', 8], ['#A5774E', '#8E6440', 6], ['#9FCB62', '#8CBB52', 16], ['#D8B65C', '#C7A14A', 8], ['#6FA846', '#5A9238', 6]];
+  const mats = kinds.map(([a, b, gp]) => { const t = cropTex(a, b, gp); return new THREE.MeshToonMaterial({ map: t, gradientMap: gradient }); });
+  const avoid = [[-80, -300, 30], [95, -170, 26], [-95, 190, 22]];
+  let sd = 13; const r = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+  const out = [];
+  for (let z0 = -960; z0 < 200; z0 += 46) {
+    const rx = riverX(z0 + 20), rdx = roadX(z0 + 20);
+    const bands = [[-178, rdx - 6], [rdx + 7, rx - 10], [rx + 10, 178]];
+    for (const [xa, xb] of bands) {
+      for (let x0 = xa; x0 < xb - 14; ) {
+        const fw = Math.min(xb - x0, 22 + r() * 22), fl = 38 + r() * 6, cx = x0 + fw / 2, cz = z0 + fl / 2;
+        x0 += fw + 3;
+        if (fw < 12 || r() < 0.18) continue;
+        if (avoid.some(([ax, az, ar]) => Math.hypot(ax - cx, az - cz) < ar + 22)) continue;
+        if (Math.abs(cz + 470) < 130 && cx > riverX(-470) - 115 && cx < riverX(-470) + 50) continue;
+        const ok = [[x0 - fw - 3, z0], [x0 - 3, z0], [x0 - fw - 3, z0 + fl], [x0 - 3, z0 + fl]].every(([x, z]) => terrainH(x, z) < floorY(z) + 4);
+        if (!ok) continue;
+        const geo = new THREE.PlaneGeometry(fw, fl, 6, 8); geo.rotateX(-Math.PI / 2);
+        const P = geo.attributes.position; for (let i = 0; i < P.count; i++) { const x = P.getX(i) + cx, z = P.getZ(i) + cz; P.setXYZ(i, x, terrainH(x, z) + 0.35, z); }
+        geo.computeVertexNormals();
+        const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * fw / 4, uv.getY(i) * fl / 4);
+        const k = Math.floor(r() * kinds.length), m = new THREE.Mesh(geo, mats[k]); m.receiveShadow = true;
+        if (r() < 0.5) { m.geometry.rotateY(0); }
+        w.scene.add(m); out.push(m);
+      }
+    }
+  }
+  return out;
+}
 export function buildLandscape(w) {
   // Nahbereich fein, Fernbereich grob (das feine Stück liegt etwas höher und deckt das grobe ab)
   const near = new THREE.Mesh(terrainMesh(300, 230, 0, -20), terrainMat()); near.receiveShadow = true; w.scene.add(near);
@@ -421,8 +437,9 @@ export function buildLandscape(w) {
   w.terrain = { near, far };
   w.forest = forest(w);
   const tufts = grassTufts(w);
-  w.landscape = [near, far, w.forest, ...tufts];
+  w.landscape = [near, far, ...w.forest, ...tufts];
   w.landscape.push(mountainsFar(w), ...alpHuts(w), boulders(w));
+  valleyFields(w);
   lake(w);
   riverAndRoads(w);
   valleyVillage(w, -80, -300, 16);

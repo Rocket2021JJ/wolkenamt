@@ -3,13 +3,14 @@
 // mit Fernrohr und zwölf versteckte Zettel mit Wolkwilisch-Wörtern zum Finden.
 import * as THREE from 'three';
 import { PAL } from './palette.js';
-import { toon, outline } from './toon.js';
+import { toon, outline, gradient as GRADIENT } from './toon.js';
+const GRAD = () => GRADIENT;
 import { t } from './i18n.js';
 import { textPlane } from './office.js';
 import { Beamtli } from './beamtli.js';
 import { shell, window4, puff } from './interiors.js';
 import { RZ } from './hall.js';
-import { PL } from './terrain.js';
+import { PL, pineGeo, roundGeo } from './terrain.js';
 import { PATHS, pathDist } from './paths.js';
 import { lamp, benchTable } from './village.js';
 import { WORDS } from './lingo.js';
@@ -251,7 +252,7 @@ function viewpoint(w, o) {
 }
 // ---------------- Zettel mit Wolkwilisch-Wörtern ----------------
 export const NOTES = [
-  [-38.8, 41.5], [-29, -21.5], [2.2, -51.8], [20, -33.5], [44.5, 22.5], [-43, -36], [35.5, -8.6], [43, 33], [-12, 51], [18.8, -16], [-18.6, 11.8], [45.5, 48.5],
+  [-38.8, 41.5], [-24, -30.5], [2.2, -51.8], [20, -33.5], [44.5, 22.5], [-43, -36], [35.5, -8.6], [43, 33], [-12, 51], [18.8, -16], [-18.6, 11.8], [45.5, 48.5],
 ];
 function notes(w, o) {
   const words = Object.keys(WORDS);
@@ -276,18 +277,13 @@ function villageTrees(w, pathDist) {
     if (!free(x, z, 5.2) || spots.some(s => Math.hypot(s[0] - x, s[1] - z) < 4.5)) continue;
     spots.push([x, z, 0.8 + r() * 0.7, r() < 0.55]);
   }
-  // Laubbaum: Stamm + zwei Kronen; Obstbaum etwas kleiner mit roten Punkten
-  const trunk = new THREE.CylinderGeometry(0.16, 0.24, 2.2, 6); trunk.translate(0, 1.1, 0);
-  const crown = new THREE.IcosahedronGeometry(1.5, 0); crown.translate(0, 3.1, 0);
-  const crown2 = new THREE.IcosahedronGeometry(1.0, 0); crown2.translate(0.6, 3.9, 0.3);
-  const fir = new THREE.ConeGeometry(1.4, 4.2, 7); fir.translate(0, 2.6, 0);
+  // gleiche weiche Bäume wie draussen im Wald, im Dorf etwas grösser und einzeln
   const deci = spots.filter(s => s[3]), firs = spots.filter(s => !s[3]);
-  const mk = (geo, col, list) => { const im = new THREE.InstancedMesh(geo, toon(col), Math.max(1, list.length)); im.castShadow = true; im.receiveShadow = true; w.scene.add(im); (w.landscape || []).push(im); return im; };
-  const T = mk(trunk, PAL.nuss, spots), C1 = mk(crown, '#6E9A4A', deci), C2 = mk(crown2, '#7FAE55', deci), F = mk(fir, '#557A43', firs);
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-  spots.forEach(([x, z, sc], i) => { q.setFromAxisAngle(up, i * 1.7); s.setScalar(sc); p.set(x, 0, z); m.compose(p, q, s); T.setMatrixAt(i, m); w.addCollider(x - 0.3, 0, z - 0.3, x + 0.3, 2.5, z + 0.3); });
-  deci.forEach(([x, z, sc], i) => { q.setFromAxisAngle(up, i * 1.7); s.setScalar(sc); p.set(x, 0, z); m.compose(p, q, s); C1.setMatrixAt(i, m); C2.setMatrixAt(i, m); });
-  firs.forEach(([x, z, sc], i) => { q.setFromAxisAngle(up, i); s.set(sc, sc * 1.1, sc); p.set(x, 0, z); m.compose(p, q, s); F.setMatrixAt(i, m); });
+  const mat = new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: GRAD() });
+  const mk = (geo, list) => { const im = new THREE.InstancedMesh(geo, mat, Math.max(1, list.length)); im.castShadow = true; im.receiveShadow = true; w.scene.add(im); (w.landscape || []).push(im); return im; };
+  const R = mk(roundGeo(), deci), F = mk(pineGeo(), firs), m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), col = new THREE.Color();
+  const put = (im, list, k0) => list.forEach(([x, z, sc], i) => { q.setFromAxisAngle(up, i * 1.7); const k = sc * k0; s.set(k, k * (0.95 + (i % 4) * 0.05), k); p.set(x, 0, z); m.compose(p, q, s); im.setMatrixAt(i, m); const v = 0.9 + ((i * 37) % 10) / 40; col.setRGB(v, v, v * 0.96); im.setColorAt(i, col); w.addCollider(x - 0.3, 0, z - 0.3, x + 0.3, 2.5, z + 0.3); });
+  put(R, deci, 1.6); put(F, firs, 1.5);
 }
 function gardens(w) {
   // kleine Gemüsegärten hinter einigen Häusern, mit Staketenzaun und Beeten
@@ -343,6 +339,8 @@ export function stepTown(w, o, dt, tm) {
   if (o.island) { const vis = w.player.pos.z < RZ + 60; o.island.forEach(m => { m.visible = vis; }); }
   for (const f of o.pflags || []) { const P = f.geometry.attributes.position; for (let i = 0; i < P.count; i++) { const x = P.getX(i) + 0.6; P.setZ(i, Math.sin(tm * 4.5 - x * 5) * 0.08 * x); } P.needsUpdate = true; }
   for (const u of o.pupdates || []) u(dt);
+  if (w.churchBell) { w.bellT = Math.max(0, (w.bellT || 0) - dt); w.churchBell.rotation.z = Math.sin(tm * 4.2) * 0.45 * Math.min(1, w.bellT); }
+  if (w.churchRooster) w.churchRooster.rotation.y = Math.sin(tm * 0.13) * 1.2;
   (o.kids || []).forEach((k, i) => { k.root.position.y = Math.abs(Math.sin(tm * 3 + i * 2)) * 0.25; k.update(dt, new THREE.Vector3(), true); });
   (o.cows || []).forEach((c, i) => { c.rotation.y += Math.sin(tm * 0.2 + i) * 0.0015; });
 }

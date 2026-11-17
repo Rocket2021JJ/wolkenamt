@@ -421,6 +421,7 @@ add({
   'note.old': ['Den kennst du schon.', 'You already know this one.'],
   'note.all': ['Das war der letzte Zettel. Du sprichst jetzt fliessend Wolkwilisch. Ungefähr.', 'That was the last note. You now speak fluent Wolkwilish. Roughly.'],
   'view.toast': ['Wolkenwil von oben. Irgendwo da unten regnet es gerade auf jemanden, der dich gewählt hat.', 'Wolkenwil from above. Somewhere down there it’s raining on someone who voted for you.'],
+  'use.churchbell': ['Am Glockenseil ziehen', 'Pull the bell rope'],
   'task.desk': ['Am Pult liegen neue Anträge. Hingehen und mit E stempeln.', 'New requests on the desk. Go there and press E to stamp them.'],
   'task.free': ['Feierabend. Treppe hoch zur Wolkenplattform und mit E kurbeln.', 'Office hours are over. Take the stairs to the cloud platform and press E to crank.'],
   'task.platform': ['{n} Wolke(n) bewilligt. Treppe hoch zur Wolkenplattform.', '{n} cloud(s) approved. Take the stairs up to the cloud platform.'],

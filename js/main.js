@@ -2,6 +2,7 @@
 import { pickMotif, drawPicture, drawWeather } from './paper.js';
 import { buildHall, HALL_SPOT } from './hall.js';
 import { detailVillage, stepHens } from './village.js';
+import { stepLandscape } from './terrain.js';
 import { decorateRoof, buildRoessli, buildParteienhaus, markEntrances, signpost, ROESSLI_SPOT, PARTEI_SPOT } from './interiors.js';
 import * as THREE from 'three';
 import { World, ROOM } from './world3d.js';
@@ -43,9 +44,9 @@ const office = world.office = furnish(world);
 buildHall(world, office);
 decorateRoof(world, office); buildRoessli(world, office); buildParteienhaus(world, office, POW.PARTIES); markEntrances(world, office); signpost(world);
 detailVillage(world);
-{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); }; }
+{ const ou = office.update; office.update = (dt, tm) => { ou(dt, tm); stepHens(world, tm); stepLandscape(world, dt); }; }
 world.setFadeHouses(world.houses.map((_, i) => i), [office.thSign.parent]);
-world.bake([...world.hens, office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank, office.hall, office.roessli, office.partei, office.windsock, ...office.laundry], world.fadeList.map(f => f.g));
+world.bake([...world.hens, ...world.valleyClouds, world.skyDome, ...world.landscape, office.handset, world.player.b.root, ...world.skyClouds, office.clock.h, office.clock.m, office.clock.s, office.lamp.shade, office.lamp.bulb, office.flag, office.crank, office.hall, office.roessli, office.partei, office.windsock, ...office.laundry], world.fadeList.map(f => f.g));
 world.spawnVillagers(11);
 world.sfx = A.sfx;
 window.__world = world;

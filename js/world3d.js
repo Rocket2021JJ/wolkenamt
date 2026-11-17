@@ -1,5 +1,6 @@
 // 3D-Welt: Amtshaus von Wolkenwil, Dachplattform, Dorfplatz.
 // Alles aus Grundformen, leicht unregelmässig, damit es handgemacht wirkt.
+import { buildLandscape } from './terrain.js';
 import * as THREE from 'three';
 import { PAL, rng } from './palette.js';
 import { toon, outline, inkFlat } from './toon.js';
@@ -24,7 +25,7 @@ export class World {
     const scene = this.scene = new THREE.Scene();
     scene.background = new THREE.Color(PAL.himmel);
 
-    this.camera = new THREE.PerspectiveCamera(42, 1.5, 0.1, 600);
+    this.camera = new THREE.PerspectiveCamera(42, 1.5, 0.1, 2600);
     this.camera.position.set(0, 6, 12);
 
     // Licht: eine warme Hauptlichtquelle (mit Schatten), ein kühles Umgebungslicht
@@ -58,6 +59,7 @@ export class World {
     this.player = this.makePlayer(PAL.rot);
     this.player.pos.set(-1.5, 0, 1.5);
     this.player.b.yaw = Math.PI;
+    this.syncSky();
     this.input();
     this.resize();
     addEventListener('resize', () => this.resize());
@@ -98,8 +100,7 @@ export class World {
   build() {
     const R = ROOM, T = R.wall;
     // Wiese rundherum
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(220, 220), toon(PAL.matte));
-    ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; this.scene.add(ground);
+    // (Gelände kommt aus terrain.js, siehe buildMountains)
 
     // ---------- Amtshaus: Boden ----------
     // Holzdielen in Streifen, leicht unterschiedlich lang
@@ -342,22 +343,7 @@ export class World {
     return g;
   }
 
-  buildMountains() {
-    const peaks = [[-110, -130, 46, 40], [-45, -150, 58, 50], [25, -140, 50, 44], [95, -125, 54, 46], [150, -60, 40, 34], [-160, -55, 44, 36], [-140, 100, 36, 30], [140, 110, 40, 32], [0, 170, 44, 36]];
-    for (const [x, z, h, r] of peaks) {
-      const geo = new THREE.ConeGeometry(r, h, 6 + ((this.r() * 3) | 0), 1);
-      const m = new THREE.Mesh(geo, toon(PAL.gletscher)); m.position.set(x, h / 2, z); m.rotation.y = this.r() * 6; this.scene.add(m);
-      const sh = 0.32 + this.r() * 0.1;
-      const cap = new THREE.Mesh(new THREE.ConeGeometry(r * sh * 1.02, h * sh, geo.parameters.radialSegments, 1), toon(PAL.schnee));
-      cap.position.set(x, h - h * sh / 2 + 0.05, z); cap.rotation.y = m.rotation.y; this.scene.add(cap);
-    }
-    // grüne Vorberge
-    for (let i = 0; i < 14; i++) {
-      const a = i / 14 * Math.PI * 2 + this.jit(0.1), d = 62 + this.r() * 18;
-      const s = new THREE.Mesh(new THREE.SphereGeometry(10 + this.r() * 8, 9, 6, 0, Math.PI * 2, 0, Math.PI / 2), toon(PAL.matte));
-      s.position.set(Math.cos(a) * d, -1, Math.sin(a) * d); s.scale.y = 0.3 + this.r() * 0.2; this.scene.add(s);
-    }
-  }
+  buildMountains() { buildLandscape(this); }
 
   buildSkyClouds() {
     this.skyClouds = [];
@@ -698,6 +684,13 @@ export class World {
     this.scene.background = new THREE.Color(T ? T.bg3d : PAL.himmel);
     this.sun.intensity = T ? T.sun3d : 2.1; this.amb.intensity = T ? T.amb3d : 1.15;
     this.amb.color.set(T && T.bg3d === PAL.blau ? PAL.gletscher : PAL.himmel);
+    this.syncSky();
+  }
+  // Himmelskuppel und Dunst passen sich der Hintergrundfarbe an
+  syncSky() {
+    const bg = this.scene.background;
+    if (this.skyDome) this.skyDome.material.color.copy(bg);
+    if (this.weather !== 'fog') this.scene.fog = new THREE.Fog(bg.clone().lerp(new THREE.Color(0xffffff), 0.1), 420, 2300);
   }
 
   // ---------------- Kamera-Rundflug fürs Menü ----------------
@@ -721,6 +714,7 @@ export class World {
       this.rain.visible = true;
       if (kind === 'rain') { this.scene.background = new THREE.Color(PAL.gletscher); this.sun.intensity = 1.3; }
     } else if (this.rain) this.rain.visible = false;
+    this.syncSky();
   }
   stepWeather(dt) {
     if (this.rain && this.rain.visible) {

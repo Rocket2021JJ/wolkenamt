@@ -121,3 +121,8 @@ Konzept: https://claude.ai/artifact/7PKn1gV7qVtZYPk8aTwhUG
   Leitungen, Heuballen und Heustadel, Misthaufen, Traktor, pickende Hühner, Gemüsegarten mit
   Vogelscheuche, Pfützen, Pflastersteine, Festbank. Code: js/village.js. Alle Häuser und das
   Gemeindehaus werden ausgeblendet, wenn sie die Sicht verdecken (vorher sah man manchmal nur ein Dach).
+- Landschaft (17.11.): Kein flacher grüner Boden mehr. Wolkenwil liegt jetzt auf einer Bergkuppe
+  (js/terrain.js): Wiese mit Farbflecken, Grasbüscheln und Blumen im Dorf, ringsum Tannenwald (Richtung
+  Norden lichter, damit man hinunter sieht), dann geht es steil ins Tal (Felder als Flickenteppich,
+  Fluss, See, zwei Nachbardörfer). Gegenüber Berge mit Wald, Fels und Schnee, ganz hinten hohe Gipfel.
+  Unter dem Dorf ziehen Wolken durchs Tal. Himmel mit Verlauf und Dunst in der Ferne.

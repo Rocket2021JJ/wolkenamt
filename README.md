@@ -143,6 +143,8 @@ wolkenamt/
 ├── js/
 │   ├── main.js         # Ablauf: Menü, Kampagne, Pult, Plattform, Dorfplatz, Mehrspieler
 │   ├── power.js        # Macht-Modell: Parteien, Wählergruppen, Umfragen, Ereignisse, Verdacht
+│   ├── terrain.js      # Bergkuppe, Wald, Tal, Berge, Wolken unter dem Dorf
+│   ├── village.js      # Hausdetails und Dorfumgebung
 │   ├── interiors.js    # Rössli, Parteienhaus, Wolkenwerkstatt auf dem Dach
 │   ├── paper.js        # Zeitungsbilder im Rasterdruck
 │   ├── hall.js         # Ratssaal im Gemeindehaus (begehbar)

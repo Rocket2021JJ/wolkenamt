@@ -3,6 +3,11 @@
 Figurenstimmen (Wolkwilisch) und Musik. Alles kommt aus dem Spiel selbst, alle Rechte bei Duchy Games.
 
 Aufruf:   python3 tools/video/fabrik.py tools/video/szenen/short01.json out/short01.mp4
+In Teilen (jeder Aufruf bleibt kurz, z. B. für Umgebungen mit Zeitlimit pro Befehl):
+          python3 tools/video/fabrik.py SZENEN.json out/x.mp4 --szenen 0-1     (nur Szenen 0 und 1 rechnen)
+          python3 tools/video/fabrik.py SZENEN.json out/x.mp4 --szenen 2-3
+          python3 tools/video/fabrik.py SZENEN.json out/x.mp4 --zusammen      (fertig zusammensetzen)
+          Zwischenstand liegt in out/x.mp4.teile/, fehlende Szenen meldet --zusammen.
 Braucht:  Python 3 mit playwright (pip install playwright), Google Chrome oder Chromium, ffmpeg,
           und einen lokalen Webserver im Spielordner:  python3 -m http.server 8765
 """
@@ -33,22 +38,21 @@ def record_audio(pg, js):
       const d=(new Function('A','LG', 'return ' + js))(A, LG) || 1; await new Promise(z=>setTimeout(z, d*1000+450)); r.stop(); await new Promise(z=>r.onstop=z);
       const u=new Uint8Array(await new Blob(ch).arrayBuffer()); let s=''; for(let i=0;i<u.length;i++) s+=String.fromCharCode(u[i]); return btoa(s); }""", js)
 
-def main(spec_path, out_path):
-    spec = json.load(open(spec_path, encoding='utf-8'))
+def render_scenes(spec, idxs, work):
     wide = spec.get('format', 'short') == 'wide'
     W, H = (1920, 1080) if wide else (1080, 1920)
     fps = int(os.environ.get('VF_FPS', spec.get('fps', 30)))   # VF_FPS=2 für eine schnelle Vorschau
     scenes = spec['scenes']
-    tmp = tempfile.mkdtemp(prefix='vf_')
-    total = sum(s['dur'] for s in scenes)
+    starts = [sum(s['dur'] for s in scenes[:i]) for i in range(len(scenes))]
+    os.makedirs(work, exist_ok=True)
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=CHROME, args=['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'])
-        # 1) Stimmen aufnehmen (in Echtzeit, auf der Audio-Testseite)
+        # 1) Stimmen aufnehmen (in Echtzeit, auf der Tonseite)
         ap = b.new_page(); ap.goto(BASE + 'tools/video/audio.html'); ap.wait_for_timeout(600)
         ap.evaluate("async()=>{const A=window.__A;A.ensureAudio();A.setMuted(false);A.setMusic('none');await A.ctx().resume();}")
-        clips, t0 = [], 0.0
-        for i, s in enumerate(scenes):
-            for k, a in enumerate(s.get('audio', [])):
+        for i in idxs:
+            meta = []
+            for k, a in enumerate(scenes[i].get('audio', [])):
                 if 'say' in a:
                     js = "A.speak(LG.syllables(%s), A.voiceFor(%s), {interrupt:true, mood:%s, max:30, noGesture:%s})" % (json.dumps(a['say']), json.dumps(a.get('who', 'Gemeindeschreiber')), json.dumps(a.get('mood', '')), 'true' if a.get('plain', True) else 'false')
                 elif 'gesture' in a:
@@ -56,9 +60,9 @@ def main(spec_path, out_path):
                 elif 'bells' in a:
                     js = "(A.churchBells(%d), %d * 0.75 + 2.5)" % (a['bells'], a['bells'])
                 else: continue
-                f = os.path.join(tmp, 'a%02d_%02d.webm' % (i, k)); open(f, 'wb').write(base64.b64decode(record_audio(ap, js)))
-                clips.append((t0 + a.get('at', 0.0), f, a.get('gain', 1.0)))
-            t0 += s['dur']
+                f = os.path.join(work, 's%02d_a%02d.webm' % (i, k)); open(f, 'wb').write(base64.b64decode(record_audio(ap, js)))
+                meta.append([starts[i] + a.get('at', 0.0), f, a.get('gain', 1.0)])
+            json.dump(meta, open(os.path.join(work, 's%02d.json' % i), 'w'))
         ap.close()
         # 2) Bilder rendern, Bild für Bild mit festem Zeitschritt
         sc = float(spec.get('render_scale', os.environ.get('VF_SCALE', 0.6667)))   # kleiner rendern, dann hochskalieren (schneller)
@@ -71,17 +75,15 @@ def main(spec_path, out_path):
           const card=document.createElement('div'); card.id='vf-card'; document.body.appendChild(card);
           document.documentElement.style.setProperty('--vfs', (wide ? 52 : 62) * sc + 'px'); document.documentElement.style.setProperty('--vfc', (wide ? 170 : 140) * sc + 'px');
           __world.orbitOn=false; __world.enabled=true; __world.resize(); }""", [wide, sc])
-        dt, n = 1.0 / fps, 0
-        for s in scenes:
+        dt = 1.0 / fps
+        for i in idxs:
+            s = scenes[i]; fdir = os.path.join(work, 'f%02d' % i); shutil.rmtree(fdir, ignore_errors=True); os.makedirs(fdir)
             if s.get('js'): pg.evaluate("() => { " + s['js'] + " }")
             pg.evaluate("(d) => { __world.setDusk(d); }", s.get('dusk', 0))
-            card = s.get('card')
             pg.evaluate("""(c) => { const el=document.getElementById('vf-card'); if(!c){el.style.display='none';return;}
-              el.innerHTML='<h1></h1><p></p><small></small>'; el.querySelector('h1').textContent=c.title||''; el.querySelector('p').textContent=c.line||''; el.querySelector('small').textContent=c.small||''; el.style.display='flex'; }""", card)
-            frames = int(round(s['dur'] * fps))
-            cam = s.get('cam'); walk = s.get('walk')
+              el.innerHTML='<h1></h1><p></p><small></small>'; el.querySelector('h1').textContent=c.title||''; el.querySelector('p').textContent=c.line||''; el.querySelector('small').textContent=c.small||''; el.style.display='flex'; }""", s.get('card'))
+            frames = int(round(s['dur'] * fps)); cam = s.get('cam'); walk = s.get('walk'); subs = s.get('subs', [])
             if walk: pg.evaluate("(w) => { __world.teleport(w.from[0],0,w.from[1]); }", walk)
-            subs = s.get('subs', [])
             for f in range(frames):
                 tt = f / max(1, frames - 1)
                 if cam:
@@ -96,15 +98,23 @@ def main(spec_path, out_path):
                   el.innerHTML=''; if(x.lingo){const a=document.createElement('span');a.className='lg';a.textContent='«'+x.lingo+'»';el.appendChild(a);}
                   el.appendChild(document.createTextNode(x.text||'')); if(x.small){const s=document.createElement('small');s.textContent=x.small;el.appendChild(s);} }""", cur[0] if cur else None)
                 pg.evaluate("(dt) => __frame(dt)", dt)
-                pg.screenshot(path=os.path.join(tmp, 'f%05d.jpg' % n), type='jpeg', quality=92); n += 1
+                pg.screenshot(path=os.path.join(fdir, 'f%05d.jpg' % f), type='jpeg', quality=92)
             pg.evaluate("() => { __world.keys.clear(); }")
+            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-framerate', str(fps), '-i', os.path.join(fdir, 'f%05d.jpg'), '-vf', 'scale=%d:%d:flags=lanczos' % (W, H), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'medium', '-crf', '18', '-r', str(fps), os.path.join(work, 's%02d.mp4' % i)], check=True)
+            shutil.rmtree(fdir, ignore_errors=True)
+            print('Szene %d fertig (%d Bilder)' % (i, frames), flush=True)
         b.close()
-    # 3) Zusammensetzen: Bilder + Musik + Stimmen
-    video = os.path.join(tmp, 'v.mp4')
-    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-framerate', str(fps), '-i', os.path.join(tmp, 'f%05d.jpg'), '-vf', 'scale=%d:%d:flags=lanczos' % (W, H), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'medium', '-crf', '18', video], check=True)
-    inputs, filt, mix = ['-i', video], [], []
+
+def assemble(spec, work, out_path):
+    scenes = spec['scenes']; total = sum(s['dur'] for s in scenes)
+    missing = [i for i in range(len(scenes)) if not os.path.exists(os.path.join(work, 's%02d.mp4' % i))]
+    if missing: sys.exit('Es fehlen noch Szenen: ' + ', '.join(map(str, missing)))
+    lst = os.path.join(work, 'liste.txt'); open(lst, 'w').write(''.join("file '%s'\n" % os.path.abspath(os.path.join(work, 's%02d.mp4' % i)) for i in range(len(scenes))))
+    video = os.path.join(work, 'v.mp4')
+    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', lst, '-c', 'copy', video], check=True)
+    clips = [c for i in range(len(scenes)) for c in json.load(open(os.path.join(work, 's%02d.json' % i)))]
+    inputs, filt, mix, idx = ['-i', video], [], [], 1
     music = spec.get('music')
-    idx = 1
     if music:
         inputs += ['-stream_loop', '-1', '-i', os.path.join(MUSIK, music + '.mp3')]
         filt.append('[%d:a]atrim=0:%.2f,volume=%.2f,afade=t=in:d=0.6,afade=t=out:st=%.2f:d=1.5[m]' % (idx, total, spec.get('music_gain', 0.45), max(0, total - 1.5)))
@@ -113,13 +123,27 @@ def main(spec_path, out_path):
         inputs += ['-i', f]
         filt.append('[%d:a]volume=%.2f,adelay=%d|%d[c%d]' % (idx, g, int(at * 1000), int(at * 1000), k)); mix.append('[c%d]' % k); idx += 1
     if mix:
-        filt.append('%samix=inputs=%d:normalize=0:duration=longest,atrim=0:%.2f,loudnorm=I=-14:TP=-1.5[a]' % (''.join(mix), len(mix), total))
-        cmd = ['ffmpeg', '-y', '-loglevel', 'error'] + inputs + ['-filter_complex', ';'.join(filt), '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', out_path]
+        filt.append('%samix=inputs=%d:normalize=0:duration=longest,apad,atrim=0:%.2f,loudnorm=I=-14:TP=-1.5[a]' % (''.join(mix), len(mix), total))
+        cmd = ['ffmpeg', '-y', '-loglevel', 'error'] + inputs + ['-filter_complex', ';'.join(filt), '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-t', '%.2f' % total, out_path]
     else:
         cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-i', video, '-c', 'copy', out_path]
     subprocess.run(cmd, check=True)
-    shutil.rmtree(tmp, ignore_errors=True)
-    print('fertig:', out_path, '(%d Bilder, %.1f s)' % (n, total))
+    print('fertig:', out_path, '(%.1f s)' % total)
+
+def main(argv):
+    spec_path, out_path = argv[0], argv[1]
+    spec = json.load(open(spec_path, encoding='utf-8'))
+    work = out_path + '.teile'
+    n = len(spec['scenes'])
+    if '--zusammen' in argv:
+        return assemble(spec, work, out_path)
+    if '--szenen' in argv:
+        r = argv[argv.index('--szenen') + 1]; a, _, b2 = r.partition('-'); idxs = list(range(int(a), int(b2 or a) + 1))
+        idxs = [i for i in idxs if 0 <= i < n]
+        render_scenes(spec, idxs, work); return
+    render_scenes(spec, list(range(n)), work)
+    assemble(spec, work, out_path)
+    shutil.rmtree(work, ignore_errors=True)
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1:])

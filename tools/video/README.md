@@ -19,6 +19,18 @@ python3 tools/video/fabrik.py tools/video/szenen/short01.json out/short01.mp4
 Dauer: etwa 1,5 Sekunden Rechenzeit pro Bild (ohne Grafikkarte). Ein Short mit 25 Sekunden braucht
 rund 15 bis 20 Minuten. Schneller: `VF_SCALE=0.5` (kleiner rendern, etwas weicher) oder `"fps": 24`.
 
+## In Teilen rechnen
+Wenn ein Befehl nur begrenzt lange laufen darf (z. B. 10 Minuten), Szenen einzeln rechnen und am Schluss
+zusammensetzen. Der Zwischenstand bleibt in `out/short01.mp4.teile/` liegen.
+```bash
+python3 tools/video/fabrik.py tools/video/szenen/short01.json out/short01.mp4 --szenen 0-1
+python3 tools/video/fabrik.py tools/video/szenen/short01.json out/short01.mp4 --szenen 2-3
+python3 tools/video/fabrik.py tools/video/szenen/short01.json out/short01.mp4 --szenen 4-5
+python3 tools/video/fabrik.py tools/video/szenen/short01.json out/short01.mp4 --zusammen
+```
+Faustregel: etwa 1,5 s Rechenzeit pro Bild, also bei 30 fps rund 45 s pro Sekunde Video. Eine Szene von
+5 Sekunden braucht knapp 4 Minuten. Schnelle Vorschau: `VF_FPS=2 VF_SCALE=0.3` davor setzen.
+
 ## Aufbau einer Szenenliste
 ```json
 {

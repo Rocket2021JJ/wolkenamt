@@ -1546,7 +1546,7 @@ net.ui = {
   gone(id) { world.removeRemote(id); remoteTags.get(id)?.remove(); remoteTags.delete(id); },
   side() { renderSide(); },
   voice() { renderSide(); renderVoice(); },
-  vote() { renderSide(); A.chime([440, 554], 0.08); cutM.stop(); world.clearSkyClouds(); world.watch(false); world.setTod(null); only(); goDesk(renderVote); setTask('task.vote'); },
+  vote(m) { if (m && m.round === 0) { const pa = POW.PARTIES[partyOf(net.id)]; toast(t('mp.yourParty', { p: L(pa.name), s: pa.short })); sysMsg(t('mp.yourPartyLong', { p: pa.short, s: L(pa.slogan) })); } renderSide(); A.chime([440, 554], 0.08); cutM.stop(); world.clearSkyClouds(); world.watch(false); world.setTod(null); only(); goDesk(renderVote); setTask('task.vote'); },
   start(m) {
     [...$('vCards').children].forEach((el, i) => {
       el.querySelector('.imp')?.remove(); el.querySelectorAll('button').forEach(b => { b.disabled = true; });
@@ -1690,10 +1690,24 @@ setInterval(() => {
 
 function renderLobby() {
   $('lCode').textContent = net.code;
+  // Parteiwahl: drei Karten, besetzte zeigen den Namen
+  const pb = $('lParties'); pb.innerHTML = '';
+  const mine = partyOf(net.id);
+  POW.PLAYABLE.forEach(k => {
+    const pa = POW.PARTIES[k], who = net.players.find(p => partyOf(p.id) === k), el = document.createElement('button');
+    el.className = 'lparty' + (k === mine ? ' mine' : '') + (who && who.id !== net.id ? ' taken' : ''); el.style.setProperty('--pc', pa.color);
+    el.innerHTML = '<b></b><i></i><small></small><em></em>';
+    el.querySelector('b').textContent = pa.short; el.querySelector('i').textContent = L(pa.name); el.querySelector('small').textContent = '«' + L(pa.slogan) + '»';
+    el.querySelector('em').textContent = who ? who.name + (who.id === net.id ? ' ' + t('you') : '') : t('lobby.pfree');
+    el.title = t('lobby.pgroups', { g: Object.entries(pa.aff).filter(([, v]) => v >= 0.5).map(([g]) => L(POW.GROUPS[g].name)).join(', ') });
+    el.disabled = !!(who && who.id !== net.id);
+    el.onclick = () => { if (k !== mine) { A.ui('click'); toHost({ t: 'party', p: k }); } };
+    pb.appendChild(el);
+  });
   const box = $('lPlayers'); box.innerHTML = '';
   for (let i = 0; i < 3; i++) {
     const p = net.players[i], d = document.createElement('div'), a = document.createElement('span'), b = document.createElement('b');
-    if (p) { a.textContent = p.name + (p.id === net.id ? ' ' + t('you') : '') + ' · ' + POW.PARTIES[POW.PLAYABLE[i]].short; b.textContent = p.id === 'host' ? t('host') : t('lobby.ready'); a.style.borderLeft = `6px solid ${PLAYER_COLS[i]}`; a.style.paddingLeft = '6px'; }
+    if (p) { a.textContent = p.name + (p.id === net.id ? ' ' + t('you') : '') + ' · ' + POW.PARTIES[partyOf(p.id)].short; b.textContent = p.id === 'host' ? t('host') : t('lobby.ready'); a.style.borderLeft = `6px solid ${PLAYER_COLS[i]}`; a.style.paddingLeft = '6px'; }
     else { d.className = 'empty'; a.textContent = t('lobby.free'); b.textContent = '…'; }
     d.append(a, b); box.appendChild(d);
   }

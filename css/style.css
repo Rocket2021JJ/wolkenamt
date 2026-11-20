@@ -562,3 +562,11 @@ body.mode2d #bubbles{display:none}
 .paperarch h3{font-family:var(--serif);font-weight:400;font-size:18px;margin:4px 0 8px}
 .npold{padding:8px 4px;border-bottom:1px dashed rgba(0,0,0,.2)} .npold small{display:block;font-size:11px;opacity:.6;letter-spacing:.04em}
 .npold b{display:block;font-family:var(--serif);font-size:16px;margin:2px 0} .npold p{margin:0;font-size:13px;opacity:.85}
+
+/* Parteiwahl in der Lobby */
+.lparties{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 12px}
+.lparty{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:8px 10px;border:1.5px solid var(--tinte);border-top:6px solid var(--pc);background:var(--blatt);cursor:pointer;font:inherit}
+.lparty b{font-family:var(--serif);font-size:20px;font-weight:400}.lparty i{font-size:12px;opacity:.75}.lparty small{font-size:11.5px;font-style:italic}
+.lparty em{font-style:normal;font-size:12px;margin-top:4px;opacity:.7}
+.lparty.mine{box-shadow:0 0 0 3px var(--pc);background:#fff}.lparty.mine em{opacity:1;font-weight:600}
+.lparty.taken{opacity:.55;cursor:default}

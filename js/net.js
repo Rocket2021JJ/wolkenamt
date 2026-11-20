@@ -5,7 +5,9 @@
 import { ORDERS } from './data.js';
 import { THRESH } from './cut2d.js';
 import * as POW from './power.js';
-export const partyOf = id => POW.PLAYABLE[Math.max(0, net.players.findIndex(p => p.id === id)) % 3];
+// Partei eines Spielers: selbst gewählt in der Lobby, sonst nach Reihenfolge
+export const partyOf = id => { const pl = net.players.find(p => p.id === id); if (pl && pl.party) return pl.party; return POW.PLAYABLE[Math.max(0, net.players.findIndex(p => p.id === id)) % 3]; };
+const freeParty = () => POW.PLAYABLE.find(k => !net.players.some(p => p.party === k)) || POW.PLAYABLE[0];
 
 const NETPFX = 'wolkenamt-v1-';
 export const LOCALTEST = /[?&]lokaltest/.test(location.search);
@@ -85,7 +87,7 @@ export function netCreate(name, rounds = 5) {
   net.T = LOCALTEST ? localTransport() : peerTransport();
   HS = { phase: 'lobby', rounds, round: 0, pool: [], pp: 0, total: {}, picks: {}, done: {}, timer: null, opts: [], order: 0, rejected: [] };
   net.T.hostOpen(net.code, {
-    ready() { net.players = [{ id: 'host', name: net.name }]; net.rounds = HS.rounds; enter(); },
+    ready() { net.players = [{ id: 'host', name: net.name, party: POW.PLAYABLE[0] }]; net.rounds = HS.rounds; enter(); },
     error(e) { if (!net.on) { netReset(); ui('fail', 'create', e); } else ui('note', e); },
     msg: hostOnMsg, close: hostOnClose,
   });
@@ -110,7 +112,7 @@ function hostOnMsg(id, m) {
     const nm = String(m.name || '?').slice(0, 16), back = HS.gone && HS.gone[nm];
     if (HS.phase !== 'lobby' && back && net.players.length < 3 && !net.players.find(p => p.id === id)) {
       // Wiedereinstieg nach Verbindungsabbruch: gleicher Platz (gleiche Partei), gleiche Punkte
-      net.players.splice(Math.min(back.idx, net.players.length), 0, { id, name: nm }); HS.total[id] = back.total || 0; delete HS.gone[nm];
+      net.players.splice(Math.min(back.idx, net.players.length), 0, { id, name: nm, party: back.party }); HS.total[id] = back.total || 0; delete HS.gone[nm];
       hostRoster(); bc({ t: 'chat', sys: 'rejoined', name: nm });
       if (HS.phase === 'play') { HS.done[id] = { score: 0, stars: 0, img: '', mask: '' }; bc({ t: 'doneack', ids: Object.keys(HS.done) }); }
       const sync = HS.phase === 'vote' && HS.lastVote ? Object.assign({}, HS.lastVote, { secs: Math.max(3, Math.round((HS.voteEnd - Date.now()) / 1000)) }) : HS.phase === 'results' ? HS.lastResults : HS.phase === 'final' ? HS.lastFinal : null;
@@ -119,7 +121,7 @@ function hostOnMsg(id, m) {
       return;
     }
     if (HS.phase !== 'lobby' || net.players.length >= 3) return net.T.toClient(id, { t: 'deny', why: HS.phase !== 'lobby' ? 'running' : 'full' });
-    if (!net.players.find(p => p.id === id)) net.players.push({ id, name: String(m.name || '?').slice(0, 16) });
+    if (!net.players.find(p => p.id === id)) net.players.push({ id, name: String(m.name || '?').slice(0, 16), party: freeParty() });
     hostRoster(); bc({ t: 'chat', sys: 'joined', name: pname(id) });
   } else if (!net.players.find(p => p.id === id)) return;
   else if (m.t === 'pos') {
@@ -139,6 +141,12 @@ function hostOnMsg(id, m) {
     const line = POW.multiAct(HS.pw, own, m.a, tg && tg !== own ? tg : null);
     if (line) HS.pw.log.push(line);
     bc({ t: 'pstate', pw: HS.pw, polls: POW.pollsMulti(HS.pw), line, acted: Object.keys(HS.acted) });
+  }
+  else if (m.t === 'party') {
+    // Parteiwahl in der Lobby: jede Partei nur einmal
+    if (HS.phase !== 'lobby' || !POW.PLAYABLE.includes(m.p)) return;
+    const me = net.players.find(p => p.id === id); if (!me || net.players.some(p => p.party === m.p && p.id !== id)) return;
+    me.party = m.p; hostRoster();
   }
   else if (m.t === 'office') {
     // Parteibüros in der Parteigasse: eigenes Büro Plakate drucken, fremdes Büro Plakate klauen.
@@ -177,7 +185,7 @@ function hostCheck() {
 }
 function hostOnClose(id) {
   if (!HS) return; const n = pname(id);
-  if (HS.phase !== 'lobby') (HS.gone ||= {})[n] = { idx: pindex(id), total: HS.total && HS.total[id] };
+  if (HS.phase !== 'lobby') (HS.gone ||= {})[n] = { idx: pindex(id), total: HS.total && HS.total[id], party: partyOf(id) };
   net.players = net.players.filter(p => p.id !== id);
   hostRoster(); bc({ t: 'chat', sys: 'left', name: n }); bc({ t: 'gone', id }); hostCheck();
 }

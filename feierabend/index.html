@@ -3,12 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FEIERABEND – ein Spass-Spiel von Duchy Games</title>
+<title>BEAMTLI – ein Spiel von Duchy Games</title>
 <meta name="description" content="FEIERABEND: Die Beamtli haben Dienstschluss. Herumtollen, Sachen werfen, Auto fahren, Stempel finden – allein oder zu dritt online.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600&family=Instrument+Serif:ital@1&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <canvas id="cv"></canvas>
+<div id="intro" aria-label="Duchy Games – lädt">
+  <div class="istage">
+    <svg class="icrown" viewBox="14 18 72 66" aria-hidden="true">
+      <g class="cbody"><path d="M20 70 V36 L35 50 L50 28 L65 50 L80 36 V70 Z M50 64 C43 59.5 41.5 53.5 45.5 52 C47.8 51.2 49.4 52.6 50 54 C50.6 52.6 52.2 51.2 54.5 52 C58.5 53.5 57 59.5 50 64 Z" fill="#C8A251" fill-rule="evenodd"/></g>
+      <rect class="cbase" x="20" y="74" width="60" height="7" rx="1.5" fill="#C8A251"/>
+      <circle class="cj j1" cx="20" cy="33" r="4" fill="#C8A251"/>
+      <circle class="cj j2" cx="50" cy="25" r="4" fill="#C8A251"/>
+      <circle class="cj j3" cx="80" cy="33" r="4" fill="#C8A251"/>
+    </svg>
+    <div class="iword">DUCHY GAMES</div>
+    <div class="isig"><i class="ln"></i><span>Herz &amp; Zog</span><i class="ln"></i></div>
+    <div class="iload"><div class="ibar"><i id="iBar"></i></div><div class="itxt" id="iTxt">Die Insel wird aufgebaut …</div></div>
+  </div>
+  <div class="iskip">Klicken zum Überspringen</div>
+</div>
+
 
 <div id="hud" class="hidden">
   <div id="stamps"><b id="stN">0</b> / <span id="stT">25</span> <small>Stempel</small></div>
@@ -24,7 +43,7 @@
 
 <div id="menu">
   <div class="card">
-    <h1>FEIERABEND</h1>
+    <h1>BEAMTLI</h1>
     <p class="sub">Die Beamtli haben Dienstschluss. Jetzt wird herumgetollt.</p>
     <label>Dein Name <input id="name" maxlength="14" placeholder="Beamtli"></label>
     <div class="row">

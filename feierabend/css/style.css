@@ -50,3 +50,31 @@ button.big { font-size: 20px; background: var(--red); color: var(--paper); paddi
 #room .p.lag::after { content: ' (keine Daten)'; font-size: 12px; }
 #netwarn { display: block; color: var(--red); font-weight: bold; font-size: 13px; max-width: 220px; }
 #netwarn:empty { display: none; }
+
+/* Startanimation / Ladebildschirm (Duchy Games) */
+#intro{position:fixed;inset:0;z-index:100;background:radial-gradient(ellipse at 50% 40%,#1c1f2a 0%,#15171F 55%,#0f1117 100%);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .9s ease}
+#intro.out{opacity:0;pointer-events:none}
+.istage{display:flex;flex-direction:column;align-items:center;text-align:center;transform:translateY(-2vh)}
+.icrown{width:clamp(80px,11vw,132px);height:auto;overflow:visible;filter:drop-shadow(0 0 22px rgba(200,162,81,.0));animation:iglow 2.6s 1.4s ease-in-out forwards}
+.icrown .cbody{transform-box:fill-box;transform-origin:50% 100%;opacity:0;transform:translateY(14px) scale(.9);animation:icrown .9s .15s cubic-bezier(.2,.9,.25,1.15) forwards}
+.icrown .cbase{transform-box:fill-box;transform-origin:50% 50%;transform:scaleX(0);animation:iscale .6s .55s cubic-bezier(.3,.9,.3,1) forwards}
+.icrown .cj{transform-box:fill-box;transform-origin:50% 50%;transform:scale(0);animation:ipop .45s cubic-bezier(.3,1.6,.5,1) forwards}
+.icrown .j1{animation-delay:.85s}.icrown .j2{animation-delay:1s}.icrown .j3{animation-delay:1.15s}
+.iword{margin-top:clamp(22px,4vh,40px);font-family:"Space Grotesk","Helvetica Neue",Arial,sans-serif;font-weight:600;font-size:clamp(30px,6vw,76px);color:#F3EFE6;letter-spacing:.55em;margin-right:-.55em;opacity:0;filter:blur(6px);animation:iword 1.3s .9s cubic-bezier(.2,.8,.2,1) forwards;white-space:nowrap}
+.isig{display:flex;align-items:center;gap:16px;margin-top:clamp(12px,2.2vh,22px)}
+.isig .ln{display:block;width:clamp(36px,5vw,64px);height:1px;background:#C8A251;transform:scaleX(0);animation:iscale .7s 1.7s ease-out forwards}
+.isig .ln:first-child{transform-origin:100% 50%}.isig .ln:last-child{transform-origin:0 50%}
+.isig span{font-family:"Instrument Serif",Georgia,serif;font-style:italic;font-size:clamp(18px,2.6vw,34px);color:#C8A251;opacity:0;animation:ifade .9s 1.9s forwards}
+.iload{margin-top:clamp(36px,7vh,64px);display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;animation:ifade .6s 1.2s forwards}
+.ibar{width:clamp(160px,22vw,240px);height:2px;background:rgba(243,239,230,.12);border-radius:2px;overflow:hidden}
+.ibar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#9c7c38,#C8A251,#f0d690);transition:width .35s ease}
+.itxt{font-family:"Helvetica Neue",Arial,sans-serif;font-size:12px;letter-spacing:.12em;color:#F3EFE6;opacity:.45;min-height:1.2em}
+.iskip{position:absolute;bottom:22px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#F3EFE6;opacity:0;animation:iskip .8s 1.4s forwards}
+@keyframes icrown{to{opacity:1;transform:none}}
+@keyframes iscale{to{transform:scaleX(1)}}
+@keyframes ipop{to{transform:scale(1)}}
+@keyframes iword{to{opacity:1;filter:blur(0);letter-spacing:.2em;margin-right:-.2em}}
+@keyframes ifade{to{opacity:1}}
+@keyframes iskip{to{opacity:.3}}
+@keyframes iglow{50%{filter:drop-shadow(0 0 26px rgba(200,162,81,.45))}to{filter:drop-shadow(0 0 14px rgba(200,162,81,.18))}}
+@media (prefers-reduced-motion:reduce){#intro *{animation-duration:.01s!important;animation-delay:0s!important}}

@@ -622,6 +622,21 @@ $('bJoin').onclick = () => {
 };
 $('code').addEventListener('keydown', e => { if (e.key === 'Enter') $('bJoin').click(); });
 
+// ---------------- Ladebildschirm (Duchy Games) ----------------
+(function intro() {
+  const el = $('intro'); if (!el) return;
+  const bar = $('iBar'), txt = $('iTxt');
+  const LINES = ['Die Insel wird aufgebaut …', 'Schwellen werden montiert …', 'Hühner werden gezählt …', 'Formulare werden gestempelt …', 'Feierabend!'];
+  const MIN = window.__test ? 0 : 3600, t0 = performance.now(); let gone = false, li = 0;
+  const show = () => { bar.style.width = Math.round(Math.min(1, 0.15 + (performance.now() - t0) / MIN * 0.85) * 100) + '%'; };
+  const lt = setInterval(() => { if (li < LINES.length - 2) txt.textContent = LINES[++li]; show(); }, 850);
+  const end = () => { if (gone) return; gone = true; clearInterval(lt); bar.style.width = '100%'; txt.textContent = LINES[LINES.length - 1]; setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 950); }, 300); };
+  setTimeout(end, MIN);
+  setTimeout(() => { try { A.chime([392, 523, 659], 0.18); } catch (e) {} }, 1000);
+  el.addEventListener('click', () => { A.ensureAudio(); end(); });
+  addEventListener('keydown', function k() { if (gone) return removeEventListener('keydown', k); end(); });
+})();
+
 // Testschnittstelle
 window.__fa = { me, npcs, bodies, vehicles, net, SPOTS, start, ach, save, remotes, keys, setCam(y, p, d) { camYaw = y; camPitch = p; if (d) camDist = d; }, grab: tryGrab, throwHeld, use: useAction, get playing() { return playing; } };
 

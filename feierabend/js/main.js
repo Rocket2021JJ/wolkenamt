@@ -212,7 +212,7 @@ function useAction() {
   if (me.heldBy) return;
   if (me.inVeh) { exitVehicle(); return; }
   if (me.busy) return;
-  const v = nearestVehicle(); if (v) { if (me.held) dropHeld(); if (net.host) hostEnter(net.id, v.id); else toHost({ t: 'enter', id: v.id }); return; }
+  const v = nearestVehicle(); if (v) { if (me.held) dropHeld(); if (net.host) { hostEnter(net.id, v.id); if (!me.inVeh) toast('Fahrzeug ist voll'); } else { toHost({ t: 'enter', id: v.id }); setTimeout(() => { if (!me.inVeh) toast('Einsteigen klappt nicht', '', 'Keine Antwort vom Raum-Eröffner oder Fahrzeug voll'); }, 1500); } return; }
   const c = nearSpot(SPOTS.cannons, 2.4); if (c && !inCannon) { if (me.held) dropHeld(); inCannon = { c, t: 1.1 }; me.b.root.visible = false; A.fun('pop'); toast('3… 2… 1…'); return; }
   const bl = nearSpot(SPOTS.bells, 2); if (bl) { ringBell(); sendFx('bell', bl); ach('glocke'); return; }
   const kz = SPOTS.zones.find(z => z.kind === 'kegel'); if (kz && Math.hypot(kz.x - me.p.x, kz.z - me.p.z) < 4) { if (net.host) resetPins(); else toHost({ t: 'pins' }); toast('Kegel neu aufgestellt'); }
@@ -325,6 +325,7 @@ function clientSend(dt) {
   toHost(m);
 }
 net.on_msg = (from, m) => {
+  lastMsg[from] = performance.now();
   if (net.host) {
     const r = remotes.get(from);
     if (m.t === 's') { if (!r) applyRemote(from, m.s); const rr = remotes.get(from); rr.raw = m.s; applyRemote(from, m.s); if (m.v) adoptVeh(m.v, from); }
@@ -362,10 +363,18 @@ function clientWorld(m) {
 net.on_close = (id) => { const r = remotes.get(id); if (r) { r.dispose(); remotes.delete(id); } hostExit(id); for (const b of bodies) if (b.held === id) b.held = null; for (const c of npcs) if (c.heldBy === id) c.heldBy = null; if (me.heldBy === id) me.heldBy = null; updateRoster(); toast('Jemand hat den Raum verlassen'); };
 net.on_join = () => { updateRoster(); toast('Ein Beamtli ist dazugekommen!'); };
 net.on_lost = () => { toast('Verbindung zum Raum verloren'); for (const [, r] of remotes) r.dispose(); remotes.clear(); for (const b of bodies) b.net = null; for (const v of vehicles) v.net = null; updateRoster(); };
+// Verbindungsanzeige: kommen noch Daten an?
+const lastMsg = {}; let statusT = 0;
+function netStatus() {
+  if (!net.on) return; const now = performance.now(); if (now - statusT < 500) return; statusT = now;
+  for (const el of document.querySelectorAll('#room .p')) { const id = el.dataset.id; if (!id || id === net.id) continue; const src = net.host ? id : 'host'; const ok = lastMsg[src] && now - lastMsg[src] < 2500; el.classList.toggle('lag', !ok); }
+  const warn = !net.host && (!lastMsg.host || now - lastMsg.host > 2500);
+  const nw = $('netwarn'); if (nw) nw.textContent = warn ? 'Keine Daten vom Raum-Eröffner. Ist sein Spiel offen?' : '';
+}
 function updateRoster() {
   const el = $('room'); if (!net.on) { el.classList.add('hidden'); return; }
   el.classList.remove('hidden');
-  el.innerHTML = `Raum <b>${net.code}</b>` + net.players.map(p => `<span class="p"><i class="dot" style="background:${PLAYER_COLS[p.slot % 3]}"></i>${esc(p.name)}${p.id === net.id ? ' (du)' : ''}</span>`).join('');
+  el.innerHTML = `Raum <b>${net.code}</b>` + '<span id="netwarn"></span>' + net.players.map(p => `<span class="p" data-id="${p.id}"><i class="dot" style="background:${PLAYER_COLS[p.slot % 3]}"></i>${esc(p.name)}${p.id === net.id ? ' (du)' : ''}</span>`).join('');
   const col = PLAYER_COLS[slotOf(net.id) % 3]; if (me.b.color !== col) { const old = me.b; old.dispose(); me.b = new (old.constructor)(col); scene.add(me.b.root); }
 }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -430,8 +439,8 @@ const fixed = 1 / 60; let acc = 0;
 function frame(dtRaw) {
   const dt = Math.min(0.05, dtRaw);
   acc += dt; let n = 0;
-  while (acc >= fixed && n < 4) { tick(fixed); acc -= fixed; n++; }
-  if (n === 4) acc = 0;
+  while (acc >= fixed && n < 7) { tick(fixed); acc -= fixed; n++; }
+  if (n === 7) acc = 0;
   render(dt);
 }
 function tick(dt) {
@@ -579,10 +588,11 @@ function render(dt) {
   // Anzeige
   $('hint').textContent = playing ? hintText() : '';
   const ch = $('charge'); if (me.held && mouseDown) { ch.style.display = 'block'; ch.firstElementChild.style.width = Math.min(100, chargeT / 0.9 * 100) + '%'; } else ch.style.display = 'none';
-  drawLabels();
+  const bg = performance.now() - lastRaf > 250; if (!bg) drawLabels();
   // Ton: Umgebung, Musik
   A.ambient('village', dt, { nearHens: false });
-  renderer.render(scene, camera);
+  if (!bg) renderer.render(scene, camera);
+  netStatus();
 }
 
 // ---------------- Menü ----------------
@@ -591,7 +601,7 @@ $('mute').checked = A.sound.muted; $('mute').onchange = e => A.setMuted(e.target
 $('vMusic').value = A.volume.music; $('vMusic').oninput = e => A.setVolume('music', +e.target.value);
 $('lowgfx').checked = lowgfx; $('lowgfx').onchange = e => { try { localStorage.setItem('fa-low', e.target.checked ? '1' : '0'); } catch (er) {} $('msg').textContent = 'Wird beim nächsten Laden übernommen.'; };
 const myName = () => { const n = (nameIn.value || 'Beamtli').trim().slice(0, 14); try { localStorage.setItem('fa-name', n); } catch (e) {} return n; };
-function start() { playing = true; $('menu').classList.add('hidden'); $('hud').classList.remove('hidden'); A.ensureAudio(); A.setMusic('fun'); if (!window.__test) cv.requestPointerLock && cv.requestPointerLock(); }
+function start() { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); playing = true; $('menu').classList.add('hidden'); $('hud').classList.remove('hidden'); A.ensureAudio(); A.setMusic('fun'); if (!window.__test) cv.requestPointerLock && cv.requestPointerLock(); }
 function openMenu() { playing = false; $('menu').classList.remove('hidden'); $('resume').classList.remove('hidden'); $('bLeave').classList.toggle('hidden', !net.on); if (document.pointerLockElement) document.exitPointerLock(); }
 $('bBack').onclick = () => { A.ui && A.ui('click'); start(); };
 $('bLeave').onclick = () => { netReset(); for (const [, r] of remotes) r.dispose(); remotes.clear(); for (const b of bodies) b.net = null; for (const v of vehicles) { v.net = null; v.driver = v.driver === net.id ? v.driver : null; } updateRoster(); $('msg').textContent = 'Raum verlassen. Du spielst allein weiter.'; $('bLeave').classList.add('hidden'); };
@@ -615,6 +625,14 @@ $('code').addEventListener('keydown', e => { if (e.key === 'Enter') $('bJoin').c
 // Testschnittstelle
 window.__fa = { me, npcs, bodies, vehicles, net, SPOTS, start, ach, save, remotes, keys, setCam(y, p, d) { camYaw = y; camPitch = p; if (d) camDist = d; }, grab: tryGrab, throwHeld, use: useAction, get playing() { return playing; } };
 
-function loop(now) { const dt = (now - last) / 1000; last = now; frame(dt); requestAnimationFrame(loop); }
+// Läuft das Spiel im Hintergrund (anderer Tab, minimiert), bleibt die Welt für die Mitspieler am Leben:
+// ein Worker gibt den Takt, gezeichnet wird nicht.
+try {
+  const w = new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),50)'], { type: 'text/javascript' })));
+  let lastH = performance.now();
+  w.onmessage = () => { const now = performance.now(); if (net.on && now - lastRaf > 250) { frame(Math.min(0.1, (now - lastH) / 1000)); last = now; } lastH = now; };
+} catch (e) {}
+let lastRaf = 0;
+function loop(now) { lastRaf = performance.now(); const dt = (now - last) / 1000; last = now; frame(dt); requestAnimationFrame(loop); }
 window.__frame = dt => frame(dt);
 if (!window.__offline) requestAnimationFrame(loop);

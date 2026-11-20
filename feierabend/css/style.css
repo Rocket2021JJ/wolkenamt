@@ -46,3 +46,7 @@ button.big { font-size: 20px; background: var(--red); color: var(--paper); paddi
 #bookList .got { font-weight: bold; }
 #bookList .no { opacity: .5; }
 .name3d { position: absolute; transform: translate(-50%, -100%); background: rgba(34,48,58,.75); color: var(--paper); padding: 1px 8px; border-radius: 8px; font-size: 13px; font-weight: bold; white-space: nowrap; pointer-events: none; }
+#room .p.lag { opacity: .45; }
+#room .p.lag::after { content: ' (keine Daten)'; font-size: 12px; }
+#netwarn { display: block; color: var(--red); font-weight: bold; font-size: 13px; max-width: 220px; }
+#netwarn:empty { display: none; }

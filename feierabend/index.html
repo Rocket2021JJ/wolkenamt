@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FEIERABEND – ein Spass-Spiel von Duchy Games</title>
+<meta name="description" content="FEIERABEND: Die Beamtli haben Dienstschluss. Herumtollen, Sachen werfen, Auto fahren, Stempel finden – allein oder zu dritt online.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="stamps"><b id="stN">0</b> / <span id="stT">25</span> <small>Stempel</small></div>
+  <div id="room" class="hidden"></div>
+  <div id="hint"></div>
+  <div id="charge"><i></i></div>
+  <div id="toasts"></div>
+  <div id="cross">·</div>
+  <div id="keys">WASD laufen · Shift rennen · Leertaste springen · Klick aufheben/werfen (halten = fester) · Rechtsklick ablegen · E benutzen/einsteigen · R hinfallen · Q winken · B rufen · Tab Erlebnisse · Esc Menü</div>
+</div>
+
+<div id="book" class="hidden"><h2>Erlebnisse</h2><div id="bookList"></div><p class="dim">Tab schliesst</p></div>
+
+<div id="menu">
+  <div class="card">
+    <h1>FEIERABEND</h1>
+    <p class="sub">Die Beamtli haben Dienstschluss. Jetzt wird herumgetollt.</p>
+    <label>Dein Name <input id="name" maxlength="14" placeholder="Beamtli"></label>
+    <div class="row">
+      <button id="bSolo" class="big">Allein spielen</button>
+    </div>
+    <div class="row">
+      <button id="bHost">Online-Raum eröffnen</button>
+      <span class="or">oder</span>
+      <input id="code" maxlength="4" placeholder="CODE">
+      <button id="bJoin">Beitreten</button>
+    </div>
+    <p id="msg" class="dim"></p>
+    <div id="resume" class="row hidden"><button id="bBack" class="big">Weiterspielen</button><button id="bLeave">Raum verlassen</button></div>
+    <div class="row small">
+      <label><input type="checkbox" id="mute"> Ton aus</label>
+      <label>Musik <input type="range" id="vMusic" min="0" max="1" step="0.05"></label>
+      <label><input type="checkbox" id="lowgfx"> Schnelle Grafik</label>
+    </div>
+    <p class="foot">Ein Spiel von <b>Duchy Games</b> · Herz &amp; Zog</p>
+  </div>
+</div>
+
+<script type="importmap">{ "imports": { "three": "./lib/three.module.min.js" } }</script>
+<script src="lib/peerjs.min.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
